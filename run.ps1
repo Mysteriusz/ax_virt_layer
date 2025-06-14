@@ -5,17 +5,30 @@ param(
 	[bool]$reboot
 )
 
+$global:reboot = $reboot
+$global:status = $status
+$global:build = $build
+
 $MACHINES_ALL = $env:AX_VIRT_LAYER_MACHINES -split ";"
-$MACHINES_REQ = $MACHINES_ALL | where-object { $machines -contains $_ }
+
+if ($machines -eq $null){
+	$MACHINES_REQ = $MACHINES_ALL
+}
+else{
+	$MACHINES_REQ = $MACHINES_ALL | where-object { $machines -contains $_ }
+}
 
 # Get login credentials
 $CREDENTIAL = get-credential -erroraction stop
 
-$SESSION = $null
-$CLIENT = $null
-$SYSTEM = $null
-$CLIENT_PATH = $null
-$CURRENT = $null
+class MACHINE{
+	[System.Management.Automation.Runspaces.PSSession]$session
+	[string]$name
+	[string]$system
+	[string]$path
+}
+
+$global:CURRENT = $null
 
 # Read machine string into local variables
 function SetupMachine(){
@@ -23,35 +36,48 @@ function SetupMachine(){
 		[string]$machineString
 	)
 
-	$global:CURRENT = ($machineString -split "/")	
-	
-	$global:CLIENT = $global:CURRENT[0]
-	$global:SYSTEM = $global:CURRENT[1]
-	$global:CLIENT_PATH = $global:CURRENT[2]
-	echo "Setting up client at: $global:CLIENT with target: $global:SYSTEM"
+	if ($machineString -eq $null) {
+		return
+	}
+
+	$global:CURRENT = [MACHINE]::new()
+
+	$splitted = $machineString -split '/'
+
+	$global:CURRENT.name = $splitted[0]
+	$global:CURRENT.system = $splitted[1]
+	$global:CURRENT.path = $splitted[2]
+	echo "Setting up client at: $($CURRENT.name) with target: $($CURRENT.system)"
 	
 	# Create a session with target machine
 	try{
-		$global:SESSION = new-pssession -computername $global:CLIENT -credential $CREDENTIAL -erroraction stop
+		$global:CURRENT.session = new-pssession -computername $CURRENT.name -credential $CREDENTIAL -erroraction stop
 	}
 	catch{
-		write-host "Unable to establish connection with client $global:CLIENT" -foregroundcolor red
+		write-host "Unable to establish connection with client $($CURRENT.name)" -foregroundcolor red
+		$global:CURRENT = $null
 	}
 
 	return 
 }
 
+# Windows client reboot function
+function WindowsReboot{
+	param(
+		[MACHINE]$machine
+	)
+
+	invoke-command -session $machine.session -erroraction stop -scriptblock { restart-computer -force }
+}
 # Windows client driver injection function
 function WindowsDriverInjection{
 	param(
-		[System.Management.Automation.Runspaces.PSSession]$client,
-		[string]$path,
-		[bool]$reboot
+		[MACHINE]$machine
 	)
 
 	echo "Removing a driver service"
 	# Try to delete the driver
-	invoke-command -session $client -erroraction stop -scriptblock {
+	invoke-command -session $machine.session -erroraction stop -scriptblock {
 		param($serviceName) 
 
 		sc.exe delete $serviceName
@@ -59,25 +85,21 @@ function WindowsDriverInjection{
 
 	echo "Creating a driver service"
 	# Try to create the driver
-	invoke-command -session $client -erroraction stop -scriptblock { 
+	invoke-command -session $machine.session -erroraction stop -scriptblock { 
 		param($serviceName, $driverPath) 
 		
 		sc.exe create $serviceName binPath= $driverPath type= kernel start= auto
-	} -argumentlist $env:AX_VIRT_LAYER_NAME, $path
-
-	if ($reboot){
-		invoke-command  -session $client -erroraction stop -scriptblock { restart-computer -force }
-	}
+	} -argumentlist $env:AX_VIRT_LAYER_NAME, $machine.path
 
 	return
 }
 # Windows client driver status check function
 function WindowsDriverStatus{
 	param(
-		[System.Management.Automation.Runspaces.PSSession]$client
+		[MACHINE]$machine
 	)
 
-	invoke-command -session $client -erroraction stop -scriptblock {
+	invoke-command -session $machine.session -erroraction stop -scriptblock {
 		param(
 			[string]$serviceName
 		)
@@ -97,34 +119,43 @@ function BuildMachines{
 	for ($i = 0; $i -lt $machines.Length; $i++){
 		SetupMachine -machineString $machines[$i]
 	
+		if ($CURRENT -eq $null){
+			continue
+		}
+
 		# Copy driver to client destination path
 		try{
-			copy-item -path "$env:AX_VIRT_LAYER_BUILD_DIR\ax_virt_layer.sys" -destination "$global:CLIENT_PATH" -tosession $global:SESSION -erroraction stop
-			write-host "Driver copied to $global:CLIENT_PATH\ax_virt_layer.sys" -foregroundcolor green
+			copy-item -path "$env:AX_VIRT_LAYER_BUILD_DIR\ax_virt_layer.sys" -destination "$($CURRENT.path)" -tosession $CURRENT.session -erroraction stop
+			write-host "Driver copied to $($CURRENT.path)\ax_virt_layer.sys" -foregroundcolor green
 		}
 		catch{
 			write-host "Driver copying failed. Make sure the client has enabled remoting (enable-psremoting) and Powershell version is 5+." -foregroundcolor red
-			remove-pssession $global:SESSION
+			remove-pssession $CURRENT.session
 			continue
 		}
 	
-		if ($global:SYSTEM -in @("win11", "win10")){
-			WindowsDriverInjection -client $global:SESSION -path "$global:CLIENT_PATH\ax_virt_layer.sys" -reboot $reboot
+		if ($CURRENT.system -in @("win11", "win10")){
+			WindowsDriverInjection -machine $CURRENT
 		}
-		elseif ($global:SYSTEM -eq "linux" ){
+		elseif ($CURRENT.system -eq "linux" ){
 			# TODO: Linux driver injection support	
 		}
-		elseif ($global:SYSTEM -eq "custom" -and $CustomDriverInjection -ne $null){
+		elseif ($CURRENT.system -eq "custom" -and $CustomDriverInjection -ne $null){
 			CustomDriverInjection @CustomDriverInjectionArgs
 		}
 		else {
-			write-host "Invalid system argument passed for $global:CLIENT machine, aborting." -foregroundcolor red
-			remove-pssession $global:SESSION
+			write-host "Invalid system argument passed for $($CURRENT.name) machine, aborting." -foregroundcolor red
+			remove-pssession $CURRENT.session
 			continue
 		}
 	
+		# Reboot if requested
+		if ($global:reboot){
+			WindowsReboot -machine $CURRENT
+		}
+
 		# Delete the session with target machine
-		remove-pssession $global:SESSION
+		remove-pssession $CURRENT.session
 	}
 }
 # Check the driver on provided machines
@@ -135,21 +166,33 @@ function CheckMachines{
 
 	for ($i = 0; $i -lt $machines.Length; $i++){
 		SetupMachine -machineString $machines[$i]
-
-		if ($global:SYSTEM -in @("win11", "win10")){
-			WindowsDriverStatus -client $global:SESSION -path "$global:CLIENT_PATH\ax_virt_layer.sys":
+			
+		if ($CURRENT -eq $null){
+			continue
 		}
-		elseif ($global:SYSTEM -eq "linux" ){
+
+		if ($CURRENT.system -in @("win11", "win10")){
+			WindowsDriverStatus -machine $CURRENT
+		}
+		elseif ($CURRENT.system -eq "linux" ){
 			# TODO: Linux driver injection support	
 		}
-		elseif ($global:SYSTEM -eq "custom" -and $CustomDriverStatus -ne $null){
+		elseif ($CURRENT.system -eq "custom" -and $CustomDriverStatus -ne $null){
 			CustomDriverStatus @CustomDriverStatusArgs
 		}
 		else {
-			write-host "Invalid system argument passed for $CLIENT machine, aborting." -foregroundcolor red
-			remove-pssession $SESSION
+			write-host "Invalid system argument passed for $($CURRENT.name) machine, aborting." -foregroundcolor red
+			remove-pssession $CURRENT.session
 			continue
 		}
+
+		# Reboot if requested
+		if ($global:reboot){
+			WindowsReboot -machine $CURRENT
+		}
+
+		# Delete the session with target machine
+		remove-pssession $CURRENT.session
 	}
 }
 
