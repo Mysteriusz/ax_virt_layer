@@ -42,8 +42,8 @@ function SetupMachine(){
 
 	$global:CURRENT = [MACHINE]::new()
 
-	$splitted = $machineString -split '/'
-
+	$splitted = $machineString -split '\|'
+	
 	$global:CURRENT.name = $splitted[0]
 	$global:CURRENT.system = $splitted[1]
 	$global:CURRENT.path = $splitted[2]
@@ -80,7 +80,7 @@ function WindowsDriverInjection{
 	invoke-command -session $machine.session -erroraction stop -scriptblock {
 		param($serviceName) 
 
-		sc.exe delete $serviceName
+		sc.exe delete $serviceName | out-null
 	} -argumentlist $env:AX_VIRT_LAYER_NAME
 
 	echo "Creating a driver service"
@@ -88,7 +88,7 @@ function WindowsDriverInjection{
 	invoke-command -session $machine.session -erroraction stop -scriptblock { 
 		param($serviceName, $driverPath) 
 		
-		sc.exe create $serviceName binPath= $driverPath type= kernel start= auto
+		sc.exe create $serviceName binPath= $driverPath type= kernel start= auto | out-null
 	} -argumentlist $env:AX_VIRT_LAYER_NAME, "$($machine.path)\ax_virt_layer.sys"
 
 	write-host "Installed driver from path: $($machine.path)\ax_virt_layer.sys" -foregroundcolor green
@@ -105,7 +105,7 @@ function WindowsDriverStatus{
 		param(
 			[string]$serviceName
 		)
-		sc.exe queryex $serviceName
+		sc.exe queryex $serviceName 
 	
 	} -argumentlist $env:AX_VIRT_LAYER_NAME
 	
@@ -129,10 +129,19 @@ function BuildMachines{
 		$cert = new-selfsignedcertificate -type CodeSigningCert -subject "CN=Test ax_virt_layer Cert for $($CURRENT.name)" -keyexportpolicy Exportable -keyspec Signature -certstorelocation "Cert:\CurrentUser\My"
 
 		# Export the certificate
-		export-pfxcertificate -cert $cert -filepath "$env:AX_VIRT_LAYER_BUILD_DIR\ax_virt_layer.pfx" -password $CREDENTIAL.Password
+		export-pfxcertificate -cert $cert -filepath "$env:AX_VIRT_LAYER_BUILD_DIR\ax_virt_layer.pfx" -password $CREDENTIAL.Password | out-null
 		
 		# Sign the driver
-		signtool sign /fd SHA256 /a /f "$env:AX_VIRT_LAYER_BUILD_DIR\ax_virt_layer.pfx" /p $(read-host "certificate password (same as credential)") "$env:AX_VIRT_LAYER_BUILD_DIR\ax_virt_layer.sys"
+		signtool sign /fd SHA256 /a /f "$env:AX_VIRT_LAYER_BUILD_DIR\ax_virt_layer.pfx" /p $(read-host "certificate password (same as credential)") "$env:AX_VIRT_LAYER_BUILD_DIR\ax_virt_layer.sys" | out-null
+
+		# Import the certificate on target device
+		invoke-command -session $CURRENT.session -erroraction stop -scriptblock {
+			param(
+				[string]$certPath,
+				[System.Security.SecureString]$certPassword
+			)
+			import-pfxcertificate -filepath $certPath -certstorelocation "Cert:\CurrentUser\My" -password $certPassword | out-null
+		} -argumentlist "$($CURRENT.path)\ax_virt_layer.pfx", $CREDENTIAL.Password
 
 		# Copy driver to client destination path
 		try{
