@@ -89,7 +89,9 @@ function WindowsDriverInjection{
 		param($serviceName, $driverPath) 
 		
 		sc.exe create $serviceName binPath= $driverPath type= kernel start= auto
-	} -argumentlist $env:AX_VIRT_LAYER_NAME, $machine.path
+	} -argumentlist $env:AX_VIRT_LAYER_NAME, "$($machine.path)\ax_virt_layer.sys"
+
+	write-host "Installed driver from path: $($machine.path)\ax_virt_layer.sys" -foregroundcolor green
 
 	return
 }
@@ -123,17 +125,27 @@ function BuildMachines{
 			continue
 		}
 
+		# Create a certificate and sign the driver
+		$cert = new-selfsignedcertificate -type CodeSigningCert -subject "CN=Test ax_virt_layer Cert for $($CURRENT.name)" -keyexportpolicy Exportable -keyspec Signature -certstorelocation "Cert:\CurrentUser\My"
+
+		# Export the certificate
+		export-pfxcertificate -cert $cert -filepath "$env:AX_VIRT_LAYER_BUILD_DIR\ax_virt_layer.pfx" -password $CREDENTIAL.Password
+		
+		# Sign the driver
+		signtool sign /fd SHA256 /a /f "$env:AX_VIRT_LAYER_BUILD_DIR\ax_virt_layer.pfx" /p $(read-host "certificate password (same as credential)") "$env:AX_VIRT_LAYER_BUILD_DIR\ax_virt_layer.sys"
+
 		# Copy driver to client destination path
 		try{
 			copy-item -path "$env:AX_VIRT_LAYER_BUILD_DIR\ax_virt_layer.sys" -destination "$($CURRENT.path)" -tosession $CURRENT.session -erroraction stop
+			copy-item -path "$env:AX_VIRT_LAYER_BUILD_DIR\ax_virt_layer.pfx" -destination "$($CURRENT.path)" -tosession $CURRENT.session -erroraction stop
 			write-host "Driver copied to $($CURRENT.path)\ax_virt_layer.sys" -foregroundcolor green
 		}
 		catch{
-			write-host "Driver copying failed. Make sure the client has enabled remoting (enable-psremoting) and Powershell version is 5+." -foregroundcolor red
+			write-host "Driver copying failed. Make sure the client has enabled remoting (enable-psremoting) and Powershell version is 5+. Also check the AX_VIRT_LAYER_BUILD_DIR environment variable." -foregroundcolor red
 			remove-pssession $CURRENT.session
 			continue
 		}
-	
+
 		if ($CURRENT.system -in @("win11", "win10")){
 			WindowsDriverInjection -machine $CURRENT
 		}
