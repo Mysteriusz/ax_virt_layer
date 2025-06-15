@@ -29,6 +29,8 @@ class MACHINE{
 }
 
 $global:CURRENT = $null
+$global:DRIVER_NAME = "ax_virt_layer.sys"
+$global:CERT_NAME = "ax_virt_layer.pfx"
 
 # Read machine string into local variables
 function SetupMachine(){
@@ -67,7 +69,10 @@ function WindowsReboot{
 		[MACHINE]$machine
 	)
 
-	invoke-command -session $machine.session -erroraction stop -scriptblock { restart-computer -force }
+	invoke-command -session $machine.session -erroraction stop -scriptblock { 
+		restart-computer -force | out-null
+	}
+	write-host "Restarting $($machine.name)." -foregroundcolor yellow
 }
 # Windows client driver injection function
 function WindowsDriverInjection{
@@ -78,7 +83,9 @@ function WindowsDriverInjection{
 	echo "Removing a driver service"
 	# Try to delete the driver
 	invoke-command -session $machine.session -erroraction stop -scriptblock {
-		param($serviceName) 
+		param(
+			$serviceName
+		) 
 
 		sc.exe delete $serviceName | out-null
 	} -argumentlist $env:AX_VIRT_LAYER_NAME
@@ -86,14 +93,15 @@ function WindowsDriverInjection{
 	echo "Creating a driver service"
 	# Try to create the driver
 	invoke-command -session $machine.session -erroraction stop -scriptblock { 
-		param($serviceName, $driverPath) 
+		param(
+			$serviceName, 
+			$driverPath
+		) 
 		
 		sc.exe create $serviceName binPath= $driverPath type= kernel start= auto | out-null
-	} -argumentlist $env:AX_VIRT_LAYER_NAME, "$($machine.path)\ax_virt_layer.sys"
+	} -argumentlist $env:AX_VIRT_LAYER_NAME, "$($machine.path)\$global:DRIVER_NAME"
 
-	write-host "Installed driver from path: $($machine.path)\ax_virt_layer.sys" -foregroundcolor green
-
-	return
+	write-host "Installed driver from path: $($machine.path)\$global:DRIVER_NAME" -foregroundcolor green
 }
 # Windows client driver status check function
 function WindowsDriverStatus{
@@ -105,11 +113,10 @@ function WindowsDriverStatus{
 		param(
 			[string]$serviceName
 		)
+
 		sc.exe queryex $serviceName 
 	
 	} -argumentlist $env:AX_VIRT_LAYER_NAME
-	
-	return
 }
 
 # Setup the driver on provided machines
@@ -125,14 +132,18 @@ function BuildMachines{
 			continue
 		}
 
-		# Create a certificate and sign the driver
-		$cert = new-selfsignedcertificate -type CodeSigningCert -subject "CN=Test ax_virt_layer Cert for $($CURRENT.name)" -keyexportpolicy Exportable -keyspec Signature -certstorelocation "Cert:\CurrentUser\My"
+		$cert = get-childitem "Cert:\CurrentUser\My" | where-object { $_.Subject -eq "CN=Test ax_virt_layer Cert for $($CURRENT.name)" }
+
+		if ($cert -eq $null){
+			# Create a certificate and sign the driver
+			$cert = new-selfsignedcertificate -type CodeSigningCert -subject "CN=Test ax_virt_layer Cert for $($CURRENT.name)" -keyexportpolicy Exportable -keyspec Signature -certstorelocation "Cert:\CurrentUser\My"
+		}
 
 		# Export the certificate
-		export-pfxcertificate -cert $cert -filepath "$env:AX_VIRT_LAYER_BUILD_DIR\ax_virt_layer.pfx" -password $CREDENTIAL.Password | out-null
+		export-pfxcertificate -cert $cert -filepath "$env:AX_VIRT_LAYER_BUILD_DIR\$global:CERT_NAME" -password $CREDENTIAL.Password | out-null
 		
 		# Sign the driver
-		signtool sign /fd SHA256 /a /f "$env:AX_VIRT_LAYER_BUILD_DIR\ax_virt_layer.pfx" /p $(read-host "certificate password (same as credential)") "$env:AX_VIRT_LAYER_BUILD_DIR\ax_virt_layer.sys" | out-null
+		signtool sign /fd SHA256 /a /f "$env:AX_VIRT_LAYER_BUILD_DIR\$global:CERT_NAME" /p $(read-host "certificate password (same as credential)") "$env:AX_VIRT_LAYER_BUILD_DIR\$global:DRIVER_NAME" | out-null
 
 		# Import the certificate on target device
 		invoke-command -session $CURRENT.session -erroraction stop -scriptblock {
@@ -140,14 +151,19 @@ function BuildMachines{
 				[string]$certPath,
 				[System.Security.SecureString]$certPassword
 			)
-			import-pfxcertificate -filepath $certPath -certstorelocation "Cert:\CurrentUser\My" -password $certPassword | out-null
-		} -argumentlist "$($CURRENT.path)\ax_virt_layer.pfx", $CREDENTIAL.Password
+
+			$cert = get-childitem "Cert:\LocalMachine\My" | where-object { $_.Subject -eq "CN=Test ax_virt_layer Cert for $($CURRENT.name)" }
+			
+			if ($cert -eq $null){
+				import-pfxcertificate -filepath $certPath -certstorelocation "Cert:\LocalMachine\My" -password $certPassword | out-null
+			}
+		} -argumentlist "$($CURRENT.path)\$global:CERT_NAME", $CREDENTIAL.Password
 
 		# Copy driver to client destination path
 		try{
-			copy-item -path "$env:AX_VIRT_LAYER_BUILD_DIR\ax_virt_layer.sys" -destination "$($CURRENT.path)" -tosession $CURRENT.session -erroraction stop
-			copy-item -path "$env:AX_VIRT_LAYER_BUILD_DIR\ax_virt_layer.pfx" -destination "$($CURRENT.path)" -tosession $CURRENT.session -erroraction stop
-			write-host "Driver copied to $($CURRENT.path)\ax_virt_layer.sys" -foregroundcolor green
+			copy-item -path "$env:AX_VIRT_LAYER_BUILD_DIR\$global:DRIVER_NAME" -destination "$($CURRENT.path)" -tosession $CURRENT.session -erroraction stop
+			copy-item -path "$env:AX_VIRT_LAYER_BUILD_DIR\$global:CERT_NAME" -destination "$($CURRENT.path)" -tosession $CURRENT.session -erroraction stop
+			write-host "Driver copied to $($CURRENT.path)\$global:DRIVER_NAME" -foregroundcolor green
 		}
 		catch{
 			write-host "Driver copying failed. Make sure the client has enabled remoting (enable-psremoting) and Powershell version is 5+. Also check the AX_VIRT_LAYER_BUILD_DIR environment variable." -foregroundcolor red
