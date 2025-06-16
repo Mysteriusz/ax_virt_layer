@@ -32,6 +32,35 @@ $global:CURRENT = $null
 $global:DRIVER_NAME = "ax_virt_layer.sys"
 $global:CERT_NAME = "ax_virt_layer.pfx"
 
+function Approve(){
+	param(
+		[string]$message,
+		[ConsoleColor]$messageColor
+	)	
+
+	if ($message -ne $null){
+		write-host $message -foregroundcolor $messageColor
+	}
+
+	write-host "Press "
+	write-host "[Y]" -foregroundcolor yellow -nonewline
+	write-host " to Accept or " -nonewline
+	write-host "[N]"-foregroundcolor yellow -nonewline
+	write-host " to Decline" -nonewline
+	write-host ""
+
+	do{
+		$key = [System.Console]::ReadKey($true).KeyChar
+	} while($key -ne 'y' -and $key -ne 'n')
+
+	if ($key -eq 'y'){
+		return 1
+	}
+	else{
+		return 0
+	}
+}
+
 # Read machine string into local variables
 function SetupMachine(){
 	param(
@@ -145,6 +174,48 @@ function BuildMachines{
 		# Sign the driver
 		signtool sign /fd SHA256 /a /f "$env:AX_VIRT_LAYER_BUILD_DIR\$global:CERT_NAME" /p $(read-host "certificate password (same as credential)") "$env:AX_VIRT_LAYER_BUILD_DIR\$global:DRIVER_NAME" | out-null
 
+		# Copy driver to client destination path
+		try{
+			copy-item -path "$env:AX_VIRT_LAYER_BUILD_DIR\$global:DRIVER_NAME" -destination "$($CURRENT.path)" -tosession $CURRENT.session -erroraction stop
+			write-host "Driver copied to $($CURRENT.path)\$global:DRIVER_NAME" -foregroundcolor green
+		}
+		catch{
+			# If exception is ERROR_SHARING_VIOLATION
+			if ($_.Exception.HResult -eq -2146233087){
+				$rr = Approve -message "The driver is in use. Restart machine to delete the driver service?" -messageColor yellow
+				
+				if ($rr){
+					# Mark driver as to-remove
+					invoke-command -session $CURRENT.session -erroraction stop -scriptblock {
+						param(
+							$serviceName
+						) 
+
+						sc.exe delete $serviceName | out-null
+					} -argumentlist $env:AX_VIRT_LAYER_NAME
+					WindowsReboot -machine $CURRENT
+
+					write-host "After the machine restarts re-run the build command." -foregroundcolor yellow
+					continue
+				}
+			}
+			
+			write-host "Driver copying failed. Make sure the client has enabled remoting (enable-psremoting) and Powershell version is 5+. Also check the AX_VIRT_LAYER_BUILD_DIR environment variable." -foregroundcolor red
+			remove-pssession $CURRENT.session
+			continue
+		}
+
+		# Copy certificate to client destination path
+		try{
+			copy-item -path "$env:AX_VIRT_LAYER_BUILD_DIR\$global:CERT_NAME" -destination "$($CURRENT.path)" -tosession $CURRENT.session -erroraction stop
+			write-host "Certificate copied to $($CURRENT.path)\$global:CERT_NAME" -foregroundcolor green
+		}
+		catch{
+			write-host "Certificate copying failed. Make sure the client has enabled remoting (enable-psremoting) and Powershell version is 5+. Also check the AX_VIRT_LAYER_BUILD_DIR environment variable." -foregroundcolor red
+			remove-pssession $CURRENT.session
+			continue
+		}
+
 		# Import the certificate on target device
 		invoke-command -session $CURRENT.session -erroraction stop -scriptblock {
 			param(
@@ -159,17 +230,8 @@ function BuildMachines{
 			}
 		} -argumentlist "$($CURRENT.path)\$global:CERT_NAME", $CREDENTIAL.Password
 
-		# Copy driver to client destination path
-		try{
-			copy-item -path "$env:AX_VIRT_LAYER_BUILD_DIR\$global:DRIVER_NAME" -destination "$($CURRENT.path)" -tosession $CURRENT.session -erroraction stop
-			copy-item -path "$env:AX_VIRT_LAYER_BUILD_DIR\$global:CERT_NAME" -destination "$($CURRENT.path)" -tosession $CURRENT.session -erroraction stop
-			write-host "Driver copied to $($CURRENT.path)\$global:DRIVER_NAME" -foregroundcolor green
-		}
-		catch{
-			write-host "Driver copying failed. Make sure the client has enabled remoting (enable-psremoting) and Powershell version is 5+. Also check the AX_VIRT_LAYER_BUILD_DIR environment variable." -foregroundcolor red
-			remove-pssession $CURRENT.session
-			continue
-		}
+		write-host "Certificate successfully imported on client." -foregroundcolor green
+
 
 		if ($CURRENT.system -in @("win11", "win10")){
 			WindowsDriverInjection -machine $CURRENT
