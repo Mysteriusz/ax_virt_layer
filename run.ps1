@@ -32,6 +32,7 @@ $global:CURRENT = $null
 $global:DRIVER_NAME = "ax_virt_layer.sys"
 $global:CERT_NAME = "ax_virt_layer.pfx"
 
+# Y/N Console question function
 function Approve(){
 	param(
 		[string]$message,
@@ -104,8 +105,8 @@ function WindowsReboot{
 	}
 	write-host "Restarting $($machine.name)." -foregroundcolor yellow
 }
-# Windows client driver injection function
-function WindowsDriverInjection{
+# Windows client driver removal function
+function WindowsDriverRemove{
 	param(
 		[MACHINE]$machine
 	)
@@ -119,7 +120,13 @@ function WindowsDriverInjection{
 
 		sc.exe delete $serviceName | out-null
 	} -argumentlist $env:AX_VIRT_LAYER_NAME
-
+}
+# Windows client driver creation function
+function WindowsDriverInjection{
+	param(
+		[MACHINE]$machine
+	)
+	
 	echo "Creating a driver service"
 	# Try to create the driver
 	invoke-command -session $machine.session -erroraction stop -scriptblock { 
@@ -187,13 +194,7 @@ function BuildMachines{
 				
 				if ($rr){
 					# Mark driver as to-remove
-					invoke-command -session $CURRENT.session -erroraction stop -scriptblock {
-						param(
-							$serviceName
-						) 
-
-						sc.exe delete $serviceName | out-null
-					} -argumentlist $env:AX_VIRT_LAYER_NAME
+					WindowsDriverRemove -machine $CURRENT
 					WindowsReboot -machine $CURRENT
 
 					write-host "After the machine restarts re-run the build command." -foregroundcolor yellow
