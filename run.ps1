@@ -42,7 +42,8 @@ function Approve(){
 		write-host $message -foregroundcolor $messageColor
 	}
 
-	write-host "Press "
+	write-host ""
+	write-host "Press " -nonewline
 	write-host "[Y]" -foregroundcolor yellow -nonewline
 	write-host " to Accept or " -nonewline
 	write-host "[N]"-foregroundcolor yellow -nonewline
@@ -156,7 +157,7 @@ function BuildMachines{
 	
 	for ($i = 0; $i -lt $machines.Length; $i++){
 		SetupMachine -machineString $machines[$i]
-	
+		
 		if ($CURRENT -eq $null){
 			continue
 		}
@@ -233,7 +234,7 @@ function BuildMachines{
 		write-host "Certificate successfully imported on client." -foregroundcolor green
 
 
-		if ($CURRENT.system -in @("win11", "win10")){
+		if ($CURRENT.system -in @("win11", "win10", "win7")){
 			WindowsDriverInjection -machine $CURRENT
 		}
 		elseif ($CURRENT.system -eq "linux" ){
@@ -270,7 +271,7 @@ function CheckMachines{
 			continue
 		}
 
-		if ($CURRENT.system -in @("win11", "win10")){
+		if ($CURRENT.system -in @("win11", "win10", "win7")){
 			WindowsDriverStatus -machine $CURRENT
 		}
 		elseif ($CURRENT.system -eq "linux" ){
