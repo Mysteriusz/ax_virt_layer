@@ -1,0 +1,14 @@
+#include "ax_core.h"
+
+NTSTATUS DriverInit(PDRIVER_OBJECT DriverObject, PUNICODE_STRING RegistryPath){
+    WDF_DRIVER_CONFIG cfg;
+    WDF_DRIVER_CONFIG_INIT(&cfg, NULL);
+
+    return STATUS_SUCCESS;
+}
+
+NTSTATUS DriverAdd(WDFDRIVER Driver, PWDFDEVICE_INIT DeviceInit){
+    UNREFERENCED_PARAMETER(Driver);
+    UNREFERENCED_PARAMETER(DeviceInit);
+    return STATUS_SUCCESS;
+}
