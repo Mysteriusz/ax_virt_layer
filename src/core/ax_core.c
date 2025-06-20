@@ -1,14 +1,74 @@
 #include "ax_core.h"
 
-NTSTATUS DriverInit(PDRIVER_OBJECT DriverObject, PUNICODE_STRING RegistryPath){
-    WDF_DRIVER_CONFIG cfg;
-    WDF_DRIVER_CONFIG_INIT(&cfg, NULL);
+static UNICODE_STRING AXPATH_K_STRING = RTL_CONSTANT_STRING(AXPATH_K);
+static UNICODE_STRING AXPATH_U_STRING = RTL_CONSTANT_STRING(AXPATH_U);
+static UNICODE_STRING AXNAME_K_STRING = RTL_CONSTANT_STRING(AXNAME_K);
+static UNICODE_STRING AXNAME_U_STRING = RTL_CONSTANT_STRING(AXNAME_U);
 
+AXSTATUS AXDriverInit(PDRIVER_OBJECT DriverObject, PUNICODE_STRING RegistryPath){
+    DbgPrint("Virtualization layer initializing!\n");
+    
+    NTSTATUS status = STATUS_SUCCESS;
+
+    DriverObject->DriverUnload = AXDriverUnload;
+    
+    PDEVICE_OBJECT device = NULL;
+    status = IoCreateDevice(DriverObject, 0, &AXPATH_K_STRING, FILE_DEVICE_UNKNOWN, 0, FALSE, &device);
+    if (NT_ERROR(status) || device == NULL) {
+        DbgBreakPoint();
+        return status;
+    }
+    
+    status = IoCreateSymbolicLink(&AXPATH_U_STRING, &AXPATH_K_STRING);
+    if (NT_ERROR(status)) {
+        DbgPrint("ERR: 0x%08X\n", status);
+        DbgBreakPoint();
+        return status;
+    }
+
+    UNREFERENCED_PARAMETER(RegistryPath);
+
+    DriverObject->MajorFunction[IRP_MJ_CLOSE] = AXEmulator_Close;
+    DriverObject->MajorFunction[IRP_MJ_CREATE] = AXEmulator_Create;
+    DriverObject->MajorFunction[IRP_MJ_DEVICE_CONTROL] = AXEmulator_Control;
+
+    DbgBreakPoint();
+    return status;
+}
+
+AXSTATUS AXDriverUnload(PDRIVER_OBJECT DriverObject) {
+    UNREFERENCED_PARAMETER(DriverObject);
     return STATUS_SUCCESS;
 }
 
-NTSTATUS DriverAdd(WDFDRIVER Driver, PWDFDEVICE_INIT DeviceInit){
-    UNREFERENCED_PARAMETER(Driver);
-    UNREFERENCED_PARAMETER(DeviceInit);
+AXSTATUS AXEmulator_Create(PDEVICE_OBJECT DeviceObject, PIRP Irp) {
+    Irp->IoStatus.Status = STATUS_SUCCESS;
+    IoCompleteRequest(Irp, IO_NO_INCREMENT);
+    UNREFERENCED_PARAMETER(DeviceObject);
     return STATUS_SUCCESS;
+}
+
+AXSTATUS AXEmulator_Close(PDEVICE_OBJECT DeviceObject, PIRP Irp) {
+    Irp->IoStatus.Status = STATUS_SUCCESS;
+    IoCompleteRequest(Irp, IO_NO_INCREMENT);
+    UNREFERENCED_PARAMETER(DeviceObject);
+    return STATUS_SUCCESS;
+}
+
+AXSTATUS AXEmulator_Control(PDEVICE_OBJECT DeviceObject, PIRP Irp){
+    PIO_STACK_LOCATION stack = IoGetCurrentIrpStackLocation(Irp);
+    ULONG code = stack->Parameters.DeviceIoControl.IoControlCode;
+    UNREFERENCED_PARAMETER(DeviceObject);
+
+    switch (code) {
+    case 0x0a:
+        DbgPrint("IOCTL 0x0A received\n");
+        DbgBreakPoint();
+    default:
+        DbgPrint("IOCTL UNK received\n");
+        DbgBreakPoint();
+    }
+
+    IoCompleteRequest(Irp, IO_NO_INCREMENT);
+    return Irp->IoStatus.Status;
 }
