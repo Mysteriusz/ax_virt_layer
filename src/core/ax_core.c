@@ -9,20 +9,18 @@ AXSTATUS AXDriverInit(PDRIVER_OBJECT DriverObject, PUNICODE_STRING RegistryPath)
     DbgPrint("Virtualization layer initializing!\n");
     
     NTSTATUS status = STATUS_SUCCESS;
-
     DriverObject->DriverUnload = AXDriverUnload;
     
     PDEVICE_OBJECT device = NULL;
     status = IoCreateDevice(DriverObject, 0, &AXPATH_K_STRING, FILE_DEVICE_UNKNOWN, 0, FALSE, &device);
     if (NT_ERROR(status) || device == NULL) {
-        DbgBreakPoint();
+        DbgPrint("AX_ERR: 0x%08X\n", status);
         return status;
     }
     
     status = IoCreateSymbolicLink(&AXPATH_U_STRING, &AXPATH_K_STRING);
     if (NT_ERROR(status)) {
-        DbgPrint("ERR: 0x%08X\n", status);
-        DbgBreakPoint();
+        DbgPrint("AX_ERR: 0x%08X\n", status);
         return status;
     }
 
@@ -32,7 +30,6 @@ AXSTATUS AXDriverInit(PDRIVER_OBJECT DriverObject, PUNICODE_STRING RegistryPath)
     DriverObject->MajorFunction[IRP_MJ_CREATE] = AXEmulator_Create;
     DriverObject->MajorFunction[IRP_MJ_DEVICE_CONTROL] = AXEmulator_Control;
 
-    DbgBreakPoint();
     return status;
 }
 
@@ -61,12 +58,18 @@ AXSTATUS AXEmulator_Control(PDEVICE_OBJECT DeviceObject, PIRP Irp){
     UNREFERENCED_PARAMETER(DeviceObject);
 
     switch (code) {
-    case 0x0a:
-        DbgPrint("IOCTL 0x0A received\n");
+    case AX_IOCC_MACHINE:
+        DbgPrint("IOCTL VMX received\n");
+        AXCreateMachine(NULL, NULL);
+        break;
+    case AX_IOCC_DEBUG:
+        DbgPrint("IOCTL DEBUG received\n");
         DbgBreakPoint();
+        break;
     default:
         DbgPrint("IOCTL UNK received\n");
         DbgBreakPoint();
+        break;
     }
 
     IoCompleteRequest(Irp, IO_NO_INCREMENT);
