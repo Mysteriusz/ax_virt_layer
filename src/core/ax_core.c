@@ -56,7 +56,7 @@ AXSTATUS AXEmulator_Control(PDEVICE_OBJECT DeviceObject, PIRP Irp){
     PIO_STACK_LOCATION stack = IoGetCurrentIrpStackLocation(Irp);
     
     PAX_COMMAND command = NULL;
-    ParseCommand((PCHAR)Irp->AssociatedIrp.SystemBuffer, &command);
+    ReadCommand((PCHAR)Irp->AssociatedIrp.SystemBuffer, &command);
 
     switch (stack->Parameters.DeviceIoControl.IoControlCode) {
     case AX_IOCC_MACHINE:

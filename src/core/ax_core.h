@@ -1,4 +1,13 @@
-#pragma once
+/*
+
+	Description:
+
+	Core driver handler managing driver events and utilizing ax_def.h
+
+*/
+
+#ifndef AX_DRIVER_CORE
+#define AX_DRIVER_CORE
 
 #include "ax_def.h"
 #include "machine/machine.h"
@@ -15,3 +24,5 @@ VOID AXDriverUnload(PDRIVER_OBJECT DriverObject);
 AXSTATUS AXEmulator_Close(PDEVICE_OBJECT DeviceObject, PIRP Irp);
 AXSTATUS AXEmulator_Create(PDEVICE_OBJECT DeviceObject, PIRP Irp);
 AXSTATUS AXEmulator_Control(PDEVICE_OBJECT DeviceObject, PIRP Irp);
+
+#endif

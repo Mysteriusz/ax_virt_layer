@@ -1,3 +1,11 @@
+/*
+
+	Description:
+
+	Definition file for AX_VIRTUALIZATION_DRIVER
+
+*/
+
 #ifndef AX_DRIVER_ENV
 #define AX_DRIVER_ENV
 
@@ -20,16 +28,24 @@
 typedef NTSTATUS AXSTATUS;
 
 // ========================================================
-//                    AX Parser command
+//                     AX Command token
 // ========================================================
 typedef struct _AX_TOKEN {
 	UINT32 len;
 	PCHAR buffer;
 } AX_TOKEN, *PAX_TOKEN;
+
+// ========================================================
+//                 AX Tokenized subcommand
+// ========================================================
 typedef struct _AX_SUBCOMMAND {
 	UINT32 tokenCount;
-	PAX_TOKEN tokens;
+	PAX_TOKEN tokens[20];
 } AX_SUBCOMMAND, *PAX_SUBCOMMAND;
+
+// ========================================================
+//                    AX Parsed command
+// ========================================================
 typedef struct _AX_COMMAND {
 	STRING action;
 	PAX_SUBCOMMAND subCommands;
@@ -42,6 +58,9 @@ typedef struct _AX_MACHINE_ROOT {
 	UINT32 version;
 } AX_MACHINE_ROOT, *PAX_MACHINE_ROOT;
 
+// ========================================================
+//             AX Machine build configuration
+// ========================================================
 typedef struct _AX_MACHINE_CONFIG {
 	UINT32 cpuCount;
 } AX_MACHINE_CONFIG, *PAX_MACHINE_CONFIG;

@@ -1,23 +1,6 @@
-/*
-	
-	Description:
-
-	Token parser for AX Project command reader. 
-	Works by managing internally token allocations which allows easy command reading. 
-	
-	Warnings:
-
-	Use carefully since it manages memory allocations internally.
-	Method usage recommendation map:
-
-		ReadToken       --->	 FreeToken
-		ParseCommand    --->	 FreeCommand
-
-*/
-
 #include "ax_parser.h"
 
-AXSTATUS ParseCommand(
+AXSTATUS ReadCommand(
 	_In_ PCHAR commandString,
 	_Out_ PAX_COMMAND* command
 ) {
@@ -25,12 +8,55 @@ AXSTATUS ParseCommand(
 		return STATUS_INVALID_PARAMETER;
 	}
 
-	AXSTATUS status;
-	*command = NULL;
+	AXSTATUS status = STATUS_SUCCESS;
+	*command = ExAllocatePool3(POOL_FLAG_PAGED, sizeof(AX_COMMAND), 'CXA', NULL, 0);
+	if (*command == NULL) {
+		return STATUS_INSUFFICIENT_RESOURCES;
+	}
 
-	AX_TOKEN token;
-	status = ReadToken(commandString, 0, &token);
-	ASSERT(NT_ERROR(status) == 0);
+	(*command)->subCommands = ExAllocatePool3(POOL_FLAG_PAGED, sizeof(AX_SUBCOMMAND), 'CSXA', NULL, 0);
+	if ((*command)->subCommands == NULL) {
+		return STATUS_INSUFFICIENT_RESOURCES;
+	}
+	RtlZeroMemory((*command)->subCommands, sizeof(AX_SUBCOMMAND));
+
+	UINT32 si = 0;
+	UINT32 ti = 0;
+	while (!AXCOMMAND_BREAK_CHECK(&commandString[si])){
+		PAX_TOKEN token;
+		status = ReadToken(commandString, si, &token);
+		if (NT_ERROR(status)) {
+			FreeCommand(*command);
+			return status;
+		}
+
+		(*command)->subCommands[0].tokens[ti] = token;
+		(*command)->subCommands[0].tokenCount++;
+
+		DbgPrint("TOKEN: ");
+		DbgPrint(token->buffer);
+		DbgPrint("\n");
+
+		si += token->len;
+		ti++;
+	}
+
+	return status;
+}
+AXSTATUS FreeCommand(
+	_In_ PAX_COMMAND command
+) {
+	if (command == NULL) {
+		return STATUS_INVALID_PARAMETER;
+	}
+
+	if (command->subCommands != NULL) {
+		for (UINT32 i = 0; i < command->subCommands[0].tokenCount; i++) {
+			FreeToken(command->subCommands[0].tokens[i]);
+		}
+	}
+
+	ExFreePool(command);
 
 	return STATUS_SUCCESS;
 }
@@ -38,7 +64,7 @@ AXSTATUS ParseCommand(
 AXSTATUS ReadToken(
 	_In_ PCHAR commandString,
 	_In_ UINT32 index,
-	_Out_ PAX_TOKEN token
+	_Out_ PAX_TOKEN* token
 ) {
 	if (token == NULL || commandString == NULL) {
 		return STATUS_INVALID_PARAMETER;
@@ -51,21 +77,25 @@ AXSTATUS ReadToken(
 		curr++;
 	}
 
-	token->len = (len + 1) * sizeof(CHAR);
-	token->buffer = ExAllocatePool3(POOL_FLAG_PAGED, token->len, 'SXA', NULL, 0);
-	ASSERT(token->buffer != NULL);
+	*token = ExAllocatePool3(POOL_FLAG_PAGED, sizeof(AX_TOKEN), 'KTXA', NULL, 0);
+	if (*token == NULL) {
+		return STATUS_INSUFFICIENT_RESOURCES;
+	}
 
-	RtlCopyMemory(token->buffer, &commandString[index], token->len);
-	token->buffer[len] = '\0';
+	(*token)->len = (len + 1) * sizeof(CHAR);
+	(*token)->buffer = ExAllocatePool3(POOL_FLAG_PAGED, (*token)->len, 'TSXA', NULL, 0);
+	ASSERT((*token)->buffer != NULL);
 
-	DbgPrint(token->buffer);
+	RtlCopyMemory((*token)->buffer, &commandString[index], (*token)->len);
+	(*token)->buffer[len] = '\0';
 
 	return STATUS_SUCCESS;
 }
 AXSTATUS FreeToken(
 	_In_ PAX_TOKEN token
 ) {
-	UNREFERENCED_PARAMETER(token);
+	ExFreePool(token->buffer);
+	ExFreePool(token);
 
 	return STATUS_SUCCESS;
 }
