@@ -1,4 +1,5 @@
 #include "ax_core.h"
+#include "ax_parser.h"
 
 static UNICODE_STRING AXPATH_K_STRING = RTL_CONSTANT_STRING(AXPATH_K);
 static UNICODE_STRING AXPATH_U_STRING = RTL_CONSTANT_STRING(AXPATH_U);
@@ -33,9 +34,8 @@ AXSTATUS AXDriverInit(PDRIVER_OBJECT DriverObject, PUNICODE_STRING RegistryPath)
     return status;
 }
 
-AXSTATUS AXDriverUnload(PDRIVER_OBJECT DriverObject) {
+VOID AXDriverUnload(PDRIVER_OBJECT DriverObject) {
     UNREFERENCED_PARAMETER(DriverObject);
-    return STATUS_SUCCESS;
 }
 
 AXSTATUS AXEmulator_Create(PDEVICE_OBJECT DeviceObject, PIRP Irp) {
@@ -54,13 +54,14 @@ AXSTATUS AXEmulator_Close(PDEVICE_OBJECT DeviceObject, PIRP Irp) {
 
 AXSTATUS AXEmulator_Control(PDEVICE_OBJECT DeviceObject, PIRP Irp){
     PIO_STACK_LOCATION stack = IoGetCurrentIrpStackLocation(Irp);
-    ULONG code = stack->Parameters.DeviceIoControl.IoControlCode;
-    UNREFERENCED_PARAMETER(DeviceObject);
+    
+    PAX_COMMAND command = NULL;
+    ParseCommand((PCHAR)Irp->AssociatedIrp.SystemBuffer, &command);
 
-    switch (code) {
+    switch (stack->Parameters.DeviceIoControl.IoControlCode) {
     case AX_IOCC_MACHINE:
-        DbgPrint("IOCTL VMX received\n");
-        AXCreateMachine(NULL, NULL);
+        DbgPrint("IOCTL MACHINE received\n");
+        DbgBreakPoint();
         break;
     case AX_IOCC_DEBUG:
         DbgPrint("IOCTL DEBUG received\n");
@@ -73,5 +74,6 @@ AXSTATUS AXEmulator_Control(PDEVICE_OBJECT DeviceObject, PIRP Irp){
     }
 
     IoCompleteRequest(Irp, IO_NO_INCREMENT);
+    UNREFERENCED_PARAMETER(DeviceObject);
     return Irp->IoStatus.Status;
 }

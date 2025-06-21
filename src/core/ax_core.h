@@ -10,7 +10,7 @@
 #define AXPATH_U L"\\DosDevices\\AX_VIRTUALIZATION_DEVICE"
 
 AXSTATUS AXDriverInit(PDRIVER_OBJECT DriverObject, PUNICODE_STRING RegistryPath);
-AXSTATUS AXDriverUnload(PDRIVER_OBJECT DriverObject);
+VOID AXDriverUnload(PDRIVER_OBJECT DriverObject);
 
 AXSTATUS AXEmulator_Close(PDEVICE_OBJECT DeviceObject, PIRP Irp);
 AXSTATUS AXEmulator_Create(PDEVICE_OBJECT DeviceObject, PIRP Irp);

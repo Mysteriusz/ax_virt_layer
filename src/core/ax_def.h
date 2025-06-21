@@ -4,6 +4,8 @@
 #include <ntddk.h>
 #include <initguid.h>
 
+#define AXVER_0 0x00000000
+
 /*
 *
 *
@@ -18,9 +20,20 @@
 typedef NTSTATUS AXSTATUS;
 
 // ========================================================
+//                    AX Parser command
+// ========================================================
+typedef struct _AX_SUBCOMMAND {
+	UINT32 argsCount;
+	STRING* args;
+} AX_SUBCOMMAND, *PAX_SUBCOMMAND;
+typedef struct _AX_COMMAND {
+	STRING action;
+	PAX_SUBCOMMAND subCommands;
+} AX_COMMAND, *PAX_COMMAND;
+
+// ========================================================
 //                 AX Machine memory root
 // ========================================================
-typedef HANDLE AXMACHINE, *PAXMACHINE;
 typedef struct _AXMACHINE_ROOT {
 	UINT32 version;
 } *PAXMACHINE_ROOT, AXMACHINE_ROOT;
