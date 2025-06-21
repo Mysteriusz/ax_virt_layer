@@ -1,8 +1,8 @@
 #include "machine.h"
 
 AXSTATUS AXCreateMachine(
-	_In_opt_ PAXMACHINE_CONFIG config,
-	_Out_ PAXMACHINE_ROOT* root
+	_In_opt_ PAX_MACHINE_CONFIG config,
+	_Out_ PAX_MACHINE_ROOT* root
 ) {
 	if (root == NULL) {
 		return STATUS_INVALID_PARAMETER;
@@ -14,11 +14,11 @@ AXSTATUS AXCreateMachine(
 	prm.Type = PoolExtendedParameterPriority;
 	prm.Priority = NormalPoolPriority;
 
-	*root = ExAllocatePool3(POOL_FLAG_PAGED, sizeof(PAXMACHINE_ROOT), 'XAMH', &prm, 1);
+	*root = ExAllocatePool3(POOL_FLAG_PAGED, sizeof(PAX_MACHINE_ROOT), 'XAMH', &prm, 1);
 	
 	ASSERT(*root != NULL);
 
-	PAXMACHINE_ROOT temp = *root;
+	PAX_MACHINE_ROOT temp = *root;
 	temp->version = AXVER_0;
 
 	return STATUS_SUCCESS;

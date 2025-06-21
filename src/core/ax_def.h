@@ -22,9 +22,13 @@ typedef NTSTATUS AXSTATUS;
 // ========================================================
 //                    AX Parser command
 // ========================================================
+typedef struct _AX_TOKEN {
+	UINT32 len;
+	PCHAR buffer;
+} AX_TOKEN, *PAX_TOKEN;
 typedef struct _AX_SUBCOMMAND {
-	UINT32 argsCount;
-	STRING* args;
+	UINT32 tokenCount;
+	PAX_TOKEN tokens;
 } AX_SUBCOMMAND, *PAX_SUBCOMMAND;
 typedef struct _AX_COMMAND {
 	STRING action;
@@ -34,13 +38,13 @@ typedef struct _AX_COMMAND {
 // ========================================================
 //                 AX Machine memory root
 // ========================================================
-typedef struct _AXMACHINE_ROOT {
+typedef struct _AX_MACHINE_ROOT {
 	UINT32 version;
-} *PAXMACHINE_ROOT, AXMACHINE_ROOT;
+} AX_MACHINE_ROOT, *PAX_MACHINE_ROOT;
 
-typedef struct _AXMACHINE_CONFIG {
+typedef struct _AX_MACHINE_CONFIG {
 	UINT32 cpuCount;
-} *PAXMACHINE_CONFIG, AXMACHINE_CONFIG;
+} AX_MACHINE_CONFIG, *PAX_MACHINE_CONFIG;
 
 /*
 *

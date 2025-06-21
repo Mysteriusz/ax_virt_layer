@@ -1,3 +1,20 @@
+/*
+	
+	Description:
+
+	Token parser for AX Project command reader. 
+	Works by managing internally token allocations which allows easy command reading. 
+	
+	Warnings:
+
+	Use carefully since it manages memory allocations internally.
+	Method usage recommendation map:
+
+		ReadToken       --->	 FreeToken
+		ParseCommand    --->	 FreeCommand
+
+*/
+
 #include "ax_parser.h"
 
 AXSTATUS ParseCommand(
@@ -8,11 +25,12 @@ AXSTATUS ParseCommand(
 		return STATUS_INVALID_PARAMETER;
 	}
 
+	AXSTATUS status;
 	*command = NULL;
 
-	PCHAR token = NULL;
-	ReadToken(commandString, 0, &token);
-	DbgPrint(token);
+	AX_TOKEN token;
+	status = ReadToken(commandString, 0, &token);
+	ASSERT(NT_ERROR(status) == 0);
 
 	return STATUS_SUCCESS;
 }
@@ -20,7 +38,7 @@ AXSTATUS ParseCommand(
 AXSTATUS ReadToken(
 	_In_ PCHAR commandString,
 	_In_ UINT32 index,
-	_Out_ PCHAR* token
+	_Out_ PAX_TOKEN token
 ) {
 	if (token == NULL || commandString == NULL) {
 		return STATUS_INVALID_PARAMETER;
@@ -33,11 +51,21 @@ AXSTATUS ReadToken(
 		curr++;
 	}
 
-	*token = ExAllocatePool3(POOL_FLAG_PAGED, (len + 1) * sizeof(CHAR), 'SXA', NULL, 0);
-	ASSERT(*token != NULL);
+	token->len = (len + 1) * sizeof(CHAR);
+	token->buffer = ExAllocatePool3(POOL_FLAG_PAGED, token->len, 'SXA', NULL, 0);
+	ASSERT(token->buffer != NULL);
 
-	RtlCopyMemory(*token, &commandString[index], len);
-	(*token)[len] = '\0';
+	RtlCopyMemory(token->buffer, &commandString[index], token->len);
+	token->buffer[len] = '\0';
+
+	DbgPrint(token->buffer);
+
+	return STATUS_SUCCESS;
+}
+AXSTATUS FreeToken(
+	_In_ PAX_TOKEN token
+) {
+	UNREFERENCED_PARAMETER(token);
 
 	return STATUS_SUCCESS;
 }

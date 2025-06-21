@@ -16,5 +16,5 @@ static CHAR AXCOMMAND_BREAK[2] = {';', '\0'};
 AXSTATUS ReadToken(
 	_In_ PCHAR commandString,
 	_In_ UINT32 index,
-	_Out_ PCHAR* token
+	_Out_ PAX_TOKEN token
 );
