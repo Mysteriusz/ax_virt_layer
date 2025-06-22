@@ -11,7 +11,7 @@
 	Method usage recommendation map:
 
 		ReadToken       --->	 FreeToken
-		ParseCommand    --->	 FreeCommand
+		ReadCommand     --->	 FreeCommand
 
 */
 
@@ -20,28 +20,103 @@
 
 #include "ax_core.h"
 
-AXSTATUS ReadCommand(
+/*
+
+Routine Description:
+	Parses command string to PAX_COMMAND structure and it`s tokens.
+
+Arguments:
+	commandString - Null-terminated input string to parse.
+	command       - Receives a pointer to the parsed command.
+
+Return Value:
+	AXSTATUS indicating success or failure.
+
+*/
+AXSTATUS
+_Success_(!NT_ERROR(return))
+_Post_satisfies_(*command != NULL)
+ReadCommand(
 	_In_ PCHAR commandString,
-	_Out_ PAX_COMMAND* command
+	_Outptr_ PAX_COMMAND* command
 );
-AXSTATUS FreeCommand(
+
+/*
+
+Routine Description:
+	Free`s command structure and all it`s tokens.
+
+Arguments:
+	command - Previously allocated command structure.
+
+Return Value:
+	AXSTATUS indicating success or failure.
+
+*/
+AXSTATUS 
+FreeCommand(
 	_In_ PAX_COMMAND command
 );
 
-static PCHAR AXTOKENS[4] = {"QUERY", "FETCH", "REQUEST", "SET"};
+#define AXTOKEN_COUNT 4
+static PCHAR AXTOKENS[AXTOKEN_COUNT] = {"QUERY", "FETCH", "REQUEST", "SET"};
 
-static CHAR AXTOKENS_BREAK[2] = {')', ' '};
-static CHAR AXCOMMAND_BREAK[2] = {';', '\0'};
+#define AXTOKEN_BREAK_COUNT 2
+static CHAR AXTOKEN_BREAK[AXTOKEN_BREAK_COUNT] = {')', ' '};
 
-#define AXTOKEN_BREAK_CHECK(val) (RtlCompareMemory(val, &AXTOKENS_BREAK[0], sizeof(CHAR)) || RtlCompareMemory(val, &AXTOKENS_BREAK[1], sizeof(CHAR)))
-#define AXCOMMAND_BREAK_CHECK(val) (RtlCompareMemory(val, &AXCOMMAND_BREAK[0], sizeof(CHAR)) || RtlCompareMemory(val, &AXCOMMAND_BREAK[1], sizeof(CHAR)))
+#define AXCOMMAND_BREAK_COUNT 2
+static CHAR AXCOMMAND_BREAK[AXCOMMAND_BREAK_COUNT] = {';', '\0'};
 
-AXSTATUS ReadToken(
+static BOOLEAN AXTOKEN_BREAK_CHECK(PCHAR val) {
+	for (int i = 0; i < AXTOKEN_BREAK_COUNT; i++) {
+		if (*val == AXTOKEN_BREAK[i]) return TRUE;
+	}
+	return FALSE;
+}
+static BOOLEAN AXCOMMAND_BREAK_CHECK(PCHAR val) {
+	for (int i = 0; i < AXCOMMAND_BREAK_COUNT; i++) {
+		if (*val == AXCOMMAND_BREAK[i]) return TRUE;
+	}
+	return FALSE;
+}
+
+/*
+
+Routine Description:
+	Reads and allocated a token from index of provided command string.
+
+Arguments:
+	commandString - Command string to read from.
+	index		  - Starting index of the command string.
+	token		  - Pointer to newly parsed token structure.
+
+Return Value:
+	AXSTATUS indicating success or failure.
+
+*/
+AXSTATUS
+_Success_(!NT_ERROR(return))
+_Post_satisfies_(*token != NULL)
+ReadToken(
 	_In_ PCHAR commandString,
 	_In_ UINT32 index,
-	_Out_ PAX_TOKEN* token
+	_Outptr_ PAX_TOKEN* token
 );
-AXSTATUS FreeToken(
+
+/*
+
+Routine Description:
+	Free`s token structure.
+
+Arguments:
+	token - Previously allocated token structure.
+
+Return Value:
+	AXSTATUS indicating success or failure.
+
+*/
+AXSTATUS 
+FreeToken(
 	_In_ PAX_TOKEN token
 );
 
