@@ -38,17 +38,20 @@ typedef struct _AX_TOKEN {
 // ========================================================
 //                 AX Tokenized subcommand
 // ========================================================
+#define AXMAX_TOKENS 20
 typedef struct _AX_SUBCOMMAND {
 	UINT32 tokenCount;
-	PAX_TOKEN tokens[20];
+	PAX_TOKEN tokens[AXMAX_TOKENS];
 } AX_SUBCOMMAND, *PAX_SUBCOMMAND;
 
 // ========================================================
 //                    AX Parsed command
 // ========================================================
+#define AXMAX_SUBCOMMANDS 10
 typedef struct _AX_COMMAND {
 	STRING action;
-	PAX_SUBCOMMAND subCommands;
+	UINT32 subCommandCount;
+	PAX_SUBCOMMAND subCommands[AXMAX_SUBCOMMANDS];
 } AX_COMMAND, *PAX_COMMAND;
 
 // ========================================================

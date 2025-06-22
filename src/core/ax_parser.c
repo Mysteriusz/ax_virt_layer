@@ -20,29 +20,52 @@ ReadCommand(
 		return STATUS_INSUFFICIENT_RESOURCES;
 	}
 
-	temp->subCommands = ExAllocatePool3(POOL_FLAG_PAGED, sizeof(AX_SUBCOMMAND), 'CSXA', NULL, 0);
-	if (temp->subCommands == NULL) {
-		return STATUS_INSUFFICIENT_RESOURCES;
-	}
-
-	UINT32 si = 0;
-	UINT32 ti = 0;
-	while (!AXCOMMAND_BREAK_CHECK(&commandString[si])){
-		PAX_TOKEN token = NULL;
-		status = ReadToken(commandString, si, &token);
-		if (NT_ERROR(status)) {
+	UINT32 si = 0; // STRING INDEX
+	UINT32 sbi = 0; // SUBCOMMAND INDEX
+	do {
+		// Break the command parsing on any arugment overflow.
+		if (sbi == AXMAX_SUBCOMMANDS) {
 			FreeCommand(temp);
-			return status;
+			return STATUS_STACK_OVERFLOW;
 		}
 
-		DbgPrint(token->buffer);
+		temp->subCommands[sbi] = ExAllocatePool3(POOL_FLAG_PAGED, sizeof(AX_SUBCOMMAND), 'CSXA', NULL, 0);
+		if (temp->subCommands[sbi] == NULL) {
+			FreeCommand(temp);
+			return STATUS_INSUFFICIENT_RESOURCES;
+		}
+		temp->subCommandCount++;
 
-		temp->subCommands[0].tokens[ti] = token;
-		temp->subCommands[0].tokenCount++;
-		
-		si += token->len;
-		ti++;
-	}
+		UINT32 ti = 0; // TOKEN INDEX
+		while (!AXSUBCOMMAND_BREAK_CHECK(&commandString[si])) {
+			// Break the command parsing on any arugment overflow.
+			if (ti == AXMAX_TOKENS) {
+				FreeCommand(temp);
+				return STATUS_STACK_OVERFLOW;
+			}
+
+			if (AXCOMMAND_BREAK_CHECK(&commandString[si])) {
+				break;
+			}
+			
+			PAX_TOKEN token = NULL;
+			status = ReadToken(commandString, si, &token);
+			if (NT_ERROR(status)) {
+				FreeCommand(temp);
+				return status;
+			}
+
+			temp->subCommands[sbi]->tokens[ti] = token;
+			temp->subCommands[sbi]->tokenCount++;
+			DbgPrint(token->buffer);
+			DbgPrint("\n");
+
+			si += token->len;
+			ti++;
+		}
+		sbi++;
+
+	} while (!AXCOMMAND_BREAK_CHECK(&commandString[si]));
 
 	*command = temp;
 
@@ -56,11 +79,17 @@ FreeCommand(
 		return STATUS_INVALID_PARAMETER;
 	}
 
-	if (command->subCommands != NULL) {
-		for (UINT32 i = 0; i < command->subCommands[0].tokenCount; i++) {
-			FreeToken(command->subCommands[0].tokens[i]);
+	PAX_SUBCOMMAND sc = NULL;
+	// Free all subcommands and their tokens.
+	for (UINT32 si = 0; si < command->subCommandCount; si++) {
+		sc = command->subCommands[si];
+		if (sc == NULL) continue;
+
+		for (UINT32 ti = 0; ti < sc->tokenCount; ti++) {
+			FreeToken(sc->tokens[ti]);
 		}
-		ExFreePool(command->subCommands);
+
+		ExFreePool(sc);
 	}
 
 	ExFreePool(command);
