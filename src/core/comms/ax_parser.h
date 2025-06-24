@@ -10,8 +10,9 @@
 	Use carefully since it manages memory allocations internally.
 	Method usage recommendation map:
 
-		ReadToken       --->	 FreeToken
 		ReadCommand     --->	 FreeCommand
+		ReadSubcommand  --->	 FreeSubcommand
+		ReadToken       --->	 FreeToken
 
 */
 

@@ -45,17 +45,8 @@ FreeCommand(
 		return STATUS_INVALID_PARAMETER;
 	}
 
-	PAX_SUBCOMMAND sc = NULL;
-	// Free all subcommands and their tokens.
-	for (UINT32 si = 0; si < command->subCommandCount; si++) {
-		sc = command->subCommands[si];
-		if (sc == NULL) continue;
-
-		for (UINT32 ti = 0; ti < sc->tokenCount; ti++) {
-			FreeToken(sc->tokens[ti]);
-		}
-
-		ExFreePool(sc);
+	for (UINT32 i = 0; i < AXMAX_SUBCOMMANDS; i++) {
+		FreeSubcommand(command->subCommands[i]);
 	}
 
 	ExFreePool(command);
@@ -117,7 +108,12 @@ AXSTATUS
 FreeSubcommand(
 	_In_ PAX_SUBCOMMAND subcommand
 ) {
-	UNREFERENCED_PARAMETER(subcommand);
+	for (UINT32 i = 0; i < AXMAX_TOKENS; i++) {
+		FreeToken(subcommand->tokens[i]);
+	}
+
+	ExFreePool(subcommand);
+
 	return STATUS_SUCCESS;
 }
 
