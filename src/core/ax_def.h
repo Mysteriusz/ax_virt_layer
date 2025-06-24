@@ -31,7 +31,7 @@ typedef NTSTATUS AXSTATUS;
 //                     AX Command token
 // ========================================================
 typedef struct _AX_TOKEN {
-	UINT32 len;
+	UINT32 length;
 	PCHAR buffer;
 } AX_TOKEN, *PAX_TOKEN;
 
@@ -40,6 +40,8 @@ typedef struct _AX_TOKEN {
 // ========================================================
 #define AXMAX_TOKENS 20
 typedef struct _AX_SUBCOMMAND {
+	UINT64 action;
+	UINT32 length;
 	UINT32 tokenCount;
 	PAX_TOKEN tokens[AXMAX_TOKENS];
 } AX_SUBCOMMAND, *PAX_SUBCOMMAND;
@@ -49,7 +51,6 @@ typedef struct _AX_SUBCOMMAND {
 // ========================================================
 #define AXMAX_SUBCOMMANDS 10
 typedef struct _AX_COMMAND {
-	STRING action;
 	UINT32 subCommandCount;
 	PAX_SUBCOMMAND subCommands[AXMAX_SUBCOMMANDS];
 } AX_COMMAND, *PAX_COMMAND;
