@@ -36,7 +36,7 @@ Return Value:
 */
 AXSTATUS
 _Success_(!NT_ERROR(return))
-_Post_satisfies_(*command != NULL)
+_When_(return == STATUS_SUCCESS, _Post_satisfies_(*command != NULL))
 ReadCommand(
 	_In_ PCHAR commandString,
 	_Outptr_ PAX_COMMAND* command
@@ -155,11 +155,15 @@ static BOOLEAN AXCOMMAND_CHECK(PCHAR val) {
 	return FALSE;
 }
 
+#define AXSYNTAX_CHECK_TOKEN 0x01
+#define AXSYNTAX_CHECK_SUBCOMMAND 0x02
+#define AXSYNTAX_CHECK_COMMAND 0x04
+
 static BOOLEAN AXSYNTAX_CHECK(PCHAR val, UINT32 mask) {
 	return 
-		(AXTOKEN_CHECK(val) && (mask & 0x01)) ||  
-		(AXSUBCOMMAND_CHECK(val) && (mask & 0x02)) || 
-		(AXCOMMAND_CHECK(val) && (mask & 0x04));
+		(AXTOKEN_CHECK(val) && (mask & AXSYNTAX_CHECK_TOKEN)) ||
+		(AXSUBCOMMAND_CHECK(val) && (mask & AXSYNTAX_CHECK_SUBCOMMAND)) ||
+		(AXCOMMAND_CHECK(val) && (mask & AXSYNTAX_CHECK_COMMAND));
 }
 
 /*

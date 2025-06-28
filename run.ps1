@@ -23,14 +23,17 @@ $CREDENTIAL = get-credential -erroraction stop
 
 class MACHINE{
 	[System.Management.Automation.Runspaces.PSSession]$session
+	[Microsoft.Management.Infrastructure.CimSession]$cim
 	[string]$name
 	[string]$system
 	[string]$path
+	[string]$update_path
 }
 
 $global:CURRENT = $null
 $global:DRIVER_NAME = "ax_virt_layer.sys"
 $global:CERT_NAME = "ax_virt_layer.pfx"
+$global:UPDATE_NAME = "ax_virt_layer_upd.ps1"
 
 # Y/N Console question function
 function Approve(){
@@ -63,6 +66,90 @@ function Approve(){
 	}
 }
 
+function SignDriver{
+	param (
+		[MACHINE]$machine
+	)
+	$cert = gci "Cert:\CurrentUser\My" | where-object { $_.Subject -eq "CN=Test ax_virt_layer Cert for $($machine.name)" }
+
+	if ($cert -eq $null){
+		# Create a certificate and sign the driver
+		$cert = new-selfsignedcertificate -type CodeSigningCert -subject "CN=Test ax_virt_layer Cert for $($machine.name)" -keyexportpolicy Exportable -keyspec Signature -certstorelocation "Cert:\CurrentUser\My"
+	}
+
+	# Export the certificate
+	export-pfxcertificate -cert $cert -filepath "$env:AX_VIRT_LAYER_BUILD_DIR\$global:CERT_NAME" -password $CREDENTIAL.password | out-null
+	
+	# Sign the driver
+	signtool sign /fd SHA256 /a /f "$env:AX_VIRT_LAYER_BUILD_DIR\$global:CERT_NAME" /p $CREDENTIAL.GetNetworkCredential().password "$env:AX_VIRT_LAYER_BUILD_DIR\$global:DRIVER_NAME" | out-null
+}
+
+function CopyCertificate{
+	param (
+		[MACHINE]$machine
+	)
+	
+	try{
+		cpi -path "$env:AX_VIRT_LAYER_BUILD_DIR\$global:CERT_NAME" -destination "$($machine.path)" -tosession $machine.session -erroraction stop
+		write-host "Certificate copied to $($CURRENT.path)\$global:CERT_NAME" -foregroundcolor green
+	}
+	catch{
+		throw $_
+	}
+}
+function CopyDriver{
+	param (
+		[MACHINE]$machine
+	)
+	
+	try{
+		cpi -path "$env:AX_VIRT_LAYER_BUILD_DIR\$global:DRIVER_NAME" -destination "$($machine.path)" -tosession $machine.session -erroraction stop
+		write-host "Driver copied to $($CURRENT.path)\$global:DRIVER_NAME" -foregroundcolor green
+	}
+	catch{
+		throw $_
+	}
+}
+function CopyFull{
+	param(
+		[MACHINE]$machine
+	)
+	CopyCertificate -machine $machine
+	CopyDriver -machine $machine
+}
+
+function CopyCertificateUpdate{
+	param (
+		[MACHINE]$machine
+	)
+	
+	try{
+		cpi -path "$env:AX_VIRT_LAYER_BUILD_DIR\$global:CERT_NAME" -destination "$($machine.update_path)" -tosession $machine.session -erroraction stop
+	}
+	catch{
+		throw $_
+	}
+}
+function CopyDriverUpdate{
+	param (
+		[MACHINE]$machine
+	)
+	
+	try{
+		cpi -path "$env:AX_VIRT_LAYER_BUILD_DIR\$global:DRIVER_NAME" -destination "$($machine.update_path)" -tosession $machine.session -erroraction stop
+	}
+	catch{
+		throw $_
+	}
+}
+function CopyFullUpdate{
+	param(
+		[MACHINE]$machine
+	)
+	CopyCertificateUpdate -machine $machine
+	CopyDriverUpdate -machine $machine
+}
+
 # Read machine string into local variables
 function SetupMachine(){
 	param(
@@ -80,16 +167,30 @@ function SetupMachine(){
 	$global:CURRENT.name = $splitted[0]
 	$global:CURRENT.system = $splitted[1]
 	$global:CURRENT.path = $splitted[2]
+	$global:CURRENT.update_path = "$($splitted[2])\update"
 	echo "Setting up client at: $($CURRENT.name) with target: $($CURRENT.system)"
 	
 	# Create a session with target machine
 	try{
 		$global:CURRENT.session = new-pssession -computername $CURRENT.name -credential $CREDENTIAL -erroraction stop
+		$global:CURRENT.cim = new-cimsession -computername $CURRENT.name -credential $CREDENTIAL -erroraction stop
 	}
 	catch{
 		write-host "Unable to establish connection with client $($CURRENT.name)" -foregroundcolor red
 		$global:CURRENT = $null
 	}
+
+	# Setup update directory
+	invoke-command -session $global:CURRENT.session -erroraction stop -scriptblock { 
+		param(
+			[string]$path
+		)
+		
+		try{
+			mkdir $path -erroraction stop | out-null
+		}
+		catch {}
+	} -argumentlist $global:CURRENT.update_path
 
 	return 
 }
@@ -140,6 +241,39 @@ function WindowsDriverInjection{
 
 	write-host "Installed driver from path: $($machine.path)\$global:DRIVER_NAME" -foregroundcolor green
 }
+# Windows client driver update driver binary scheduling
+function WindowsDriverUpdate{
+	param(
+		[MACHINE]$machine
+	)
+
+	$updcontent = "
+	ri $($machine.path)\$($global:DRIVER_NAME)
+	cpi -path '$($machine.update_path)\$($global:DRIVER_NAME)' -destination '$($machine.path)'
+	cpi -path '$($machine.update_path)\$($global:CERT_NAME)' -destination '$($machine.path)'"
+
+	try{
+		ri "$env:AX_VIRT_LAYER_BUILD_DIR\$($global:UPDATE_NAME)" -erroraction stop
+	}
+	catch{}
+
+	echo >> "$env:AX_VIRT_LAYER_BUILD_DIR\$($global:UPDATE_NAME)" $updcontent
+
+	SignDriver -machine $machine
+	CopyDriverUpdate -machine $machine
+	CopyCertificateUpdate -machine $machine
+	cpi -path "$env:AX_VIRT_LAYER_BUILD_DIR\$($global:UPDATE_NAME)" -destination "$($machine.path)" -tosession $machine.session -erroraction stop
+
+	$task = new-scheduledtaskaction -execute "powershell.exe" -argument "-ExecutionPolicy Bypass -File '$($machine.path)\$($global:UPDATE_NAME)'" -cimsession $machine.cim
+	$trigger = new-scheduledtasktrigger -atstartup -cimsession $machine.cim
+	$principal = new-scheduledtaskprincipal -userid "SYSTEM" -runlevel Highest -cimsession $machine.cim
+	$settings = new-scheduledtasksettingsset -startwhenavailable -cimsession $machine.cim
+	
+	try{
+		register-scheduledtask -taskname "AX_VIRTUALIZATION_DRIVER_UPDATE" -action $task -trigger $trigger -principal $principal -settings $settings -cimsession $machine.cim -erroraction stop 
+	}
+	catch {}
+}
 # Windows client driver status check function
 function WindowsDriverStatus{
 	param(
@@ -169,37 +303,24 @@ function BuildMachines{
 			continue
 		}
 
-		$cert = get-childitem "Cert:\CurrentUser\My" | where-object { $_.Subject -eq "CN=Test ax_virt_layer Cert for $($CURRENT.name)" }
-
-		if ($cert -eq $null){
-			# Create a certificate and sign the driver
-			$cert = new-selfsignedcertificate -type CodeSigningCert -subject "CN=Test ax_virt_layer Cert for $($CURRENT.name)" -keyexportpolicy Exportable -keyspec Signature -certstorelocation "Cert:\CurrentUser\My"
-		}
-
-		# Export the certificate
-		export-pfxcertificate -cert $cert -filepath "$env:AX_VIRT_LAYER_BUILD_DIR\$global:CERT_NAME" -password $CREDENTIAL.Password | out-null
-		
-		# Sign the driver
-		signtool sign /fd SHA256 /a /f "$env:AX_VIRT_LAYER_BUILD_DIR\$global:CERT_NAME" /p $(read-host "certificate password (same as credential)") "$env:AX_VIRT_LAYER_BUILD_DIR\$global:DRIVER_NAME" | out-null
+		SignDriver -machine $CURRENT
 
 		# Copy driver to client destination path
 		try{
-			copy-item -path "$env:AX_VIRT_LAYER_BUILD_DIR\$global:DRIVER_NAME" -destination "$($CURRENT.path)" -tosession $CURRENT.session -erroraction stop
-			write-host "Driver copied to $($CURRENT.path)\$global:DRIVER_NAME" -foregroundcolor green
+			CopyDriver -machine $CURRENT
 		}
 		catch{
 			# If exception is ERROR_SHARING_VIOLATION
 			if ($_.Exception.HResult -eq -2146233087){
-				$rr = Approve -message "The driver is in use. Restart machine to delete the driver service?" -messageColor yellow
+				# Create a task scheduler for next restart
+				WindowsDriverUpdate -machine $CURRENT
 				
-				if ($rr){
-					# Mark driver as to-remove
-					WindowsDriverRemove -machine $CURRENT
+				if ($global:reboot){
 					WindowsReboot -machine $CURRENT
-
-					write-host "After the machine restarts re-run the build command." -foregroundcolor yellow
-					continue
 				}
+
+				write-host "Machine requires a restart to update the driver." -foregroundcolor yellow
+				continue
 			}
 			
 			write-host "Driver copying failed. Make sure the client has enabled remoting (enable-psremoting) and Powershell version is 5+. Also check the AX_VIRT_LAYER_BUILD_DIR environment variable." -foregroundcolor red
@@ -209,8 +330,7 @@ function BuildMachines{
 
 		# Copy certificate to client destination path
 		try{
-			copy-item -path "$env:AX_VIRT_LAYER_BUILD_DIR\$global:CERT_NAME" -destination "$($CURRENT.path)" -tosession $CURRENT.session -erroraction stop
-			write-host "Certificate copied to $($CURRENT.path)\$global:CERT_NAME" -foregroundcolor green
+			CopyCertificate -machine $CURRENT
 		}
 		catch{
 			write-host "Certificate copying failed. Make sure the client has enabled remoting (enable-psremoting) and Powershell version is 5+. Also check the AX_VIRT_LAYER_BUILD_DIR environment variable." -foregroundcolor red
@@ -225,7 +345,7 @@ function BuildMachines{
 				[System.Security.SecureString]$certPassword
 			)
 
-			$cert = get-childitem "Cert:\LocalMachine\My" | where-object { $_.Subject -eq "CN=Test ax_virt_layer Cert for $($CURRENT.name)" }
+			$cert = gci "Cert:\LocalMachine\My" | where-object { $_.Subject -eq "CN=Test ax_virt_layer Cert for $($CURRENT.name)" }
 			
 			if ($cert -eq $null){
 				import-pfxcertificate -filepath $certPath -certstorelocation "Cert:\LocalMachine\My" -password $certPassword | out-null
@@ -233,7 +353,6 @@ function BuildMachines{
 		} -argumentlist "$($CURRENT.path)\$global:CERT_NAME", $CREDENTIAL.Password
 
 		write-host "Certificate successfully imported on client." -foregroundcolor green
-
 
 		if ($CURRENT.system -in @("win11", "win10", "win7")){
 			WindowsDriverInjection -machine $CURRENT

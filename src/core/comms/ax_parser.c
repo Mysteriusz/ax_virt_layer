@@ -2,7 +2,7 @@
 
 AXSTATUS 
 _Success_(!NT_ERROR(return))
-_Post_satisfies_(*command != NULL)
+_When_(return == STATUS_SUCCESS, _Post_satisfies_(*command != NULL))
 ReadCommand(
 	_In_ PCHAR commandString,
 	_Outptr_ PAX_COMMAND* command
@@ -20,8 +20,10 @@ ReadCommand(
 	}
 
 	UINT32 si = 0; // STRING INDEX
-	UINT32 sbi = 0; // SUB COMMAND INDEX
-	do {
+	for (UINT32 sbi = 0; sbi < AXMAX_SUBCOMMANDS; sbi++) {
+		if (AXSYNTAX_CHECK(&commandString[si], AXSYNTAX_CHECK_COMMAND)) {
+			break;
+		}
 		DbgPrint("SBI: %u\n", sbi);
 		// Read subcommand from current STRING INDEX
 		status = ReadSubcommand(commandString, si, &si, &temp->subCommands[sbi]);
@@ -30,7 +32,7 @@ ReadCommand(
 		}
 
 		sbi++;
-	} while (!AXSYNTAX_CHECK(&commandString[si], 0x04));
+	}
 
 	*command = temp;
 	__analysis_assume(*command != NULL);
@@ -76,13 +78,17 @@ ReadSubcommand(
 	__analysis_assume(*subcommand != NULL);
 
 	UINT32 si = index;
-	SkipIgnored(commandString, si, 0x02, &si);
+	SkipIgnored(commandString, si, AXSYNTAX_CHECK_SUBCOMMAND, &si);
 
-	UINT32 ti = 0;
 	PCHAR curr = &commandString[si];
-	while (!AXSYNTAX_CHECK(curr, 0x02 | 0x04)) {
+
+	for (UINT32 ti = 0; ti < AXMAX_TOKENS; ti++) {
+		if (AXSYNTAX_CHECK(curr, AXSYNTAX_CHECK_SUBCOMMAND | AXSYNTAX_CHECK_COMMAND)) {
+			break;
+		}
+
 		PAX_TOKEN token = NULL;
-		AXSTATUS status = ReadToken(commandString, si, 0x01, &si, &token);
+		AXSTATUS status = ReadToken(commandString, si, AXSYNTAX_CHECK_TOKEN, &si, &token);
 		if (NT_ERROR(status) && status != STATUS_ABANDONED) {
 			FreeSubcommand(temp);
 			return status;
@@ -182,7 +188,6 @@ FreeToken(
 
 	return STATUS_SUCCESS;
 }
-
 AXSTATUS
 SkipIgnored(
 	_In_ PCHAR commandString,
