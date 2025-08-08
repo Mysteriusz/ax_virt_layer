@@ -1,10 +1,11 @@
 #include "service_control.h"
 
 #if !defined(AX_UM)
-#error "This file can only be used in USER MODE"
+#error "This applcation can only be compiled for USER-MODE"
 #endif
-
-#if defined(AX_WINDOWS) 
+#if !defined(AX_WINDOWS) || defined(AX_LINUX)
+#error "This applcation can only be compiled for Windows"
+#endif
 
 void WINAPI service_entry(
 	uint32_t 			arg_count,
@@ -15,12 +16,12 @@ void WINAPI service_entry(
 		return;
 	}
 
-	start_event_handle = CreateEventW(NULL, 1, 0, NULL);
-	stop_event_handle = CreateEventW(NULL, 1, 0, NULL);
+	service_intialize_events();
 
 	service_start_sequence();
 
 	WaitForSingleObject(stop_event_handle, INFINITE);
+	service_stop_sequence();
 	__debugbreak();
 	return;
 }
@@ -35,6 +36,4 @@ int wmain(){
     	StartServiceCtrlDispatcherW(service_table);
     	return NO_ERROR;
 }
-
-#endif
 

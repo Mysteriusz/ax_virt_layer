@@ -1,5 +1,9 @@
+#if !defined(AX_SERVICE_CONTROL_INT)
+#define AX_SERVICE_CONTROL_INT
+
 #include "ax_utility.h"
 #include "ax_control.h"
+#include "service_event_control.h"
 
 extern SERVICE_STATUS_HANDLE service_status_handle;
 extern SERVICE_STATUS service_status;
@@ -16,13 +20,5 @@ uint32_t service_control_handler(
 	void* context
 );
 
-extern HANDLE start_event_handle;
-void service_start_sequence(
-	void
-);
-
-extern HANDLE stop_event_handle;
-void service_stop_sequence(
-	void
-);
+#endif // !defined(AX_SERVICE_CONTROL_INT)
 

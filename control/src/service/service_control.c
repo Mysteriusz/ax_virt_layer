@@ -3,9 +3,6 @@
 SERVICE_STATUS_HANDLE service_status_handle = NULL;
 SERVICE_STATUS service_status = {0};
 
-HANDLE stop_event_handle = NULL;
-HANDLE start_event_handle = NULL;
-
 void service_control_report(
 	uint32_t state,
 	uint32_t exit_code
@@ -37,33 +34,5 @@ uint32_t service_control_handler(
 	}
 
 	return NO_ERROR;
-}
-
-void service_start_sequence(
-	void
-){
-	service_status.dwServiceType = AX_CONTROL_SERVICE_TYPE;
-
-	service_control_report(SERVICE_START_PENDING, 0);
-
-	service_status.dwControlsAccepted = AX_CONTROL_SERVICE_CALLS;
-	SetEvent(start_event_handle);	
-
-	service_control_report(SERVICE_RUNNING, 0);
-
-	return;
-}
-void service_stop_sequence(
-	void
-){
-	service_status.dwServiceType = AX_CONTROL_SERVICE_TYPE;
-
-	service_control_report(SERVICE_STOP_PENDING, 0);
-
-	SetEvent(stop_event_handle);	
-
-	service_control_report(SERVICE_STOPPED, 0);
-
-	return;
 }
 
