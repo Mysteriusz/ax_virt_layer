@@ -1,0 +1,21 @@
+CompileFlags:
+  Add:
+    - -xc
+    - -Wall
+    - -WX
+    - -Wno-pragma-pack
+    - -Wno-unused-function
+    - -Wno-unknown-pragmas
+    - -mno-red-zone
+    - -nostdlib
+    - -std=c23
+    - --target=x86_64-pc-windows-msvc
+
+    - "-ID:/ax_project/ax_virt_layer/win64/deps"
+    - "-IC:/Program Files (x86)/Windows Kits/10/Include/10.0.26100.0/km"
+
+    - "-DAX_WIN64"
+    - "-DAX_KM"
+Diagnostics:
+  Suppress:
+    - "unused-includes"
