@@ -1,4 +1,5 @@
 #include <ax_utility.h>
+#include "verify.h"
 
 /*
  	Base PDRIVER_DISPATCH definition.

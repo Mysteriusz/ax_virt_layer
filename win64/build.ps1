@@ -54,4 +54,5 @@ MSG -msg "Driver binary created at: ${output_sys}" -color Blue
 rem -ip "192.168.0.241" -cmd "sc.exe stop AX_VIRT_LAYER" | out-null
 rem -ip "192.168.0.241" -cmd "cpi -path '\\192.168.0.122\ax_build\ax_virt_layer.sys' -destination 'C:\ax_virt_layer.sys' -force" | out-null
 rem -ip "192.168.0.241" -cmd "sc.exe start AX_VIRT_LAYER" | out-null
+rem -ip "192.168.0.241" -cmd "powershell 'start-process C:\users\wixxx\desktop\ax_emulator.exe -verb runas'" | out-null
 
