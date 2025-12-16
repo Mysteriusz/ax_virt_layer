@@ -4,6 +4,9 @@ NTSTATUS AxDispatchDeviceControl(
 	struct _DEVICE_OBJECT 	*device_object,
 	struct _IRP 		*irp
 ){
+	NT_ASSERT(device_object != nullptr);
+	NT_ASSERT(irp != nullptr);
+
 	if (device_object == nullptr){
 		return STATUS_INVALID_PARAMETER_1;
 	}

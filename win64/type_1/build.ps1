@@ -9,7 +9,9 @@ $files_h = $(gci "$PSScriptRoot\src" -file -r -filter "*.h" | foreach {"/I"+$_.D
 $deps = @($LIB_HEADERS, "C:\Program Files (x86)\Windows Kits\10\Include\10.0.26100.0\km\full\")
 $deps_libs = @($("$LIB_BUILD"+"$LIB_BIN"), "C:\Program Files (x86)\Windows Kits\10\Lib\10.0.26100.0\km\x64\ntoskrnl.lib")
 $build_path = "$PSScriptRoot\build\"
+
 $output_sys = "$PSScriptRoot\build\ax_virt_layer.sys"
+$output_pdb = "$PSScriptRoot\build\ax_virt_layer.pdb"
 
 $files_o = @()
 
@@ -42,7 +44,9 @@ cl `
 	/DRIVER `
 	/SUBSYSTEM:NATIVE `
 	/NODEFAULTLIB `
-	/OUT:$output_sys
+	/OUT:$output_sys `
+	/DEBUG 
+
 if ($lastexitcode -ne 0){
 	MSG -msg "Driver build failed with code: $lastexitcode" -color Red
 	return 1
@@ -51,8 +55,11 @@ MSG -msg "Driver binary created at: ${output_sys}" -color Blue
 
 # TEMPORARY REMOTE FILE SHARING
 
+rem -ip "192.168.0.241" -cmd "echo 1" | out-null
 rem -ip "192.168.0.241" -cmd "sc.exe stop AX_VIRT_LAYER" | out-null
-rem -ip "192.168.0.241" -cmd "cpi -path '\\192.168.0.122\ax_build\ax_virt_layer.sys' -destination 'C:\ax_virt_layer.sys' -force" | out-null
+rem -ip "192.168.0.241" -cmd "cpi -path '\\192.168.0.122\ax_build\ax_virt_layer.sys' -destination 'C:\update\ax_virt_layer.sys' -force" | out-null
+rem -ip "192.168.0.241" -cmd "cpi -path '\\192.168.0.122\ax_build\ax_virt_layer.pdb' -destination 'C:\update\ax_virt_layer.pdb' -force" | out-null
+rem -ip "192.168.0.241" -cmd "cpi -path '\\192.168.0.122\ax_emu\ax_emulator.exe' -destination 'C:\update\ax_emulator.exe' -force" | out-null
 rem -ip "192.168.0.241" -cmd "sc.exe start AX_VIRT_LAYER" | out-null
-rem -ip "192.168.0.241" -cmd "powershell 'start-process C:\users\wixxx\desktop\ax_emulator.exe -verb runas'" | out-null
+rem -ip "192.168.0.241" -cmd "powershell 'start-process C:\update\ax_emulator.exe -verb runas'" | out-null
 

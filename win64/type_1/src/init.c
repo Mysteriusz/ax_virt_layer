@@ -12,6 +12,10 @@ NTSTATUS DriverEntry(
   	struct _DRIVER_OBJECT  	*driver_object,
   	struct _UNICODE_STRING 	*registry_path
 ){
+	if (1){
+		return STATUS_NOT_IMPLEMENTED;
+	}
+
 	NTSTATUS status = STATUS_SUCCESS;
 
 	DbgPrint("AX_VIRT_LAYER STARTING\n");
