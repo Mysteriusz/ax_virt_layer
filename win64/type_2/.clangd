@@ -7,11 +7,12 @@ CompileFlags:
     - -Wno-unused-function
     - -Wno-unknown-pragmas
     - -std=c23
-    - --target=x86_64-pc-windows-gcc
+    - --target=x86_64-w64-windows-gnu
 
-    - "-IC:/Program Files (x86)/Windows Kits/10/Include/10.0.26100.0/um/full"
+    - "-IC:/msys64/ucrt64/include"
     - "-ID:/ax_project/ax_virt_layer_utils/utils/ax_utility_lib/build/WIN_UM/headers"
     - "-ID:/ax_project/ax_virt_layer/win64/type_2/src"
+    - "-ID:/ax_project/ax_virt_layer/win64/type_2/src/mte"
 
     - "-DAX_WIN64"
     - "-DAX_UM"

@@ -4,7 +4,8 @@ if ($km){
 }
 
 $files_c = $(gci "$PSScriptRoot\src" -file -r -filter "*.c")
-$files_h = $(gci "$PSScriptRoot\src" -file -r -filter "*.h" | foreach {"/I"+$_.Directory} | get-unique)
+$files_h = @("$PSScriptRoot\src", "D:/ax_project/ax_virt_layer/win64/type_2/src/mte")
+$files_lib = @("C:\msys64\ucrt64\x86_64-w64-mingw32\lib\")
 
 $build_path = "$PSScriptRoot\build\"
 $output_exe = "$PSScriptRoot\build\ax_virt_core.exe"
@@ -36,7 +37,9 @@ foreach ($src in $files_c){
 
 & $CC `
 	$PREF_LIB $LIB_BUILD `
+	$PREF_LIB $files_lib `
 	-lax_utility_lib `
+	-lpthread `
 	($files_h | foreach {$PREF_INC+$_}) `
 	($GLOB_INC | foreach {$PREF_INC+$_}) `
 	($GLOB_DEF | foreach {$PREF_DEF+$_}) `
