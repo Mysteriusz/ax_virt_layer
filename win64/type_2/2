@@ -26,24 +26,6 @@ static void _eval_type_r(
 	}
 }
 
-u8 mips32_eval_r(
-	_in const c8	*restrict 	lb_char,
-	_in const c8	*restrict 	rb_char,
-	_in u8 				i	
-){
-	// Evaluate based on operation index
-	switch(i){
-	case 0:
-		return mips32_opcode_lookup(lb_char, rb_char - lb_char);
-	case 1:
-	case 2:
-	case 3:
-		return mips32_reg_lookup(lb_char, rb_char - lb_char);
-	default:
-		return 0;
-	}
-}
-
 axres mips32_byte_to_raw(
 	_in mte_byte_instr			*instr,
 	_out struct mips32_mte_raw_instr	*buf
@@ -56,11 +38,28 @@ axres mips32_byte_to_raw(
 	}
 
 	_eval_type_r(instr, buf);
-	io_i64(*(u32*)buf);
 	if (buf->opcode == MIPS32_OPCODE_INVALID){
 		return AX_MTE_INV_OPCODE;
 	}
 
 	return AX_SUCC;
+}
+
+u8 mips32_eval_r(
+	_in const c8	*restrict 	lb_char,
+	_in const c8	*restrict 	rb_char,
+	_in u8 				i	
+){
+	// Evaluate based on operation index
+	switch(i){
+	case 0:
+		return mips32_opcode_lookup(lb_char, rb_char - lb_char);
+	case 1:
+	case 2:
+	case 3:
+	case 4:
+	default:
+		return 0;
+	}
 }
 

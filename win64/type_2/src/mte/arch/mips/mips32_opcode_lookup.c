@@ -13,8 +13,8 @@
 /* maximum key range = 123, duplicates = 0 */
 
 static u32 hash(
-	_in register const c8 *str,
-	_in register u64 len
+	_in register const c8 	*str,
+	_in register u64 	len
 ){
 	static unsigned char asso_values[] ={
 		125, 125, 125, 125, 125, 125, 125, 125, 125, 125,
@@ -79,6 +79,6 @@ mips32_opcode mips32_opcode_lookup(
 			}
 		}
 	}
-	return 0;
+	return MIPS32_OPCODE_INVALID;
 }
 
