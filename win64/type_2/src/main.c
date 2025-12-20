@@ -7,7 +7,7 @@ int main(){
 	ir_create(mips32, &mips32_ir);
 
 	//ir_raw_instr *instr = nullptr;
-	c8 raw[] = "add $t0,$t1,$t2";
+	c8 raw[] = "xor $t0,$t1,$t2";
 
 	struct mips32_mte_raw_instr buf = {0};
 	mips32_byte_to_raw(

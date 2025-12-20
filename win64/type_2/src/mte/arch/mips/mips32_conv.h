@@ -1,3 +1,7 @@
+/*
+ 	MIPS32 assembler
+*/
+
 #include "mte/core.h"
 
 /*

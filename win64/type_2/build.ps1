@@ -36,15 +36,15 @@ foreach ($src in $files_c){
 }
 
 & $CC `
-	$PREF_LIB $LIB_BUILD `
-	$PREF_LIB $files_lib `
-	-lax_utility_lib `
-	-lpthread `
 	($files_h | foreach {$PREF_INC+$_}) `
 	($GLOB_INC | foreach {$PREF_INC+$_}) `
 	($GLOB_DEF | foreach {$PREF_DEF+$_}) `
 	($GLOB_FLAG | foreach {$PREF_BASE+$_}) `
 	$files_o `
+	$PREF_LIB $LIB_BUILD `
+	$PREF_LIB $files_lib `
+	-lax_utility_lib `
+	-lpthread `
 	$PREF_OUT $output_exe
 
 if ($lastexitcode -ne 0){

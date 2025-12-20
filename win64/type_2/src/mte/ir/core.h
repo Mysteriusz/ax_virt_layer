@@ -1,3 +1,6 @@
+#if !defined(MTE_IR_CORE_INT)
+#define MTE_IR_CORE_INT
+
 #include <ax_error.h>
 #include <ax_memory.h>
 #include <stdatomic.h>
@@ -48,4 +51,6 @@ axres ir_queue(
 	_in mte_raw_instr 	*instr,
 	_out ir_raw_instr 	**buf
 );
+
+#endif // !defined(MTE_IR_CORE_INT)
 
