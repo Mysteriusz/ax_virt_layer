@@ -5,7 +5,7 @@
 
 struct ir_queue_async_stack{
 	_in struct _ir_context	*ir;
-	_in mte_byte_instr 	*instr;
+	_in mte_raw_instr 	*instr;
 	_out ir_raw_instr 	**buf;
 };
 void *ir_queue_async(
@@ -13,6 +13,7 @@ void *ir_queue_async(
 ){
 	struct ir_queue_async_stack *stack = arg;
 
+	// Frontend pipeline
 	/*ir_disp_conv(
 		stack->ir->org,
 		stack->instr,
@@ -30,8 +31,8 @@ void *ir_queue_async(
 }
 
 axres ir_queue(
-	_in struct _ir_context 	*ir,
-	_in mte_byte_instr 	*instr,
+	_in struct _ir_context	*ir,
+	_in mte_raw_instr 	*instr,
 	_out ir_raw_instr 	**buf
 ){
 	if (ir == nullptr
