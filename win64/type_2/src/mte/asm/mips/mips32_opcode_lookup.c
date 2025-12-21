@@ -3,7 +3,8 @@
 */
 
 #include <ax_memory.h>
-#include "mte/arch/mips/mips32.h"
+
+#include "mte/asm/mips/mips32_opcode_table.h"
 
 #define TOTAL_KEYWORDS 50
 #define MIN_WORD_LENGTH 1

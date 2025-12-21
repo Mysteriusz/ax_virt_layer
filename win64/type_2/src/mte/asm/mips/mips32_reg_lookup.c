@@ -1,5 +1,10 @@
+/*
+ 	gperf generated hash function for table of _mips32_reg_map
+*/
+
 #include <ax_memory.h>
-#include "mte/arch/mips/mips32.h"
+
+#include "mte/asm/mips/mips32_reg_table.h"
 
 #define TOTAL_KEYWORDS 65
 #define MIN_WORD_LENGTH 2

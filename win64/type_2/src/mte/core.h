@@ -8,7 +8,7 @@
 #include <ax_error.h>
 
 #include "mte/unsafe_string.h"
-#include "mte/arch/mips/mips32.h"
+#include "mte/asm/mips/mips32.h"
 
 #define enum_bound(e, t) \
 	((e) <= t##_min || (e) >= t##_max)
@@ -32,7 +32,7 @@ typedef struct _mte_raw_instr{
 	 	Payload
 	*/
 	union {
-		struct mips32_mte_raw_instr 	mips32;
+		mips32_mte_raw_instr 	mips32;
 	};
 } mte_raw_instr;
 
