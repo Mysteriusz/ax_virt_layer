@@ -23,6 +23,9 @@ foreach ($src in $files_c){
 		($GLOB_DEF | foreach {$PREF_DEF+$_}) `
 		($GLOB_FLAG | foreach {$PREF_BASE+$_}) `
 		($PREF_INC+$LIB_HEADERS) `
+		-save-temps `
+		-fverbose-asm `
+		-O3 `
 		$PREF_OUT $out
 
 	if ($lastexitcode -ne 0){

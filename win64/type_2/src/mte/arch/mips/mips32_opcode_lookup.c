@@ -74,7 +74,7 @@ mips32_opcode mips32_opcode_lookup(
 			register const c8 *s = _mips32_opcode_table[key].mnem;
 			
 			if (*str == *s 
-			&& !_sfmemcmp(str + 1, s + 1, len - 1, strlen((char*)s) - 1)){
+			&& !_sfmemcmp_fast(str + 1, s + 1, _mips32_opcode_table[key].len - 1)){
 				return _mips32_opcode_table[key].code;
 			}
 		}

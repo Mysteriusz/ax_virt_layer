@@ -1,5 +1,5 @@
 #include <ax_memory.h>
-#include "mips32.h"
+#include "mte/arch/mips/mips32.h"
 
 #define TOTAL_KEYWORDS 65
 #define MIN_WORD_LENGTH 2
@@ -44,10 +44,10 @@ static u32 hash(
 	
 	switch (hval){
 	default:
-		hval += asso_values[(unsigned char)str[2]+4];
+		hval += asso_values[str[2]+4];
 	/*FALLTHROUGH*/
 	case 2:
-		hval += asso_values[(unsigned char)str[1]+1];
+		hval += asso_values[str[1]+1];
 		break;
 	}
 	return hval;
@@ -63,7 +63,8 @@ enum mips32_reg mips32_reg_lookup(
 		if (key <= MAX_HASH_VALUE){
 			register const c8 *s = _mips32_reg_table[key].name;
 		
-			if (*str == *s && !_sfmemcmp(str + 1, s + 1, len - 1, strlen((const char*)s) - 1)){
+			if (*str == *s 
+			&& !_sfmemcmp_fast(str + 1, s + 1, _mips32_reg_table[key].len - 1)){
 				return _mips32_reg_table[key].value;
 			}
 		}
