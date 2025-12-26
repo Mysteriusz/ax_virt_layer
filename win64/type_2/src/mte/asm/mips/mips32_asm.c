@@ -1,33 +1,10 @@
 #include <ax_memory.h>
 #include "mte/asm/mips/mips32_asm.h"
-
-static void _eval_type_r(
-	_in mte_byte_instr		*instr,
-	_out mips32_mte_raw_instr	*buf
-){
-	if (mte_byte_instr_inv(instr)){
-		return;
-	}
-
-	const c8 *restrict lb_char = _unsafe_skip_until_not(instr->buf, '\x20'); // left_bound
-	const c8 *restrict rb_char = _unsafe_skip_until(lb_char, '\x20'); // right_bound
-	u8 i = 0;
-	while(*lb_char != '\0'){
-		// Evaluate range
-		*((u32*)buf) |= 
-			((mips32_eval_r(lb_char, rb_char, i) & _mips32_mask_r[i])
-			<< _mips32_shift_r[i]);
-
-		lb_char = _unsafe_skip_until_not(rb_char, ',');
-		lb_char = _unsafe_skip_until_not(lb_char, '\x20');
-		rb_char = _unsafe_skip_until(lb_char, ',');
-		i++;
-	}
-}
+#include "mte/asm/decode_u64.h"
 
 axres mips32_byte_to_raw(
-	_in mte_byte_instr			*instr,
-	_out mte_raw_instr			*buf
+	_in register mte_byte_instr		*instr,
+	_out register mte_raw_instr		*buf
 ){
 	if (instr == nullptr){
 		return AX_INV_ARG;
@@ -36,7 +13,7 @@ axres mips32_byte_to_raw(
 		return AX_INV_BUF;
 	}
 
-	_eval_type_r(instr, &buf->mips32);
+	_mips32_eval(instr, &buf->mips32);
 	if (mips32_opcode(buf->mips32) == MIPS32_OPCODE_INVALID){
 		return AX_MTE_INV_INSTR;
 	}
@@ -45,22 +22,54 @@ axres mips32_byte_to_raw(
 	return AX_SUCC;
 }
 
-
-u8 mips32_eval_r(
-	_in register const c8	*restrict 	lb_char,
-	_in register const c8	*restrict 	rb_char,
-	_in u8 					i
+axres mips32_eval_type_r(
+	_in register mte_u64_instr *const instr 
 ){
-	// Evaluate based on operation index
-	switch(i){
-	case 0:
-		return mips32_opcode_lookup(lb_char, rb_char - lb_char);
-	case 1:
-	case 2:
-	case 3:
-		return mips32_reg_lookup(lb_char, rb_char - lb_char);
-	default:
-		return 0;
-	}
+	asrt(instr != nullptr);
+
+	/*
+	 	1st register (rd)
+	*/
+
+	register u64 *lhs = nullptr;
+	register u64 *rhs = nullptr;
+
+	_u64_byte_skip(0x20, instr); // Skip to left side of the register
+	lhs = instr->ptr;
+	_u64_byte_search(0x2c, instr); // Skip to the right side of the register
+	rhs = instr->ptr;
+
+	const struct mips32_reg_info r1 = 
+		_mips32_reg_lookup(*lhs & n_mask((u64)rhs - (u64)lhs));
+
+	instr->ptr = (u64*)(((u64)instr->ptr) + 1);
+
+	/*
+	 	2nd register (rt)
+	*/
+
+	_u64_byte_skip(0x20, instr); // Skip to left side of the register
+	lhs = instr->ptr;
+	_u64_byte_search(0x2c, instr); // Skip to the right side of the register
+	rhs = instr->ptr;
+
+	const struct mips32_reg_info r2 = 
+		_mips32_reg_lookup(*lhs & n_mask((u64)rhs - (u64)lhs));
+
+	/*
+	 	3rd register (rs)
+	*/
+
+	instr->ptr = (u64*)(((u64)instr->ptr) + 1);
+
+	_u64_byte_skip(0x20, instr); // Skip to left side of the register
+	lhs = instr->ptr;
+	_u64_byte_search(0x2c, instr); // Skip to the right side of the register
+	rhs = instr->ptr;
+
+	const struct mips32_reg_info r3 = 
+		_mips32_reg_lookup(*lhs & n_mask((u64)rhs - (u64)lhs));
+
+	return AX_SUCC;
 }
 

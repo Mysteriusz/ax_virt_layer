@@ -7,8 +7,9 @@
 
 #include <ax_error.h>
 
-#include "mte/unsafe_string.h"
 #include "mte/asm/mips/mips32.h"
+
+#include "mte/asm/decode_u64.h"
 
 #define enum_bound(e, t) \
 	((e) <= t##_min || (e) >= t##_max)
@@ -39,15 +40,15 @@ typedef struct _mte_raw_instr{
 typedef struct _mte_byte_instr{
 	enum mte_syn		syn;
 	enum mte_arch		arch;
-	c8 			*buf;
-	u32 			len;
+	mte_u64_instr 		val;
 } mte_byte_instr;
 
 _inline_force static bool mte_byte_instr_inv(
 	_in mte_byte_instr 	*instr
 ){
 	if (instr == nullptr
-	|| instr->buf == nullptr
+	|| instr->val.org == nullptr
+	|| instr->val.ptr == nullptr
 	|| enum_bound(instr->syn, mte_syn)
 	|| enum_bound(instr->arch, mte_arch)){
 		return true;

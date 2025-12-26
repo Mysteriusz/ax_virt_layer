@@ -2,6 +2,7 @@
 #define MTE_MIPS32_INT
 
 #include <ax_type.h>
+#include "mte/asm/decode_u64.h"
 #include "mte/cpu.h"
 #include "mte/ir.h"
 
@@ -11,15 +12,32 @@ static struct cpu_reg_map _mips32_cpu_reg_map = {
 	.root = (reg32[32]){}
 };
 
+typedef u32 mips32_mte_raw_instr;
 /*	
  	MIPS32 instruction breakdown
 */
-typedef u32 mips32_mte_raw_instr;
 enum mips32_type{
 	R = 1, // Register to register instrucitons
 	I = 2, // Immidiate to register instructions
 	J = 3, // Memory read instructions
 };
+enum mips32_reg{
+	R0, // Zero (0)
+	R1, // Reserved for asm (at)
+	R2, R3, // Results (v0-v1)
+	R4, R5, R6, R7, // Arguments (a0-a3)
+	R8, R9, R10, R11, R12, R13, R14, R15, // Temporaries (t0-t7)
+	R16, R17, R18, R19, R20, R21, R22, R23, // Saved (s0-s7)
+	R24, R25, // Not saved (t8-t9)
+	R26, R27, // OS reserved (k0-k1)
+	R28, // Global pointer (gp)
+	R29, // Stack pointer (sp)
+	R30, // Frame pointer (fp/s8)
+	R31 // Return address (ra)
+};
+
+typedef u8 mips32_opcode;
+#define MIPS32_OPCODE_INVALID (mips32_opcode)0b111111
 
 /*
  	MIPS32 instruction info retrieval
@@ -45,31 +63,19 @@ _inline_force static enum mips32_type mips32_check_type(
 	return 0;
 }
 
-typedef u8 mips32_opcode;
-#define MIPS32_OPCODE_INVALID (mips32_opcode)0b111111
-mips32_opcode mips32_opcode_lookup(
-	_in register const c8 	*str,
-	_in register u64 	len
-);
-
-enum mips32_reg{
-	R0, // Zero (0)
-	R1, // Reserved for asm (at)
-	R2, R3, // Results (v0-v1)
-	R4, R5, R6, R7, // Arguments (a0-a3)
-	R8, R9, R10, R11, R12, R13, R14, R15, // Temporaries (t0-t7)
-	R16, R17, R18, R19, R20, R21, R22, R23, // Saved (s0-s7)
-	R24, R25, // Not saved (t8-t9)
-	R26, R27, // OS reserved (k0-k1)
-	R28, // Global pointer (gp)
-	R29, // Stack pointer (sp)
-	R30, // Frame pointer (fp/s8)
-	R31 // Return address (ra)
+// Maximum mnemonic length for currently supported mips32 instructions
+#define MIPS32_MNEM_LEN_MAX 8
+struct mips32_op_info{
+	const u64		mnem_u64;
+	const enum mips32_type 	type;
+	const u8		opcode;
+	const void 		*ir_rule;
 };
-enum mips32_reg mips32_reg_lookup(
-	_in register const c8 	*str,
-	_in register u64 	len
-);
+struct mips32_reg_info{
+	const u64		name_u64;
+	const enum mips32_reg 	val;
+	const void 		*ir_rule;
+};
 
 #endif // !defined(MTE_MIPS32_INT)
 

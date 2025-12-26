@@ -6,18 +6,17 @@
 
 #include "mte/asm/mips/mips32_reg_table.h"
 
-#define TOTAL_KEYWORDS 65
+/*#define TOTAL_KEYWORDS 65
 #define MIN_WORD_LENGTH 2
 #define MAX_WORD_LENGTH 5
 #define MIN_HASH_VALUE 2
-#define MAX_HASH_VALUE 228
+#define MAX_HASH_VALUE 228*/
 /* maximum key range = 227, duplicates = 0 */
 
-static u32 hash(
-	_in register const c8 	*str,
-	_in register u64 	len
+_inline_force static u32 _reg_hash(
+	_in register u64 	mnem
 ){
-	static unsigned char asso_values[] ={
+	static u8 asso_values[] ={
 		229, 229, 229, 229, 229, 229, 229, 229, 229, 229,
 		229, 229, 229, 229, 229, 229, 229, 229, 229, 229,
 		229, 229, 229, 229, 229, 229, 229, 229, 229, 229,
@@ -45,35 +44,28 @@ static u32 hash(
 		229, 229, 229, 229, 229, 229, 229, 229, 229, 229,
 		229, 229, 229, 229, 229, 229, 229, 229, 229, 229
 	};
-	register unsigned int hval = len;
+	register u32 hval = _u64_qlen(mnem);
 	
 	switch (hval){
 	default:
-		hval += asso_values[str[2]+4];
+		hval += asso_values[((mnem >> 16) & 0xff) + 4];
 	/*FALLTHROUGH*/
 	case 2:
-		hval += asso_values[str[1]+1];
+		hval += asso_values[((mnem >> 8) & 0xff) + 1];
 		break;
 	}
 	return hval;
 }
 
-enum mips32_reg mips32_reg_lookup(
-	_in register const c8 	*str,
-	_in register u64 	len
+_inline_force static const struct mips32_reg_info _mips32_reg_lookup(
+	_in u64 val // Register syntax
 ){
-	if (len <= MAX_WORD_LENGTH && len >= MIN_WORD_LENGTH){
-		register unsigned int key = hash (str, len);
-		
-		if (key <= MAX_HASH_VALUE){
-			register const c8 *s = _mips32_reg_table[key].name;
-		
-			if (*str == *s 
-			&& !_sfmemcmp_fast(str + 1, s + 1, _mips32_reg_table[key].len - 1)){
-				return _mips32_reg_table[key].value;
-			}
+	register u32 key = _reg_hash(val);
+	if (key <= 228){
+		if (val == _mips32_reg_table[key].name_u64){
+			return _mips32_reg_table[key];
 		}
 	}
-	return 0;
+	return (struct mips32_reg_info){0};
 }
 
