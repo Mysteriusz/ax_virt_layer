@@ -12,7 +12,8 @@
 
 /*
  	Currently achives speeds around
-		- ~200ns for 4.2GHZ cpu
+		- ~1000ns for 4.2GHZ CPU with cold cache
+		- ~25-300ns for 4.2GHZ CPU with warmed cache
 */
 axres mips32_byte_to_raw(
 	_in mte_byte_instr			*instr,
@@ -20,25 +21,37 @@ axres mips32_byte_to_raw(
 );
 
 /*
-	R-type instruction has 4 steps
+	R-type instruction encoding has 3/4 steps
 	Shifts are based on struct mte_raw_instr_mips32
-	By default all operations are performed and stored as LITTLE-ENDIAN
+	By default all instructions are expected to be LITTLE-ENDIAN
 
 	1) funct (Ex: add, addi, xor) shift = 0
-	TODO: 2) shamt (Ex:) shift = 6
+	TODO SUPPORT: 2) shamt (Ex:1, 6, 9) shift = 6
 	2) rd (Ex: $t2, $t7) shift = 11
 	3) rs (Ex: $t1, $t3) shift = 21
 	4) rt (Ex: $t0, $t3) shift = 16
-*/
 
-static u32 _mips32_shift_r[4] = {0, 11, 21, 16}; 
-static u32 _mips32_mask_r[4] = {0x3f, 0x1f, 0x1f, 0x1f}; 
+	Example insturction without shamt field:
+		add $t0 -> (rd), $t1 -> (rs), $t2 -> (rt)
+	With shamt:
+		sll $t0 -> (rd), $t1 -> (rt), 1 -> (shamt)
+*/
 mips32_mte_raw_instr mips32_eval_type_r(
 	_in register mte_u64_instr *const instr 
 );
+
+/*
+	I-type instruction encoding has 4 steps
+*/
 mips32_mte_raw_instr mips32_eval_type_i(
+	_in register mte_u64_instr *const instr 
 );
+
+/*
+	J-type instruction encoding has 3 steps
+*/
 mips32_mte_raw_instr mips32_eval_type_j(
+	_in register mte_u64_instr *const instr 
 );
 
 _inline_force static void _mips32_eval(
@@ -64,6 +77,10 @@ _inline_force static void _mips32_eval(
 	_u64_byte_search(0x20, instr_ptr);
 	rhs = instr_ptr->ptr;
 
+	__builtin_prefetch(mips32_eval_type_r);
+	__builtin_prefetch(mips32_eval_type_j);
+	__builtin_prefetch(mips32_eval_type_i);
+
 	const struct mips32_op_info info =
 		_mips32_op_lookup(*lhs & n_mask((u64)rhs - (u64)lhs));
 
@@ -85,8 +102,9 @@ _inline_force static void _mips32_eval(
 
 	l2 = __rdtsc();
 	printf("Time in ns: %lf\n", ((l2 - l1) / 4.2) - 4);
+	/*printf("Time in ns: %lf\n", ((l2 - l1) / 4.2) - 4);
 	printf("Mnemonic: %s\n", (char*)&info.mnem_u64);
 	printf("%u\n", info.type);
 	printf("Encoded: %u\n", *buf);
-	printf("%s\n", (char*)lhs);
+	printf("%s\n", (char*)lhs);*/
 }

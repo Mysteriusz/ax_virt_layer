@@ -28,8 +28,6 @@ mips32_mte_raw_instr mips32_eval_type_r(
 ){
 	asrt(instr != nullptr);
 
-	//printf("\nMIPS32 R-TYPE INSTRUCTION REGISTER EVALUATION\n\n");
-
 	register mips32_mte_raw_instr buf = 0;
 
 	/*
@@ -53,7 +51,7 @@ mips32_mte_raw_instr mips32_eval_type_r(
 		).val,
 		MIPS32_RD_SHIFT);
 
-	instr->ptr = (u64*)(((u64)instr->ptr) + 1);
+	_u64_move(1, instr);
 
 	/*
 	 	2nd register (rs)
@@ -77,7 +75,7 @@ mips32_mte_raw_instr mips32_eval_type_r(
 	 	3rd register (rt)
 	*/
 
-	instr->ptr = (u64*)(((u64)instr->ptr) + 1);
+	_u64_move(1, instr);
 
 	_u64_byte_skip(0x20, instr); // Skip to left side of the register
 	lhs = instr->ptr;
@@ -94,5 +92,19 @@ mips32_mte_raw_instr mips32_eval_type_r(
 		MIPS32_RT_SHIFT);
 
 	return buf;
+}
+
+mips32_mte_raw_instr mips32_eval_type_i(
+	_in register mte_u64_instr *const instr 
+){
+	asrt(instr != nullptr);
+	return (mips32_mte_raw_instr){0};
+}
+
+mips32_mte_raw_instr mips32_eval_type_j(
+	_in register mte_u64_instr *const instr 
+){
+	asrt(instr != nullptr);
+	return (mips32_mte_raw_instr){0};
 }
 
