@@ -43,12 +43,19 @@ typedef u8 mips32_opcode;
  	MIPS32 instruction info retrieval
 */
 
+#define MIPS32_FUNCT_SHIFT 0
+#define MIPS32_SHAMT_SHIFT 0
+#define MIPS32_RD_SHIFT 11
+#define MIPS32_RS_SHIFT 21
+#define MIPS32_RT_SHIFT 16
+#define MIPS32_OPCODE_SHIFT 26
+
 #define mips32_funct(instr)(instr & 0x3f)
-#define mips32_shamt(instr)((instr >> 6) & 0x1f)
-#define mips32_rd(instr)((instr >> 11) & 0x1f)
-#define mips32_rt(instr)((instr >> 16) & 0x1f)
-#define mips32_rs(instr)((instr >> 21) & 0x1f)
-#define mips32_opcode(instr)((instr >> 26) & 0x3f)
+#define mips32_shamt(instr)((instr >> MIPS32_SHAMT_SHIFT) & 0x1f)
+#define mips32_rd(instr)((instr >> MIPS32_RD_SHIFT) & 0x1f)
+#define mips32_rt(instr)((instr >> MIPS32_RT_SHIFT) & 0x1f)
+#define mips32_rs(instr)((instr >> MIPS32_RS_SHIFT) & 0x1f)
+#define mips32_opcode(instr)((instr >> MIPS32_OPCODE_SHIFT) & 0x3f)
 
 _inline_force static enum mips32_type mips32_check_type(
 	_in mips32_mte_raw_instr	instr

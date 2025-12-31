@@ -9,7 +9,7 @@ int main(){
 
 	//ir_raw_instr *instr = nullptr;
 
-	const char str[] = "       add $t1,$t2,$t3";
+	const char str[] = "       add $t1   ,   $t2   ,   $t3";
 	mte_raw_instr enc = {0};
 	mips32_byte_to_raw(
 		&(mte_byte_instr){

@@ -8,12 +8,11 @@
 #include "mte/asm/mips/mips32.h"
 #include "mte/asm/mips/mips32_op_lookup.h"
 #include "mte/asm/mips/mips32_reg_lookup.h"
+#include "mte/asm/bits.h"
 
 /*
  	Currently achives speeds around
-		- ~1100ns for 1GHZ cpu
-		- ~440ns for 2.5GHZ cpu
-		- ~250ns for 4.4GHZ cpu
+		- ~200ns for 4.2GHZ cpu
 */
 axres mips32_byte_to_raw(
 	_in mte_byte_instr			*instr,
@@ -34,12 +33,12 @@ axres mips32_byte_to_raw(
 
 static u32 _mips32_shift_r[4] = {0, 11, 21, 16}; 
 static u32 _mips32_mask_r[4] = {0x3f, 0x1f, 0x1f, 0x1f}; 
-axres mips32_eval_type_r(
+mips32_mte_raw_instr mips32_eval_type_r(
 	_in register mte_u64_instr *const instr 
 );
-axres mips32_eval_type_i(
+mips32_mte_raw_instr mips32_eval_type_i(
 );
-axres mips32_eval_type_j(
+mips32_mte_raw_instr mips32_eval_type_j(
 );
 
 _inline_force static void _mips32_eval(
@@ -51,6 +50,7 @@ _inline_force static void _mips32_eval(
 	}
 	u64 l1, l2;
 
+	__builtin_prefetch(buf);
 	(void)__rdtsc();
 	l1 = __rdtsc();
 
@@ -70,7 +70,8 @@ _inline_force static void _mips32_eval(
 	// Skip to first register
 	switch(info.type){
 	case R:
-		mips32_eval_type_r(instr_ptr);
+		load_bits(*buf, info.opcode, MIPS32_SHAMT_SHIFT);
+		*buf |= mips32_eval_type_r(instr_ptr);
 		break;
 	case I:
 		//mips32_eval_type_i();
@@ -86,5 +87,6 @@ _inline_force static void _mips32_eval(
 	printf("Time in ns: %lf\n", ((l2 - l1) / 4.2) - 4);
 	printf("Mnemonic: %s\n", (char*)&info.mnem_u64);
 	printf("%u\n", info.type);
+	printf("Encoded: %u\n", *buf);
 	printf("%s\n", (char*)lhs);
 }

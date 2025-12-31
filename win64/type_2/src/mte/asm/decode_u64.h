@@ -27,7 +27,11 @@ static mte_u64_instr _str_to_u64(
 #define U64_BIT_HIGH_MASK 	0x8080808080808080ULL
 #define U64_HAS_BIT(b)		(((b) - U64_BIT_LOW_MASK) & ~(b) & U64_BIT_HIGH_MASK)
 
-_inline_force void _u64_byte_search(
+/*
+ 	True if found;
+	False if not found;
+*/
+_inline_force bool _u64_byte_search(
 	_in u8					byte,
 	_in_out register mte_u64_instr *const 	instr 
 ){
@@ -37,12 +41,12 @@ _inline_force void _u64_byte_search(
 	register u64 *ptr = instr->ptr;
 	register u64 res = 0;
 	do{
-		if (*ptr == 0) return;
+		if (*ptr == 0) return false;
 
 		res = U64_HAS_BIT(*ptr ^ mask);
 		if (res){
 			instr->ptr = (u64*)(((c8*)ptr) + (__builtin_ctzll(res) >> 3));
-			return;
+			return true;
 		}
 		ptr++;
 	} while(1);
@@ -67,11 +71,37 @@ _inline_force void _u64_byte_skip(
 		ptr++;
 	} while(1);
 }
+/*
+	Distance between two addressess without 0x20 character.
+*/
+_inline_force u64 _u64_real_dist(
+	_in register const u64 *a,
+	_in register const u64 *b
+){
+	__builtin_prefetch(a + 1);
+
+	const register u64 mask = U64_BIT_LOW_MASK * 0x20;
+	register u64 count = 0;
+	do{
+		if (*a == 0) return 0;
+
+		count += __builtin_popcountll(
+			U64_HAS_BIT((*a & n_mask(addr_diff(a, b))) ^ mask));
+		if (a < b){
+			return addr_diff(a, b) - count;
+		}
+		a++;
+	} while(1);
+}
+
+// STRING LENGTH IN QUADWORD (U64)
 _inline_force u64 _u64_qlen(
 	_in register const u64 val
 ){
 	return 8 - (__builtin_clzll(val) >> 3);
 }
+
+// STRING LENGTH
 _inline_force u64 _u64_slen(
 	_in register const u64 *ptr
 ){
