@@ -17,6 +17,7 @@
 */
 axres mips32_byte_to_raw(
 	_in mte_byte_instr			*instr,
+	_out const ir_rule			**rule,
 	_out mte_raw_instr			*buf
 );
 
@@ -56,6 +57,7 @@ mips32_mte_raw_instr mips32_eval_type_j(
 
 _inline_force static void _mips32_eval(
 	_in register mte_byte_instr		*instr,
+	_out register const ir_rule		**rule,
 	_out register mips32_mte_raw_instr	*buf
 ){
 	if (mte_byte_instr_inv(instr)){
@@ -88,6 +90,7 @@ _inline_force static void _mips32_eval(
 	switch(info.type){
 	case R:
 		load_bits(*buf, info.opcode, MIPS32_SHAMT_SHIFT);
+		*rule = &info.ir_rule;
 		*buf |= mips32_eval_type_r(instr_ptr);
 		break;
 	case I:

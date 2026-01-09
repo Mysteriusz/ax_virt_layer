@@ -7,19 +7,19 @@
 #include "mte/ir.h"
 
 static struct cpu_reg_map _mips32_cpu_reg_map = {
-	.reg_count = 32, // 32 registers r0-r31
+	.gpr_count = 32, // 32 registers r0-r31
 	.reg_width = 32, // 32-Bit architecture
-	.root = (reg32[32]){}
+	.root = (reg64[32]){}
 };
 
 typedef u32 mips32_mte_raw_instr;
 /*	
- 	MIPS32 instruction breakdown
+ 	mips32 instruction breakdown
 */
 enum mips32_type{
-	R = 1, // Register to register instrucitons
-	I = 2, // Immidiate to register instructions
-	J = 3, // Memory read instructions
+	R = 1, // register to register instrucitons
+	I = 2, // immidiate to register instructions
+	J = 3, // memory read instructions
 };
 enum mips32_reg{
 	R0, // Zero (0)
@@ -50,14 +50,14 @@ typedef u8 mips32_opcode;
 #define MIPS32_RT_SHIFT 16
 #define MIPS32_OPCODE_SHIFT 26
 
-#define mips32_funct(instr)(instr & 0x3f)
-#define mips32_shamt(instr)((instr >> MIPS32_SHAMT_SHIFT) & 0x1f)
-#define mips32_rd(instr)((instr >> MIPS32_RD_SHIFT) & 0x1f)
-#define mips32_rt(instr)((instr >> MIPS32_RT_SHIFT) & 0x1f)
-#define mips32_rs(instr)((instr >> MIPS32_RS_SHIFT) & 0x1f)
-#define mips32_opcode(instr)((instr >> MIPS32_OPCODE_SHIFT) & 0x3f)
+#define mips32_funct(instr)	(instr & 0x3f)
+#define mips32_shamt(instr)	((instr >> MIPS32_SHAMT_SHIFT) & 0x1f)
+#define mips32_rd(instr)	((instr >> MIPS32_RD_SHIFT) & 0x1f)
+#define mips32_rt(instr)	((instr >> MIPS32_RT_SHIFT) & 0x1f)
+#define mips32_rs(instr)	((instr >> MIPS32_RS_SHIFT) & 0x1f)
+#define mips32_opcode(instr)	((instr >> MIPS32_OPCODE_SHIFT) & 0x3f)
 
-_inline_force static enum mips32_type mips32_check_type(
+_inline_force enum mips32_type _mips32_check_type(
 	_in mips32_mte_raw_instr	instr
 ){
 	if (mips32_opcode(instr) == 0){
@@ -76,13 +76,13 @@ struct mips32_op_info{
 	const u64		mnem_u64;
 	const enum mips32_type 	type;
 	const u8		opcode;
-	const void 		*ir_rule;
-};
+	ir_rule 		ir_rule;
+} _align(64);
 struct mips32_reg_info{
 	const u64		name_u64;
 	const enum mips32_reg 	val;
-	const void 		*ir_rule;
-};
+	ir_rule 		ir_rule;
+} _align(64);
 
 #endif // !defined(MTE_MIPS32_INT)
 

@@ -1,10 +1,10 @@
 #include <ax_memory.h>
 #include "mte/asm/mips/mips32_asm.h"
-#include "mte/asm/decode_u64.h"
 #include "mte/asm/bits.h"
 
 axres mips32_byte_to_raw(
 	_in register mte_byte_instr		*instr,
+	_out const ir_rule			**rule,
 	_out register mte_raw_instr		*buf
 ){
 	if (instr == nullptr){
@@ -14,7 +14,7 @@ axres mips32_byte_to_raw(
 		return AX_INV_BUF;
 	}
 
-	_mips32_eval(instr, &buf->mips32);
+	_mips32_eval(instr, rule, &buf->mips32);
 	if (mips32_opcode(buf->mips32) == MIPS32_OPCODE_INVALID){
 		return AX_MTE_INV_INSTR;
 	}
