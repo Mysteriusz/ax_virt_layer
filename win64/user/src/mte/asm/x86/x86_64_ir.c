@@ -9,10 +9,10 @@ axres x86_64_raw_to_ir(
 		return AX_INV_BUF;
 	}
 
-	switch(_x86_64_check_type(instr)){
+	/*switch(_x86_64_check_type(instr)){
 	default:
 		return 0;
-	}
+	}*/
 	return 0;
 }
 

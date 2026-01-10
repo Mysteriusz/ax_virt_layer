@@ -4,9 +4,22 @@
 #include "mte/asm/mips/mips32_ir.h"
 #include "mte/asm/x86/x86_64.h"
 
+_inline_avert void foo(
+	x86_64_mte_raw_instr instr){
+	u64 l1, l2;
+
+	(void)__rdtsc();
+	l1 = __rdtsc();
+	u32 res = 0;
+	res = _x86_64_opcode(instr);
+	l2 = __rdtsc();
+	printf("Time in ns: %lf\n", ((l2 - l1) / 4.2) - 4);
+	io_i64(res);
+}
 int main(){
-	x86_64_mte_raw_instr instr = init_x86_64_mte_raw_instr(0x40, 0x0f, 0x38, 0x1);
-	_x86_64_check_type(instr);
+	x86_64_mte_raw_instr instr = init_x86_64_mte_raw_instr(0x66, 0x0F, 0x3A, 0x0F, 0xC1, 0x08);
+	foo(instr);
+	//io_i64(res);
 	/*ir_context *mips32_ir = nullptr;
 	ir_create(mips32, &mips32_ir);*/
 
