@@ -36,6 +36,8 @@ typedef u8* x86_64_mte_raw_instr; // Unknown length instruction (up to 15 bytes)
  	Any figure labels refer to Intels x86_64 instruction set manual:
 
 	Intel® 64 and IA-32 Architectures Software Developer's Manual Combined Volumes 2A, 2B, 2C, and 2D: Instruction Set Reference, A- Z
+
+	SSSE3 Instructions not fully supported!
 */
 enum x86_64_rex : u8{
 	REX_B = 0b0001, // Figure 2-7 
@@ -103,35 +105,49 @@ _inline_force bool _x86_64_rex_ext(
 		return false;
 	}
 }
+_inline_force u32 _x86_64_opcode_len(
+	_in x86_64_mte_raw_instr	instr,
+	_in bool 			is_legacy,
+	_in bool 			is_rex
+){
+	bool ext = false;
+	if (is_legacy && instr[is_rex + 1] == 0x0f){
+		ext = true;
+	}else if(instr[is_rex] == 0x0f){
+		ext = true;
+	}
+
+	switch(instr[is_legacy + is_rex + 1]){
+	case 0x38:
+	case 0x3a:
+		return 2 + is_legacy + ext;
+	default:
+		return 1 + is_legacy + ext;
+	}
+}
 _inline_force u32 _x86_64_opcode(
 	_in x86_64_mte_raw_instr	instr
 ){
-	u8 i = 0;
-
-	u8 opcode_i = 0;
 	u8 opcode_len = 0;
 
-	bool is_legacy = _x86_64_legacy_ext(instr);
-	i++;
-
+	u8 is_legacy = _x86_64_legacy(instr); // 0 (false) if legacy isn`t present
+	bool is_legacy_ext = _x86_64_legacy_ext(instr); // Is legacy prefix a part of the opcode
 	bool is_rex = _x86_64_rex_ext(instr);
-	i += is_rex;
-	i++;
 
-	// Identify opcode byte length
-	if (instr[i] == 0x38 || instr[i] == 0x3a){
-		opcode_len = 2 + is_rex + is_legacy; // 4 if (legacy_pref == f2H or f1H or 66H)
-	}else{
-		opcode_len = 1 + is_rex + is_legacy; // 3 if (legacy_pref == f2H or f1H or 66H)
-	}
-
+	opcode_len = _x86_64_opcode_len(instr, is_legacy_ext, is_rex);
 	u64 mask = n_mask(opcode_len);
-	if (is_legacy && !is_rex){ // Edge case when we also need first (legacy) byte
-		mask |= 0xff << 24; // Last byte set
-	}
 
-	// Mask and normalize the opcode
-	return (*(u32*)offp(instr, opcode_i)) & mask >> (sizeof(u32) - opcode_len);
+	if (is_rex && is_legacy_ext){
+		return (((*(u32*)offp(instr, 1)) & mask) & ~0xff) | is_legacy; // From after rex with legacy byte
+	}else{
+		return (((*(u32*)offp(instr, is_rex)) & mask)); // From rex or first byte
+	}
+}
+_inline_force u8 _x86_64_modrm(
+	_in x86_64_mte_raw_instr	instr
+){
+
+	return 0;
 }
 
 #endif // !defined(AX_X86_64_INT)

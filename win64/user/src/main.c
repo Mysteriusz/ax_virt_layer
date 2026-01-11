@@ -17,8 +17,18 @@ _inline_avert void foo(
 	io_i64(res);
 }
 int main(){
-	x86_64_mte_raw_instr instr = init_x86_64_mte_raw_instr(0x66, 0x0F, 0x3A, 0x0F, 0xC1, 0x08);
-	foo(instr);
+	x86_64_mte_raw_instr instr1 = init_x86_64_mte_raw_instr(0x66, 0x45, 0x0f, 0x38, 0x00);
+	foo(instr1);
+	x86_64_mte_raw_instr instr2 = init_x86_64_mte_raw_instr(0x41, 0x45);
+	foo(instr2);
+	x86_64_mte_raw_instr instr3 = init_x86_64_mte_raw_instr(0x4c, 0x89, 0xf8);
+	foo(instr3);
+	x86_64_mte_raw_instr instr4 = init_x86_64_mte_raw_instr(0x66, 0x41, 0x0F, 0x38, 0x00, 0x0A);
+	foo(instr4);
+	x86_64_mte_raw_instr instr5 = init_x86_64_mte_raw_instr(0x0F, 0x01, 0xC1);
+	foo(instr5);
+	x86_64_mte_raw_instr instr6 = init_x86_64_mte_raw_instr(0x66, 0x0f, 0x38, 0xc1);
+	foo(instr6);
 	//io_i64(res);
 	/*ir_context *mips32_ir = nullptr;
 	ir_create(mips32, &mips32_ir);*/
