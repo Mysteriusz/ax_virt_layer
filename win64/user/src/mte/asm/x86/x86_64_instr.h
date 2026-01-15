@@ -3,6 +3,7 @@
 
 #include <ax_type.h>
 #include <ax_io.h>
+
 #include "mte/asm/x86/x86_64_modrm.h"
 
 /*
@@ -38,6 +39,7 @@ typedef u8 const* x86_64_mte_raw_instr; // Unknown length instruction (up to 15 
 #define rex_x(r) 	(bool)(r & (1 << 1))
 #define rex_b(r) 	(bool)(r & 1)
 
+#define info_x(i) 	(bool)(i & (1 << 3))
 #define info_r(i) 	(bool)(i & (1 << 2))
 #define info_l(i) 	(bool)(i & (1 << 1))
 #define info_e(i) 	(bool)(i & 1)
@@ -46,7 +48,7 @@ typedef u8 const* x86_64_mte_raw_instr; // Unknown length instruction (up to 15 
 typedef struct _x86_64_opcode{
 	const u32 	val;
 	const u8 	len;
-	const u8 	info; // 00000RLE (is rex | is legacy | is legacy extension)
+	const u8 	info; // 0000XRLE (is opcode extension (0x0f) | is rex | is legacy | is legacy extension)
 	const u8	legacy; // Legacy prefix value
 	const u8	rex; // Rex prefix value
 } x86_64_opcode _align(8);
@@ -129,6 +131,7 @@ _inline_force u8 _x86_64_opcode_len(
 		return 1 + is_legacy + ext;
 	}
 }
+
 _inline_force const x86_64_opcode _x86_64_get_opcode(
 	_in const x86_64_mte_raw_instr	instr
 ){
@@ -140,8 +143,9 @@ _inline_force const x86_64_opcode _x86_64_get_opcode(
 	bool is_rex = (rex != 0);
 	bool is_legacy = (legacy != 0); // 0 (false) if legacy isn`t present
 	bool is_legacy_ext = _x86_64_legacy_ext(instr); // Is legacy prefix a part of the opcode
+	bool is_ext = instr[is_legacy + is_rex] == 0x0f;
 
-	u8 info = is_rex << 2 | is_legacy << 1 | is_legacy_ext;
+	u8 info = is_ext << 3 | is_rex << 2 | is_legacy << 1 | is_legacy_ext;
 
 	opcode_len = _x86_64_opcode_len(instr, is_legacy_ext, is_rex);
 	u64 mask = n_mask(opcode_len);
@@ -183,13 +187,48 @@ _inline_force const x86_64_opcode _x86_64_get_opcode(
 #define modrm_rm(m) ((u8)(m) & 0x7)
 
 /*
+ 	Modrm compatilbity check for opcode with legacy prefix
+
+	Should be optimized (remove the swtich)
+*/
+_inline_force bool _x86_64_modrm_check(
+	_in x86_64_opcode	opcode
+){
+	// 4 byte opcode (any 4 bit opcode has MODRM byte)
+	if (opcode.len == 4){
+		return true;
+	}
+	
+	u8 op0 = opcode.val & 0xff;
+	if (opcode.len == 1){
+		return VAL_TO_BIT(modrm_tables.l0_mask, op0);
+	}
+	if (opcode.len == 2){
+		return VAL_TO_BIT(modrm_tables.l0_mask, opcode.val & (0xff << 8));
+	}
+
+	u8 op2 = opcode.val & (0xff < 16);
+	switch(op0){
+	case 0x0f:
+		return VAL_TO_BIT(modrm_tables.l2_0f_mask, op2);
+	case 0x66:
+		return VAL_TO_BIT(modrm_tables.l2_66_mask, op2);
+	case 0xf2:
+		return VAL_TO_BIT(modrm_tables.l2_f2_mask, op2);
+	case 0xf3:
+		return VAL_TO_BIT(modrm_tables.l2_f3_mask, op2);
+	default:
+		return false;
+	}
+}
+/*
  	Opcode checking modrm read.
 */
 _inline_force u8 _x86_64_get_modrm(
 	_in x86_64_opcode		opcode,
 	_in x86_64_mte_raw_instr	instr
 ){
-	if (!_x86_64_modrm_check(opcode.val)){
+	if (!_x86_64_modrm_check(opcode)){
 		return 0;
 	}
 
@@ -198,7 +237,7 @@ _inline_force u8 _x86_64_get_modrm(
 }
 
 /*
-	[index * scale + base]
+	[index + base * scale]
 
 	scale:
 	00 -> 1
@@ -218,28 +257,45 @@ _inline_force u8 _x86_64_get_modrm(
 
 	base:
 	(1 ... 7) (excluding 5)
-	base == 5 indicates the displacement is placed after the SIB byte.
-	It`s byte length is dependant on the mod AND r/m fields of the MODRM.
+	base == 5 indicates the displacement is the next 4 bytes.
 */
 #define sib_scale(m) ((u8)(m) >> 6)
 #define sib_index(m) (((u8)(m) >> 3) & 0x7)
 #define sib_base(m) ((u8)(m) & 0x7)
 
+typedef struct _x86_64_sib{
+	// Second byte
+	u8	index_ext : 1; // Extended by it`s rex X field
+	u8	index : 3; 
+	u8	base_ext : 1; // Extended by it`s rex B field
+	u8	base : 3;
+	// First byte
+	u8	val;
+} x86_64_sib _align(8);
+
 /*
  	Modrm checking sib read.
 */
-_inline_force u8 _x86_64_get_sib(
+_inline_force const x86_64_sib _x86_64_get_sib(
 	_in x86_64_opcode		opcode,
 	_in u8				modrm,
 	_in x86_64_mte_raw_instr	instr
 ){
 	if (modrm_mod(modrm) == 0b11
 	|| modrm_rm(modrm) != 0b100){
-		return 0;
+		return (x86_64_sib){0}; // No SIB byte
 	}
 
+	u8 sib = instr[opcode.len + info_r(opcode.info) + 1];
+
 	// Return byte at offset of opcode + legacy + is_rex + modrm
-	return instr[opcode.len + info_r(opcode.info) + 1];
+	return (const x86_64_sib){
+		.index_ext = rex_x(opcode.rex),
+		.index = sib_index(sib),
+		.base_ext = rex_b(opcode.rex),
+		.base = sib_base(sib),
+		.val = sib
+	};
 }
 
 _inline_force u32 _x86_64_get_disp_sib(
@@ -258,14 +314,16 @@ _inline_force u32 _x86_64_get_disp_sib(
 	// Sib is placed in either 1 or 4 bytes after sib
 	switch(modrm_mod(modrm)){
 	case 0b00:
+		// 4 byte displacement
 		if (sib_base(sib) == 5){
 			return *(u32*)offp(instr, sib_i + 1);
 		}
 		return 0;
 	case 0b01:
+		// 1 byte displacement
 		return instr[sib_i + 1];
 	case 0b10:
-		// Swap from array (Big endian) back to (Little endian)
+		// 4 byte displacement
 		return *(u32*)offp(instr, sib_i + 1);
 	default:
 		return 0;
@@ -292,15 +350,18 @@ _inline_force u32 _x86_64_get_disp(
 
 	// No SIB present
 	switch(modrm_mod(modrm)){
-	case 0b10:
-		return *(u32*)offp(instr, modrm_i + 1);
 	case 0b00: 
+		// 4 byte displacement
 		if (modrm_rm(modrm) == 0b101){
 			return *(u32*)offp(instr, modrm_i + 1);
 		}
 		return 0;
 	case 0b01:
+		// 1 byte displacement
 		return instr[modrm_i + 1];
+	case 0b10:
+		// 4 byte displacement
+		return *(u32*)offp(instr, modrm_i + 1);
 	default:
 		return 0;
 	}

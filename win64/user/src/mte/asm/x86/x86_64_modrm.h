@@ -2,19 +2,28 @@
 #define X86_64_MODRM_INT
 
 #include <ax_type.h>
+#include <stdint.h>
+#include <ext_simd.h>
 
-/*
- 	Modrm compatilbity check for opcode with legacy prefix
-*/
-_inline_force bool _x86_64_modrm_check(
-	_in u32 		opcode
-){
 /*
  	Each table consists of ranges at specific byte index in the opcode,
 	which indicates if opcode has modrm byte 
 
 	Reference source: http://ref.x86asm.net/coder64.html
 */
+
+struct modrm_tables_root{
+	// 2 * 32 bytes
+	const u64 l0_mask[4];
+	const u64 l1_mask[4];
+	// 2 * 32 bytes
+	const u64 l2_0f_mask[4];
+	const u64 l2_66_mask[4];
+	// 2 * 32 bytes
+	const u64 l2_f2_mask[4];
+	const u64 l2_f3_mask[4];
+};
+extern const struct modrm_tables_root modrm_tables _align(64);
 /*static const bool table_l0[256] = {
 	[0x00 ... 0x03] = true,
 	[0x08 ... 0x0B] = true,
@@ -101,90 +110,17 @@ static const bool table_l2_f3[256] = {
 	[0xd6] = true,
 	[0xe6] = true,
 };*/
-#include <stdint.h>
-
-static const u64 table_l0_mask[4] = {
-    0x0f0f0f0f0f0f0f0fULL, // 0x00-0x3F
-    0x0000000000000a0cULL, // 0x40-0x7F
-    0x000000000000ffffULL, // 0x80-0xBF
-    0xc3c30f0f0000f3cfULL  // 0xC0-0xFF
-};
-
-static const u64 table_l1_mask[4] = {
-    0xff80fe0001ff000fULL, // 0x00-0x3F
-    0xc0000000fffffbffULL, // 0x40-0x7F (bits 64-127)
-    0xfffffffffffffe38ULL, // 0x80-0xBF
-    0x7fffefbe7fbf003eULL  // 0xC0-0xFF
-};
-
-static const u64 table_l2_0f_mask[4] = {
-    0x0000000000008000ULL, // 0x00-0x3F
-    0x0000000000000000ULL, // 0x40-0x7F
-    0x000000000000031eULL, // 0x80-0xBF
-    0x0303000000000003ULL  // 0xC0-0xFF
-};
-
-static const u64 table_l2_66_mask[4] = {
-    0xff00000000fffe00ULL, // 0x00-0x3F
-    0xf07fffff0003ffffULL, // 0x40-0x7F
-    0x0000000000000000ULL, // 0x80-0xBF
-    0x7ffffffffffffdf4ULL  // 0xC0-0xFF
-};
-
-static const u64 table_l2_f2_mask[4] = {
-    0x0000340000000700ULL, // 0x00-0x3F
-    0xf0010000f7020000ULL, // 0x40-0x7F
-    0x0000000000000000ULL, // 0x80-0xBF
-    0x0001004000000004ULL  // 0xC0-0xFF
-};
-
-static const u64 table_l2_f3_mask[4] = {
-    0x0000340000400700ULL, // 0x00-0x3F
-    0xc0800000ff0e0000ULL, // 0x40-0x7F
-    0x0100000000000000ULL, // 0x80-0xBF
-    0x0000004000800084ULL  // 0xC0-0xFF
-};
 #define VAL_TO_BIT(m, v) ((m[(v) >> 6] >> ((v) & 63)) & 1)
-	u8 op0 = opcode & 0xff;
-	// 4 byte opcode (any 4 bit opcode has MODRM byte)
-	if (opcode & (0xff << 24)){
-		return true;
-	}
-	
-	switch(op0){
-	case 0x66:{
-		// 2/3 byte opcode
-		u8 op2 = (opcode >> 16) & 0xff;
-		return ((op2 == 0x3a || op2 == 0x38)
-			? VAL_TO_BIT(table_l2_66_mask, (opcode >> 16) & 0xff)
-			: VAL_TO_BIT(table_l1_mask, (opcode >> 8) & 0xff));
-	}
-	case 0xf2:{
-		// 2/3 byte opcode
-		u8 op2 = (opcode >> 16) & 0xff;
-		return ((op2 == 0x3a || op2 == 0x38)
-			? VAL_TO_BIT(table_l2_f2_mask, (opcode >> 16) & 0xff)
-			: VAL_TO_BIT(table_l1_mask, (opcode >> 8) & 0xff));
-	}
-	case 0xf3:{
-		// 2/3 byte opcode
-		u8 op2 = (opcode >> 16) & 0xff;
-		return ((op2 == 0x3a || op2 == 0x38)
-			? VAL_TO_BIT(table_l2_f3_mask, (opcode >> 16) & 0xff)
-			: VAL_TO_BIT(table_l1_mask, (opcode >> 8) & 0xff));
-	}
-	case 0x0f:{
-		// 2/3 byte opcode
-		u8 op1 = (opcode >> 8) & 0xff;
-		return ((op1 == 0x3a || op1 == 0x38)
-			? VAL_TO_BIT(table_l2_0f_mask, (opcode >> 16) & 0xff)
-			: VAL_TO_BIT(table_l1_mask, (opcode >> 8) & 0xff));
-	}
-	default:
-		// 1 byte opcode
-		return VAL_TO_BIT(table_l0_mask, opcode & 0xff);
-	}
-}
+
+/*
+ 	Prefetch modrm tables
+*/
+
+static void _x86_64_prefetch_modrm(void){
+	_mm_prefetch(&modrm_tables, _MM_HINT_T0);
+	_mm_prefetch(offp(&modrm_tables, 64), _MM_HINT_T0);
+	_mm_prefetch(offp(&modrm_tables, 128), _MM_HINT_T0);
+};
 
 #endif // !defined(X86_64_MODRM_INT)
 
