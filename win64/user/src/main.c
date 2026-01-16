@@ -37,22 +37,27 @@ static void instr_dis(
 	printf("  - R: %u\n", rex_r(opcode.rex));
 	printf("  - X: %u\n", rex_x(opcode.rex));
 	printf("  - B: %u\n", rex_b(opcode.rex));
-	io_str(u"MODRM value:");
-	printf(" - 0x%x\n", modrm);
-	printf("  - MOD: %u\n", modrm_mod(modrm));
-	printf("  - REG: %u\n", modrm_reg(modrm));
-	printf("  - R/M: %u\n", modrm_rm(modrm));
-	io_str(u"SIB value:");
-	printf(" - 0x%x\n", sib.val);
-	printf("  - SCALE: %u\n", sib_scale(sib.val));
-	printf("  - INDEX: %u\n", (sib.index_ext << 3) | sib.index);
-	printf("  - BASE: %u\n", (sib.base_ext << 3) | sib.base);
 	io_str(u"Base register:");
+	io_i64(modrm_reg(modrm));
 	io_str(val_to_reg((rex_r(opcode.rex) << 3) | modrm_reg(modrm)));
-	io_str(u"Scale register:");
-	io_str(val_to_reg((sib.index_ext << 3) | sib.index));
-	io_str(u"Base register:");
-	io_str(val_to_reg((sib.base_ext << 3) | sib.base));
+	if (modrm != 0){
+		io_str(u"MODRM value:");
+		printf(" - 0x%x\n", modrm);
+		printf("  - MOD: %u\n", modrm_mod(modrm));
+		printf("  - REG: %u\n", modrm_reg(modrm));
+		printf("  - R/M: %u\n", modrm_rm(modrm));
+		io_str(u"SIB value:");
+		printf(" - 0x%x\n", sib.val);
+		printf("  - SCALE: %u\n", sib_scale(sib.val));
+		printf("  - INDEX: %u\n", (sib.index_ext << 3) | sib.index);
+		printf("  - BASE: %u\n", (sib.base_ext << 3) | sib.base);
+		io_str(u"Scale register:");
+		io_str(val_to_reg((sib.index_ext << 3) | sib.index));
+		io_str(u"Base register:");
+		io_str(val_to_reg((sib.base_ext << 3) | sib.base));
+	}
+	io_str(u"Displacement:");
+	io_i64(disp);
 }
 _inline_avert void foo(
 	u8 b[15]
@@ -61,22 +66,28 @@ _inline_avert void foo(
 	u64 l1, l2;
 
 	(void)__rdtsc();
+
 	_mm_lfence();
 	l1 = __rdtsc();
 	_mm_lfence();
+	l2 = __rdtsc();
+	u32 empty = l2 - l1;
+
+	_mm_mfence();
+	l1 = __rdtsc();
 	const x86_64_opcode opcode = _x86_64_get_opcode(instr);
 	u8 modrm = _x86_64_get_modrm(opcode, instr);
 	const x86_64_sib sib = _x86_64_get_sib(opcode, modrm, instr);
-	u32 disp = _x86_64_get_disp(opcode, modrm, instr);
-	_mm_lfence();
+	//u32 disp = _x86_64_get_disp(opcode, modrm, instr);
+	u64 immd = _x86_64_get_immd(opcode, modrm, instr);
 	l2 = __rdtsc();
-	//instr_dis(opcode, modrm, (x86_64_sib){0}, 0);
 	//instr_dis(opcode, modrm, sib, disp);
-	printf("Time in ns: %lf\n", ((l2 - l1) / 4.2) - 4);
-	printf("%u, %u, %u, %u\n", opcode.val, modrm, sib.val, disp);
+	printf("Time in ns: %lf\n", ((l2 - l1 - empty) / 4.2) - 4);
+	printf("%u, %u, %u, %u\n", opcode.val, modrm, sib.val, immd);
 }
 int main(){
 	_x86_64_prefetch_modrm();
+	_x86_64_prefetch_immd();
 	/*x86_64_mte_raw_instr instr1 = init_x86_64_mte_raw_instr(0x66, 0x45, 0x0f, 0x38, 0x00);
 	foo(instr1);
 	x86_64_mte_raw_instr instr2 = init_x86_64_mte_raw_instr(0x41, 0x45);
@@ -102,13 +113,18 @@ int main(){
 	//foo((u8[15]){0x8B, 0x94, 0xF8, 0x78, 0x56, 0x34, 0x12});
 	//foo((u8[15]){0x8B, 0x94, 0xF8, 0x78, 0x56, 0x34, 0x12});
 	//foo((u8[15]){0x48, 0x8D, 0xB4, 0x55, 0x00, 0x04, 0x00, 0x00});
-	//foo((u8[15]){0x48, 0x8D, 0xB4, 0x55, 0x00, 0x04, 0x00, 0x00});
-	foo((u8[15]){0x43, 0x01, 0x84, 0x1A, 0xFF, 0xFF, 0xFF, 0x7F});
+	//foo((u8[15]){0x48, 0xB9, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0x00, 0x00});
+	//foo((u8[15]){0x48, 0xC7, 0xC1, 0xFF, 0x00, 0x00, 0x00});
+	foo((u8[15]){0xF7, 0xC3, 0x05, 0x00, 0x00, 0x00});
+	foo((u8[15]){0xF7, 0xD0});
+	foo((u8[15]){0xF7, 0xC3, 0x05, 0x00, 0x00, 0x00});
+	foo((u8[15]){0xF7, 0xD0});
+	/*foo((u8[15]){0x43, 0x01, 0x84, 0x1A, 0xFF, 0xFF, 0xFF, 0x7F});
 	foo((u8[15]){0x8B, 0x83, 0x44, 0x33, 0x22, 0x11});
 	foo((u8[15]){0x2B, 0x8C, 0x24, 0x88, 0x13, 0x00, 0x00});
 	foo((u8[15]){0x41, 0x83, 0xBF, 0xEE, 0xDB, 0xEA, 0x0D, 0x00});
 	foo((u8[15]){0x83, 0xBA, 0x00, 0x10, 0x00, 0x00, 0x00});
-	foo((u8[15]){0x4E, 0x03, 0x04, 0x08});
+	foo((u8[15]){0x4E, 0x03, 0x04, 0x08});*/
 	//instr_dis((u8[15]){0x41, 0x83, 0xBF, 0x00, 0x10, 0x00, 0x00, 0x00});
 	//foo((u8[15]){0x4E, 0x03, 0x04, 0x08});
 	//io_i64(res);

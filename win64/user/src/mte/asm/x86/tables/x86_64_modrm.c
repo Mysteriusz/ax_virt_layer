@@ -1,4 +1,4 @@
-#include "mte/asm//x86/x86_64_modrm.h"
+#include "mte/asm/x86/tables/x86_64_modrm.h"
 
 _align(64) const struct modrm_tables_root modrm_tables = (struct modrm_tables_root){
 .l0_mask = {

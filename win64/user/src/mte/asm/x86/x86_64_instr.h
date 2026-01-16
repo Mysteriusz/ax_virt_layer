@@ -4,7 +4,8 @@
 #include <ax_type.h>
 #include <ax_io.h>
 
-#include "mte/asm/x86/x86_64_modrm.h"
+#include "mte/asm/x86/tables/x86_64_modrm.h"
+#include "mte/asm/x86/tables/x86_64_immd.h"
 
 /*
  	IMPORTANT!
@@ -201,22 +202,22 @@ _inline_force bool _x86_64_modrm_check(
 	
 	u8 op0 = opcode.val & 0xff;
 	if (opcode.len == 1){
-		return VAL_TO_BIT(modrm_tables.l0_mask, op0);
+		return X86_64_MODRM_VTB(modrm_tables.l0_mask, op0);
 	}
 	if (opcode.len == 2){
-		return VAL_TO_BIT(modrm_tables.l0_mask, opcode.val & (0xff << 8));
+		return X86_64_MODRM_VTB(modrm_tables.l0_mask, opcode.val & (0xff << 8));
 	}
 
 	u8 op2 = opcode.val & (0xff < 16);
 	switch(op0){
 	case 0x0f:
-		return VAL_TO_BIT(modrm_tables.l2_0f_mask, op2);
+		return X86_64_MODRM_VTB(modrm_tables.l2_0f_mask, op2);
 	case 0x66:
-		return VAL_TO_BIT(modrm_tables.l2_66_mask, op2);
+		return X86_64_MODRM_VTB(modrm_tables.l2_66_mask, op2);
 	case 0xf2:
-		return VAL_TO_BIT(modrm_tables.l2_f2_mask, op2);
+		return X86_64_MODRM_VTB(modrm_tables.l2_f2_mask, op2);
 	case 0xf3:
-		return VAL_TO_BIT(modrm_tables.l2_f3_mask, op2);
+		return X86_64_MODRM_VTB(modrm_tables.l2_f3_mask, op2);
 	default:
 		return false;
 	}
@@ -365,6 +366,37 @@ _inline_force u32 _x86_64_get_disp(
 	default:
 		return 0;
 	}
+}
+ 
+_inline_force bool _x86_64_immd_check(
+	_in x86_64_opcode	opcode,
+	_in u8			modrm
+){
+	u8 res = 0;
+	u8 sub = 1;
+	u8 op0 = opcode.val & 0xff;
+
+	if (opcode.len == 1){
+		res = X86_64_IMMD_VTB(immd_tables.l0_mask, op0);
+		if (res == 0b11){ // Submask present
+			sub = (0xf << 4) & X86_64_IMMD_SVTB(immd_tables.l0_submask, op0);
+			sub = (sub >> 4) == REG_TO_IMMD_SUBMASK(modrm_reg(modrm));
+		}
+		return res && sub;
+	}
+	return false;
+}
+/*
+*/
+_inline_force u64 _x86_64_get_immd(
+	_in x86_64_opcode		opcode,
+	_in u8				modrm,
+	_in x86_64_mte_raw_instr	instr
+){
+	if (!_x86_64_immd_check(opcode, modrm)){
+		return 0;
+	}
+	return 1;
 }
 
 #endif // !defined(AX_X86_64_INSTR_INT)
