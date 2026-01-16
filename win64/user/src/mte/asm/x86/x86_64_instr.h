@@ -208,7 +208,7 @@ _inline_force bool _x86_64_modrm_check(
 		return X86_64_MODRM_VTB(modrm_tables.l0_mask, opcode.val & (0xff << 8));
 	}
 
-	u8 op2 = opcode.val & (0xff < 16);
+	u8 op2 = (opcode.val & (0xff << 16)) >> 16;
 	switch(op0){
 	case 0x0f:
 		return X86_64_MODRM_VTB(modrm_tables.l2_0f_mask, op2);
@@ -378,14 +378,29 @@ _inline_force bool _x86_64_immd_check(
 
 	if (opcode.len == 1){
 		res = X86_64_IMMD_VTB(immd_tables.l0_mask, op0);
-		if (res == 0b11){ // Submask present
-			sub = (0xf << 4) & X86_64_IMMD_SVTB(immd_tables.l0_submask, op0);
-			sub = (sub >> 4) == REG_TO_IMMD_SUBMASK(modrm_reg(modrm));
-		}
-		return res && sub;
+		sub = immd_tables.l0_submask[op0 - 0xb0]; // 0x00 -> 0x7f is ignored
+		goto check_skip;
 	}
-	return false;
+
+	u8 op2 = (opcode.val & (0xff << 24)) >> 24;
+	switch(op0){
+	case 0x0f:
+	case 0x66:
+		res = X86_64_IMMD_VTB(immd_tables.l2_66_mask, op2);
+		break;
+	case 0xf2:
+	case 0xf3:
+	default:
+		break;
+	}
+
+check_skip:
+	if (res == 0b11){ // Submask present (For l0 submask)
+		sub = ((sub >> (sub & 1 ? 1 : 4)) == REG_TO_IMMD_SUBMASK(modrm_reg(modrm)));
+	}
+	return res && sub;
 }
+
 /*
 */
 _inline_force u64 _x86_64_get_immd(
