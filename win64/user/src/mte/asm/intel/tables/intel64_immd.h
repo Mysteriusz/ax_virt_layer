@@ -45,19 +45,19 @@ extern const struct immd_tables_root *const immd_tables _align(64);
 
 static void _intel64_prefetch_immd(void){
 	// L0 
-	_mm_prefetch(&immd_tables, _MM_HINT_T0);
-	_mm_prefetch(offp(&immd_tables, 64), _MM_HINT_T0);
-	_mm_prefetch(offp(&immd_tables, 64 * 2), _MM_HINT_T0);
+	_mm_prefetch(immd_tables, _MM_HINT_T0);
+	_mm_prefetch(offp(immd_tables, 64), _MM_HINT_T0);
+	_mm_prefetch(offp(immd_tables, 64 * 2), _MM_HINT_T0);
 	// L2_66
-	_mm_prefetch(offp(&immd_tables, 64 * 3), _MM_HINT_T0);
-	_mm_prefetch(offp(&immd_tables, 64 * 4), _MM_HINT_T0);
-	_mm_prefetch(offp(&immd_tables, 64 * 5), _MM_HINT_T0);
-	_mm_prefetch(offp(&immd_tables, 64 * 6), _MM_HINT_T0);
+	_mm_prefetch(offp(immd_tables, 64 * 3), _MM_HINT_T0);
+	_mm_prefetch(offp(immd_tables, 64 * 4), _MM_HINT_T0);
+	_mm_prefetch(offp(immd_tables, 64 * 5), _MM_HINT_T0);
+	_mm_prefetch(offp(immd_tables, 64 * 6), _MM_HINT_T0);
 	// L2_0f
-	_mm_prefetch(offp(&immd_tables, 64 * 7), _MM_HINT_T0);
-	_mm_prefetch(offp(&immd_tables, 64 * 8), _MM_HINT_T0);
-	_mm_prefetch(offp(&immd_tables, 64 * 9), _MM_HINT_T0);
-	_mm_prefetch(offp(&immd_tables, 64 * 10), _MM_HINT_T0);
+	_mm_prefetch(offp(immd_tables, 64 * 7), _MM_HINT_T0);
+	_mm_prefetch(offp(immd_tables, 64 * 8), _MM_HINT_T0);
+	_mm_prefetch(offp(immd_tables, 64 * 9), _MM_HINT_T0);
+	_mm_prefetch(offp(immd_tables, 64 * 10), _MM_HINT_T0);
 };
 
 #endif // !defined(INTEL64_IMMD_INT)

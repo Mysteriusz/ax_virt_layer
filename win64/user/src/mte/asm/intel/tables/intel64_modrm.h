@@ -31,7 +31,7 @@ extern const struct modrm_tables_root *const modrm_tables _align(64);
 static void _intel64_prefetch_modrm(void){
 	_mm_prefetch(modrm_tables, _MM_HINT_T0);
 	_mm_prefetch(offp(modrm_tables, 64), _MM_HINT_T0);
-	_mm_prefetch(offp(&modrm_tables, 128), _MM_HINT_T0);
+	_mm_prefetch(offp(modrm_tables, 128), _MM_HINT_T0);
 };
 
 #endif // !defined(INTEL64_MODRM_INT)
