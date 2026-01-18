@@ -2,7 +2,7 @@
 #include "mte/ir.h"
 #include "mte/asm/mips/mips32_asm.h"
 #include "mte/asm/mips/mips32_ir.h"
-#include "mte/asm/x86/x86_64.h"
+#include "mte/asm/intel/intel64.h"
 
 #include "stdarg.h"
 
@@ -22,9 +22,9 @@ static const c16 *val_to_reg(
 	return u"";
 }
 static void instr_dis(
-	_in x86_64_opcode 	opcode,
+	_in intel64_opcode 	opcode,
 	_in u8 			modrm,
-	_in x86_64_sib 		sib,
+	_in intel64_sib 		sib,
 	_in u32 		disp 
 ){
 	io_str(u"Opcode value:");
@@ -62,43 +62,51 @@ static void instr_dis(
 _inline_avert void foo(
 	u8 b[15]
 ){
-	x86_64_mte_raw_instr instr = b;
+	intel64_mte_raw_instr instr = b;
 	u64 l1, l2;
 
 	(void)__rdtsc();
 
-	_mm_lfence();
+	_mm_mfence();
 	l1 = __rdtsc();
-	_mm_lfence();
+	_mm_mfence();
+	_mm_mfence();
 	l2 = __rdtsc();
+	_mm_mfence();
 	u32 empty = l2 - l1;
 
 	_mm_mfence();
 	l1 = __rdtsc();
-	const x86_64_opcode opcode = _x86_64_get_opcode(instr);
-	u8 modrm = _x86_64_get_modrm(opcode, instr);
-	const x86_64_sib sib = _x86_64_get_sib(opcode, modrm, instr);
-	//u32 disp = _x86_64_get_disp(opcode, modrm, instr);
-	u64 immd = _x86_64_get_immd(opcode, modrm, instr);
+	_mm_mfence();
+
+	const intel64_opcode opcode = _intel64_get_opcode(instr);
+	u8 modrm = _intel64_get_modrm(opcode, instr);
+	const intel64_sib sib = _intel64_get_sib(opcode, modrm, instr);
+	u32 disp = _intel64_get_disp(opcode, modrm, instr);
+	u64 immd = _intel64_get_immd(opcode, modrm, instr);
+	_mm_mfence();
 	l2 = __rdtsc();
+	_mm_mfence();
 	//instr_dis(opcode, modrm, sib, disp);
+	printf("Empty in ns: %lf\n", (empty / 4.2) - 4);
 	printf("Time in ns: %lf\n", ((l2 - l1 - empty) / 4.2) - 4);
-	printf("%u, %u, %u, %u\n", opcode.val, modrm, sib.val, immd);
+	printf("%u, %u, %u, %u, %llu\n", opcode.val, modrm, sib.val, disp, immd);
 }
 int main(){
-	_x86_64_prefetch_modrm();
-	_x86_64_prefetch_immd();
-	/*x86_64_mte_raw_instr instr1 = init_x86_64_mte_raw_instr(0x66, 0x45, 0x0f, 0x38, 0x00);
+	_intel64_load_qtables();
+	_intel64_prefetch_immd();
+	_intel64_prefetch_modrm();
+	/*intel64_mte_raw_instr instr1 = init_intel64_mte_raw_instr(0x66, 0x45, 0x0f, 0x38, 0x00);
 	foo(instr1);
-	x86_64_mte_raw_instr instr2 = init_x86_64_mte_raw_instr(0x41, 0x45);
+	intel64_mte_raw_instr instr2 = init_intel64_mte_raw_instr(0x41, 0x45);
 	foo(instr2);
-	x86_64_mte_raw_instr instr3 = init_x86_64_mte_raw_instr(0x4c, 0x89, 0xf8);
+	intel64_mte_raw_instr instr3 = init_intel64_mte_raw_instr(0x4c, 0x89, 0xf8);
 	foo(instr3);
-	x86_64_mte_raw_instr instr4 = init_x86_64_mte_raw_instr(0x66, 0x41, 0x0F, 0x38, 0x00, 0x0A);
+	intel64_mte_raw_instr instr4 = init_intel64_mte_raw_instr(0x66, 0x41, 0x0F, 0x38, 0x00, 0x0A);
 	foo(instr4);
-	x86_64_mte_raw_instr instr5 = init_x86_64_mte_raw_instr(0x0F, 0x01, 0xC1);
+	intel64_mte_raw_instr instr5 = init_intel64_mte_raw_instr(0x0F, 0x01, 0xC1);
 	foo(instr5);
-	x86_64_mte_raw_instr instr6 = init_x86_64_mte_raw_instr(0x66, 0x0f, 0x38, 0xc1);
+	intel64_mte_raw_instr instr6 = init_intel64_mte_raw_instr(0x66, 0x0f, 0x38, 0xc1);
 	foo(instr6);*/
 	//foo((u8[15]){0x48, 0x01, 0x08});
 	//foo((u8[15]){0x04, 0x02});
@@ -117,7 +125,13 @@ int main(){
 	//foo((u8[15]){0x48, 0xC7, 0xC1, 0xFF, 0x00, 0x00, 0x00});
 	//foo((u8[15]){0xF7, 0xC3, 0x05, 0x00, 0x00, 0x00});
 	//foo((u8[15]){0xF7, 0xD0});
+	foo((u8[15]){0x48, 0xC7, 0xC1, 0xFF, 0x00, 0x00, 0x00});
 	foo((u8[15]){0x66, 0x0F, 0x3A, 0x0E, 0xCA, 0x0A});
+	/*foo((u8[15]){0x8B, 0x83, 0x44, 0x33, 0x22, 0x11});
+	foo((u8[15]){0x2B, 0x8C, 0x24, 0x88, 0x13, 0x00, 0x00});
+	foo((u8[15]){0x41, 0x83, 0xBF, 0xEE, 0xDB, 0xEA, 0x0D, 0x00});
+	foo((u8[15]){0x83, 0xBA, 0x00, 0x10, 0x00, 0x00, 0x00});*/
+	//foo((u8[15]){0x66, 0x0F, 0x3A, 0x0E, 0xCA, 0x0A});
 	/*foo((u8[15]){0x43, 0x01, 0x84, 0x1A, 0xFF, 0xFF, 0xFF, 0x7F});
 	foo((u8[15]){0x8B, 0x83, 0x44, 0x33, 0x22, 0x11});
 	foo((u8[15]){0x2B, 0x8C, 0x24, 0x88, 0x13, 0x00, 0x00});

@@ -1,6 +1,6 @@
-#include "mte/asm/x86/tables/x86_64_modrm.h"
+#include "mte/asm/intel/tables/intel64_modrm.h"
 
-_align(64) const struct modrm_tables_root modrm_tables = (struct modrm_tables_root){
+_align(64) const struct modrm_tables_root *const modrm_tables = &(struct modrm_tables_root){
 .l0_mask = {
     0x0f0f0f0f0f0f0f0fULL, // 0x00-0x3F
     0x0000000000000a0cULL, // 0x40-0x7F

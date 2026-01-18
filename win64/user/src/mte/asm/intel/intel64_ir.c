@@ -1,7 +1,7 @@
-#include "mte/asm/x86/x86_64_ir.h"
+#include "mte/asm/intel/intel64_ir.h"
 
-axres x86_64_raw_to_ir(
-	_in x86_64_mte_raw_instr	instr,
+axres intel_raw_to_ir(
+	_in intel64_mte_raw_instr	instr,
 	_in const ir_rule		*rule,
 	_in_out ir_raw_instr		*buf // Initialize before use by init_ir_raw_instr
 ){
@@ -9,7 +9,7 @@ axres x86_64_raw_to_ir(
 		return AX_INV_BUF;
 	}
 
-	/*switch(_x86_64_check_type(instr)){
+	/*switch(_intel64_check_type(instr)){
 	default:
 		return 0;
 	}*/

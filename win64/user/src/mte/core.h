@@ -8,7 +8,7 @@
 #include <ax_error.h>
 
 #include "mte/asm/mips/mips32.h"
-#include "mte/asm/x86/x86_64.h"
+#include "mte/asm/intel/intel64.h"
 
 #include "mte/asm/decode_u64.h"
 
@@ -35,7 +35,7 @@ typedef struct _mte_raw_instr{
 	*/
 	union {
 		mips32_mte_raw_instr 	mips32;
-		x86_64_mte_raw_instr 	x86_64;
+		intel64_mte_raw_instr 	intel64;
 	};
 } mte_raw_instr;
 
