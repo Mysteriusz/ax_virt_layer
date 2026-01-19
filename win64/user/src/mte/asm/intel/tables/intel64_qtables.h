@@ -16,8 +16,11 @@
 // Act as default array for [struct immd_tables_root] members.
 //
 // 3 bit legacy byte to immediate table (for _intel64_immd_check)
-_unused static u8 L2I_MASK_DEFAULT[256] = {0};
-extern u8 *L2I_MASK_LOOKUP[8]; 
+_unused static u64 L2I_MASK_DEFAULT[8] = {0};
+extern u64 *L2I_MASK_LOOKUP[8]; 
+
+_unused static u8 L2I_SUBMASK_DEFAULT[8] = {0};
+extern u8 *L2I_SUBMASK_LOOKUP[8]; 
 
 // Act as default array for [struct modrm_tables_root] members.
 //

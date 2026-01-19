@@ -413,13 +413,12 @@ _inline_force u8 _intel64_immd_len(
 	u8 opi = (opcode.val >> shift) & 0xff;
 
 	// Access correct immediate mask based on 3 trailing bits
-	const u8 *immd_table = L2I_MASK_LOOKUP[op0 & 0x7];
-	res = INTEL64_IMMD_VTB(immd_table, opi);
-	sub = immd_table[opi - 0x3f];
+	res = INTEL64_IMMD_VTB(L2I_MASK_LOOKUP[op0 & 0x7], opi);
 
 	// If submask is present calculate sub value with modrm
-	if (res == 0b11){ // Submask present
-		sub = ((sub >> (sub & 1 ? 1 : 4)) == REG_TO_IMMD_SUBMASK(modrm_reg(modrm)));
+	if (res == 0b11
+	&& opi >= 0x3f){ // Submask present
+		sub = (L2I_SUBMASK_LOOKUP[op0 & 0x7])[opi - 0x7f];
 		len = ((sub >> (sub & 1 ? 1 : 4)) == REG_TO_IMMD_SUBMASK(modrm_reg(modrm)))
 			? SUBMASK_TO_LEN(sub)
 			: 0;
@@ -439,11 +438,13 @@ _inline_force u64 _intel64_get_immd(
 ){
 	u8 len = _intel64_immd_len(opcode, modrm);
 	u8 immd_i = opcode.info.r 
-			+ opcode.info.l 
+			+ (opcode.info.l & ~opcode.info.e)
 			+ opcode.len
 			+ _intel64_sib_ext(modrm)
 			+ _intel64_disp_len(opcode, modrm);
 	immd_i += !(modrm == 0);
+	io_i64(opcode.info.l);
+	io_i64(opcode.info.r);
 
 	u8 buf[8] = {0}; // 64 bit buffer
 	for (u8 i = 0; i < len; i++){
