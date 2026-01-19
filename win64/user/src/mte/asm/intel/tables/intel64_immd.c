@@ -13,11 +13,11 @@ _align(64) const struct immd_tables_root *const immd_tables = &(struct immd_tabl
 },
 .l0_submask = {
 	// From ((v) - 0x7f)
-	[0x39 ... 0x40] = SUBMASK_IMMD_64,
-	[0x43]          = SUBMASK_IMMD_16,
-	[0x4b]          = SUBMASK_IMMD_16,
-	[0x77]          = SUBMASK_IMMD_MOD_0 | SUBMASK_IMMD_8,
-	[0x78]          = SUBMASK_IMMD_MOD_0 | SUBMASK_IMMD_32,
+	[0x39 ... 0x40] = SUBMASK_IMMD_AUTO(0, SUBMASK_IMMD_64),
+	[0x43]          = SUBMASK_IMMD_AUTO(0, SUBMASK_IMMD_16),
+	[0x4b]          = SUBMASK_IMMD_AUTO(0, SUBMASK_IMMD_16),
+	[0x77]          = SUBMASK_IMMD_AUTO(SUBMASK_IMMD_MOD_0, SUBMASK_IMMD_8),
+	[0x78]          = SUBMASK_IMMD_AUTO(SUBMASK_IMMD_MOD_0, SUBMASK_IMMD_32),
 },
 .l2_66_mask = {
 	0x0000550015550000ULL, // 0x00-0x1f
@@ -31,8 +31,8 @@ _align(64) const struct immd_tables_root *const immd_tables = &(struct immd_tabl
 },
 .l2_66_submask = {
 	// From ((v) - 0x3f)
-	[0x32 ... 0x33] = SUBMASK_IMMD_MOD_2 | SUBMASK_IMMD_MOD_4 | SUBMASK_IMMD_MOD_6 | SUBMASK_IMMD_8,
-	[0x34]          = SUBMASK_IMMD_MOD_2 | SUBMASK_IMMD_MOD_3 | SUBMASK_IMMD_MOD_6 | SUBMASK_IMMD_MOD_7 | SUBMASK_IMMD_8,
+	[0x32 ... 0x33] = SUBMASK_IMMD_AUTO(SUBMASK_IMMD_MOD_2 | SUBMASK_IMMD_MOD_4 | SUBMASK_IMMD_MOD_6, SUBMASK_IMMD_8),
+	[0x34]          = SUBMASK_IMMD_AUTO(SUBMASK_IMMD_MOD_2 | SUBMASK_IMMD_MOD_3 | SUBMASK_IMMD_MOD_6 | SUBMASK_IMMD_MOD_7, SUBMASK_IMMD_8),
 },
 
 .l2_0f_mask = {
@@ -47,9 +47,9 @@ _align(64) const struct immd_tables_root *const immd_tables = &(struct immd_tabl
 },
 .l2_0f_submask = {
 	// From ((v) - 0x3f)
-	[0x32 ... 0x33] = SUBMASK_IMMD_MOD_2 | SUBMASK_IMMD_MOD_4 | SUBMASK_IMMD_MOD_6 | SUBMASK_IMMD_8,
-	[0x34]          = SUBMASK_IMMD_MOD_2 | SUBMASK_IMMD_MOD_6 | SUBMASK_IMMD_8,
-	[0x7b]          = SUBMASK_IMMD_MOD_4 | SUBMASK_IMMD_MOD_5 | SUBMASK_IMMD_MOD_6 | SUBMASK_IMMD_MOD_7 | SUBMASK_IMMD_8,
+	[0x32 ... 0x33] = SUBMASK_IMMD_AUTO(SUBMASK_IMMD_MOD_2 | SUBMASK_IMMD_MOD_4 | SUBMASK_IMMD_MOD_6, SUBMASK_IMMD_8),
+	[0x34]          = SUBMASK_IMMD_AUTO(SUBMASK_IMMD_MOD_2 | SUBMASK_IMMD_MOD_6, SUBMASK_IMMD_8),
+	[0x7b]          = SUBMASK_IMMD_AUTO(SUBMASK_IMMD_MOD_4 | SUBMASK_IMMD_MOD_5 | SUBMASK_IMMD_MOD_6 | SUBMASK_IMMD_MOD_7, SUBMASK_IMMD_8),
 },
 };
 

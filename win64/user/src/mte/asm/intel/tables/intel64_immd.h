@@ -8,11 +8,6 @@
 #define SUBMASK_IMMD_32 	0b0100	
 #define SUBMASK_IMMD_64 	0b0110
 
-/*
- 	If (submask & 0x7) == SUBMASK_IMMD_8 then:
-		SUBMASK_IMMD_MOD_N is extended to 7 bits
-*/
-
 #define SUBMASK_IMMD_MOD_0 	0b00000000
 #define SUBMASK_IMMD_MOD_1 	0b00000010
 #define SUBMASK_IMMD_MOD_2 	0b00000100
@@ -23,8 +18,35 @@
 #define SUBMASK_IMMD_MOD_6 	0b01000000
 #define SUBMASK_IMMD_MOD_7 	0b10000000
 
+// Universla submask creator
+#define SUBMASK_IMMD_AUTO(mask, immd) ( \
+	(mask) << ((immd == SUBMASK_IMMD_8) ? 0 : 3) | immd)
+
+// modrm.reg to immediate submask (SUBMASK_IMMD_MOD_N)
 #define REG_TO_IMMD_SUBMASK(r) (((r) == 0) ? 0 : (1 << (r)))
 
+
+/*
+	MASK:
+ 	If ln_??_mask[i] == 00 then:
+		NO IMMEDIATE
+ 	If ln_??_mask[i] == 01 then:
+		len = 1 byte
+ 	If ln_??_mask[i] == 10 then:
+		len = 4 bytes
+ 	If ln_??_mask[i] == 11 then:
+		IMMEDIATE SUBMASK PRESENT
+
+	SUBMASK:
+ 	If (ln_??_submask[i] & 1) == 1 then:
+		len = 1 byte (SUBMASK_IMMD_8)
+ 	If ((ln_??_submask[i] >> 1) & 3) == 01 then:
+		len = 2 bytes (SUBMASK_IMMD_16)
+ 	If ((ln_??_submask[i] >> 1) & 3) == 10 then:
+		len = 4 bytes (SUBMASK_IMMD_32)
+ 	If ((ln_??_submask[i] >> 1) & 3) == 11 then:
+		len = 8 bytes (SUBMASK_IMMD_64)
+*/
 struct immd_tables_root{
 	// 64 + 128 bytes
 	const u64 	l0_mask[8];
