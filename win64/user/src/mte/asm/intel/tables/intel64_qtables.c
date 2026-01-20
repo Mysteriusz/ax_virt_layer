@@ -1,11 +1,6 @@
 #include "intel64_qtables.h"
 
 /*
- 	For INTEL64_INSTR interface.
-*/
-u8 MOD_DLEN_LOOKUP[4] = {[0 ... 3] = 0};
-
-/*
  	For INTEL64_IMMD_INT interface.
 */
 
@@ -16,6 +11,13 @@ u64 *L2M_MASK_LOOKUP[8] = {[0 ... 7] = L2M_MASK_DEFAULT};
 
 u8 IMMD_MASK_LEN_TABLE[4] = {0};
 u8 IMMD_SUBMASK_LEN_TABLE[4] = {0};
+
+/*
+ 	For INTEL64_INSTR interface.
+*/
+u8 MOD_DLEN_LOOKUP[4] = {[0 ... 3] = 0};
+u8 LEG_PREF_LOOKUP[0xff] = {[0 ... 0xfe] = 0};
+bool LEG_PREF_EXT_LOOKUP[0xff] = {[0 ... 0xfe] = 0};
 
 /*
  	Quick table loaders
@@ -37,11 +39,6 @@ void intel64_load_qtables(){
 	L2M_MASK_LOOKUP[0b001] = (u64*)modrm_tables->l2_0f_mask; // f3H & 7H = 001B
 	L2M_MASK_LOOKUP[0b010] = (u64*)modrm_tables->l2_0f_mask; // f2H & 7H = 010B
 
-	MOD_DLEN_LOOKUP[0b00] = 4;
-	MOD_DLEN_LOOKUP[0b01] = 1;
-	MOD_DLEN_LOOKUP[0b10] = 4;
-	MOD_DLEN_LOOKUP[0b11] = 0;
-
 	IMMD_MASK_LEN_TABLE[0b00] = 0; // No immediate
 	IMMD_MASK_LEN_TABLE[0b01] = 1;
 	IMMD_MASK_LEN_TABLE[0b10] = 4;
@@ -51,5 +48,26 @@ void intel64_load_qtables(){
 	IMMD_SUBMASK_LEN_TABLE[0b01] = 2;
 	IMMD_SUBMASK_LEN_TABLE[0b10] = 4;
 	IMMD_SUBMASK_LEN_TABLE[0b11] = 8; 
+
+	MOD_DLEN_LOOKUP[0b00] = 4;
+	MOD_DLEN_LOOKUP[0b01] = 1;
+	MOD_DLEN_LOOKUP[0b10] = 4;
+	MOD_DLEN_LOOKUP[0b11] = 0;
+
+	LEG_PREF_LOOKUP[0xf0] = 0xf0;
+	LEG_PREF_LOOKUP[0xf2] = 0xf2;
+	LEG_PREF_LOOKUP[0xf3] = 0xf3;
+	LEG_PREF_LOOKUP[0x2e] = 0x2e;
+	LEG_PREF_LOOKUP[0x36] = 0x36;
+	LEG_PREF_LOOKUP[0x3e] = 0x3e;
+	LEG_PREF_LOOKUP[0x26] = 0x26;
+	LEG_PREF_LOOKUP[0x64] = 0x64;
+	LEG_PREF_LOOKUP[0x65] = 0x65;
+	LEG_PREF_LOOKUP[0x66] = 0x66;
+	LEG_PREF_LOOKUP[0x67] = 0x67;
+
+	LEG_PREF_EXT_LOOKUP[0x66] = 1;
+	LEG_PREF_EXT_LOOKUP[0xf2] = 1;
+	LEG_PREF_EXT_LOOKUP[0xf3] = 1;
 }
 

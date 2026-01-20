@@ -1,5 +1,5 @@
-#if !defined(INTEL64_MODRM_INT)
-#define INTEL64_MODRM_INT
+#if !defined(MTE_INTEL64_MODRM_INT)
+#define MTE_INTEL64_MODRM_INT
 
 #include <ax_type.h>
 
@@ -34,5 +34,5 @@ static void _intel64_prefetch_modrm(void){
 	_mm_prefetch(offp(modrm_tables, 128), _MM_HINT_T0);
 };
 
-#endif // !defined(INTEL64_MODRM_INT)
+#endif // !defined(MTE_INTEL64_MODRM_INT)
 

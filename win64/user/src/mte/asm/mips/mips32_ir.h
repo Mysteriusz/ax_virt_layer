@@ -1,4 +1,6 @@
-#include "mte/asm/mips/mips32.h"
+#include "mte/ir/ir.h"
+
+#include "mips32.h"
 
 axres mips32_raw_to_ir(
 	_in mips32_mte_raw_instr	instr,

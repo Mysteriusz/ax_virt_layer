@@ -2,10 +2,12 @@
 #define MTE_MIPS32_INT
 
 #include <ax_type.h>
+
 #include "mte/asm/decode_u64.h"
 #include "mte/cpu.h"
-#include "mte/ir.h"
+#include "mte/ir/ir.h"
 
+_unused
 static struct cpu_reg_map _mips32_cpu_reg_map = {
 	.gpr_count = 32, // 32 registers r0-r31
 	.reg_width = 32, // 32-Bit architecture

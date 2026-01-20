@@ -1,4 +1,4 @@
-#include "mte/asm/intel/tables/intel64_immd.h"
+#include "intel64_immd.h"
 
 _align(64) const struct immd_tables_root *const immd_tables = &(struct immd_tables_root){
 .l0_mask = {

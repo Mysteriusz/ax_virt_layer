@@ -24,7 +24,6 @@ foreach ($src in $files_c){
 		($GLOB_FLAG | foreach {$PREF_BASE+$_}) `
 		($PREF_INC+$LIB_HEADERS) `
 		-save-temps `
-		-fverbose-asm `
 		-O3 `
 		$PREF_OUT $out
 
@@ -46,8 +45,9 @@ foreach ($src in $files_c){
 	$files_o `
 	$PREF_LIB $LIB_BUILD `
 	$PREF_LIB $files_lib `
-	-lax_utility_lib `
-	-lpthread `
+	"-lax_utility_lib" `
+	"-lpthread" `
+	"-Wl,-pdb=$output_exe.pdb" `
 	$PREF_OUT $output_exe
 
 if ($lastexitcode -ne 0){

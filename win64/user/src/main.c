@@ -1,10 +1,11 @@
 #include "mte/core.h"
-#include "mte/ir.h"
-#include "mte/asm/mips/mips32_asm.h"
-#include "mte/asm/mips/mips32_ir.h"
+#include "mte/ir/ir.h"
+
+#include "mte/asm/mips/mips32.h"
 #include "mte/asm/intel/intel64.h"
 
-#include "stdarg.h"
+#include <stdarg.h>
+#include <intrin.h>
 
 static const c16 *val_to_reg(
 	_in u8 val
@@ -24,10 +25,12 @@ static const c16 *val_to_reg(
 static void instr_dis(
 	_in intel64_opcode 	opcode,
 	_in u8 			modrm,
-	_in intel64_sib 		sib,
-	_in u32 		disp 
+	_in intel64_sib 	sib,
+	_in u32 		disp,
+	_in u64 		immd
 ){
-	io_str(u"Opcode value:");
+	__asm__ __volatile__("" :: "g"(opcode), "g"(modrm), "g"(sib), "g"(disp), "g"(immd));
+	/*io_str(u"Opcode value:");
 	printf(" - 0x%x\n", opcode.val);
 	io_str(u"Legacy value:");
 	printf(" - 0x%x\n", opcode.legacy);
@@ -56,52 +59,88 @@ static void instr_dis(
 		io_str(u"Base register:");
 		io_str(val_to_reg((sib.base_ext << 3) | sib.base));
 	}
-	io_str(u"Displacement:");
-	io_i64(disp);
+	printf("  - Displacement: %02x\n", disp);
+	printf("  - Immediate: %02llx\n", immd);*/
 }
 _inline_avert void foo(
 	u8 b[15]
 ){
 	intel64_mte_raw_instr instr = b;
-	u64 l1, l2;
+	volatile u64 l1, l2;
 
-	(void)__rdtsc();
+	unsigned int aux = 0;
+	(void)__rdtscp(&aux);
 
-	_mm_mfence();
+	__asm__ __volatile__("lfence");
 	l1 = __rdtsc();
-	_mm_mfence();
-	_mm_mfence();
-	l2 = __rdtsc();
-	_mm_mfence();
+	__asm__ __volatile__("sfence");
+
+	__asm__ __volatile__("mfence");
+	l2 = __rdtscp(&aux);
+	__asm__ __volatile__("mfence");
+
+	aux = 0;
+
 	u32 empty = l2 - l1;
+	u32 sum = 0;
 
-	_mm_mfence();
+	__asm__ __volatile__("lfence");
 	l1 = __rdtsc();
-	_mm_mfence();
+	__asm__ __volatile__("sfence");
 
-	const intel64_opcode opcode = _intel64_get_opcode(instr);
-	u8 modrm = _intel64_get_modrm(opcode, instr);
-	const intel64_sib sib = _intel64_get_sib(opcode, modrm, instr);
-	u32 disp = _intel64_get_disp(opcode, modrm, instr);
-	u64 immd = _intel64_get_immd(opcode, modrm, instr);
+	volatile const intel64_opcode opcode = _intel64_get_opcode(instr);
+	volatile u8 modrm = _intel64_modrm_check(opcode);
+	volatile const intel64_sib sib = _intel64_get_sib(opcode, modrm, instr);
+	volatile u32 disp = _intel64_get_disp(opcode, modrm, instr);
+	volatile u64 immd = _intel64_get_immd(opcode, modrm, instr);
 
-	_mm_mfence();
-	l2 = __rdtsc();
-	_mm_mfence();
-	//instr_dis(opcode, modrm, sib, disp);
-	printf("Empty in ns: %lf\n", (empty / 4.2) - 4);
-	printf("Time in ns: %lf\n", ((l2 - l1 - empty) / 4.2) - 4);
-	printf("%02x, %02x, %02x, %02x, %02llx\n", opcode.val, modrm, sib.val, disp, immd);
+	__asm__ __volatile__("mfence");
+	l2 = __rdtscp(&aux);
+	__asm__ __volatile__("mfence");
+
+	sum = l2 - l1;
+
+	//instr_dis(opcode, modrm, sib, disp, immd;
+	printf("Empty in ns: %lf\n", (empty / 4.2));
+	printf("Time in ns: %lf\n", ((sum - empty) / 4.2));
+	//printf("%02x %02x %02x", rex, legacy);
+	//printf("%02x\n", modrm);
+	printf("%u %u %u %u\n", opcode.info.x, opcode.info.r, opcode.info.l, opcode.info.e);
+	printf("%02x %02x %02x\n", opcode.val, opcode.legacy, opcode.rex);
+	printf("%02x %02llx\n", disp, immd);
+	printf("%02x\n", sib.val);
+	printf("%02x\n", opcode.len);
+	//printf("%02x %02x\n", 0, rg[0]);
 }
+// TEMPORARY
+#include <windows.h>
+
 int main(){
-	intel64_load_qtables();
+	SetPriorityClass(GetCurrentProcess(), REALTIME_PRIORITY_CLASS);
+	SetProcessAffinityMask(GetCurrentProcess(), 1);
+
 	_intel64_prefetch_immd();
 	_intel64_prefetch_modrm();
-	foo((u8[15]){0xCA, 0x01, 0x00});
-	foo((u8[15]){0x48, 0xC7, 0xC1, 0xFF, 0x00, 0x00, 0x00});
-	foo((u8[15]){0x48, 0xC7, 0xC1, 0xFF, 0x00, 0x00, 0x00});
-	//foo((u8[15]){0x48, 0xc7, 0xc1, 0xff, 0x00, 0x00, 0x00});
+	intel64_load_qtables();
+	__asm__ __volatile__("mfence");
+
+	//foo((u8[15]){0x48, 0xC7, 0xC1, 0xFF, 0x00, 0x00, 0x00});
 	foo((u8[15]){0x66, 0x0f, 0x3a, 0x0e, 0xca, 0x0a});
+	foo((u8[15]){0x0f, 0x3a, 0x0e, 0xca, 0x0a});
+	foo((u8[15]){0x66, 0x0f, 0x3a, 0x0e, 0xca, 0x0a});
+	foo((u8[15]){0x0f, 0x3a, 0x0e, 0xca, 0x0a});
+	foo((u8[15]){0x66, 0x0f, 0x3a, 0x0e, 0xca, 0x0a});
+	foo((u8[15]){0x0f, 0x3a, 0x0e, 0xca, 0x0a});
+	foo((u8[15]){0x66, 0x0f, 0x3a, 0x0e, 0xca, 0x0a});
+	foo((u8[15]){0x0f, 0x3a, 0x0e, 0xca, 0x0a});
+	foo((u8[15]){0x66, 0x0f, 0x3a, 0x0e, 0xca, 0x0a});
+	foo((u8[15]){0x0f, 0x3a, 0x0e, 0xca, 0x0a});
+	foo((u8[15]){0x66, 0x0f, 0x3a, 0x0e, 0xca, 0x0a});
+	foo((u8[15]){0x0f, 0x3a, 0x0e, 0xca, 0x0a});
+	foo((u8[15]){0x66, 0x0f, 0x3a, 0x0e, 0xca, 0x0a});
+	foo((u8[15]){0x0f, 0x3a, 0x0e, 0xca, 0x0a});
+	foo((u8[15]){0x66, 0x0f, 0x3a, 0x0e, 0xca, 0x0a});
+	foo((u8[15]){0x0f, 0x3a, 0x0e, 0xca, 0x0a});
 	/*const char str[] = "       add $t1,$t2,$t3";
 	mte_raw_instr enc = {0};
 	const ir_rule *rule = nullptr;

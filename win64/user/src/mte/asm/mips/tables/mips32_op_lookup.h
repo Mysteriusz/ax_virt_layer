@@ -4,7 +4,7 @@
 
 #include <ax_memory.h>
 
-#include "mte/asm/mips/mips32_op_table.h"
+#include "mips32_op_table.h"
 
 /*#define TOTAL_KEYWORDS 142
 #define MIN_HASH_VALUE 3

@@ -1,12 +1,12 @@
-#if !defined(AX_INTEL64_INSTR_INT)
-#define AX_INTEL64_INSTR_INT
+#if !defined(MTE_INTEL64_INSTR_INT)
+#define MTE_INTEL64_INSTR_INT
 
 #include <ax_type.h>
 #include <ax_io.h>
 
-#include "mte/asm/intel/tables/intel64_qtables.h"
-#include "mte/asm/intel/tables/intel64_modrm.h"
-#include "mte/asm/intel/tables/intel64_immd.h"
+#include "tables/intel64_qtables.h"
+#include "tables/intel64_modrm.h"
+#include "tables/intel64_immd.h"
 
 /*
  	IMPORTANT!
@@ -61,71 +61,28 @@ typedef struct _packed _intel64_opcode{
 _inline_force bool _intel64_legacy_ext(
 	_in intel64_mte_raw_instr	instr
 ){
-	// Legacy opcode-extending prefix check
-	switch(instr[0]){
-	case 0xf2:
-	case 0xf3:
-	case 0x66:
-		return true;
-	default:
-		return false;
-	}
+	return LEG_PREF_EXT_LOOKUP[instr[0]];
 }
 _inline_force u8 _intel64_get_legacy(
 	_in intel64_mte_raw_instr	instr
 ){
-	// Legacy prefix check
-	switch(instr[0]){
-	case 0xf2:
-	case 0xf3:
-	case 0x66:
-	case 0xf0:
-	case 0x2e:
-	case 0x36:
-	case 0x3e:
-	case 0x26:
-	case 0x64:
-	case 0x65:
-	case 0x67:
-		return instr[0];
-	default:
-		return 0;
-	}
+	return LEG_PREF_LOOKUP[instr[0]];
 }
+
 _inline_force u8 _intel64_get_rex(
+	_in bool			is_legacy,
 	_in intel64_mte_raw_instr	instr
 ){
-	u8 i = (_intel64_get_legacy(instr) != 0);
-	switch(instr[i]){
-	case 0x40 ... 0x4f: // Valid rex byte
-		return instr[i];
-	default:
-		return 0;
-	}
-}
-_inline_force bool _intel64_rex_ext(
-	_in intel64_mte_raw_instr	instr
-){
-	u8 i = (_intel64_get_legacy(instr) != 0);
-	switch(instr[i]){
-	case 0x40 ... 0x4f:
-		return true;
-	default:
-		return false;
-	}
+	return ((instr[is_legacy] ^ 0x4f) & ~0x0f) 
+		? 0 
+		: instr[is_legacy];
 }
 _inline_force u8 _intel64_opcode_len(
-	_in intel64_mte_raw_instr	instr,
 	_in bool 			is_legacy,
-	_in bool 			is_rex
+	_in bool 			is_rex,
+	_in intel64_mte_raw_instr	instr
 ){
-	bool ext = false;
- 	// Base extension checks
-	if (is_legacy && instr[is_rex + 1] == 0x0f){
-		ext = true;
-	}else if(instr[is_rex] == 0x0f){
-		ext = true;
-	}
+	bool ext = instr[is_legacy + is_rex] == 0x0f;
 
 	switch(instr[is_legacy + is_rex + 1]){
  	// Additional extension checks
@@ -140,25 +97,23 @@ _inline_force u8 _intel64_opcode_len(
 _inline_force const intel64_opcode _intel64_get_opcode(
 	_in const intel64_mte_raw_instr	instr
 ){
-	u8 opcode_len = 0;
-
-	u8 rex = _intel64_get_rex(instr);
 	u8 legacy = _intel64_get_legacy(instr); // 0 (false) if legacy isn`t present
+	u8 rex = _intel64_get_rex(legacy, instr);
 
 	// Initialize information structure
 	const intel64_opcode_info info = (const intel64_opcode_info){ 
-		.x = instr[(legacy != 0) + (rex != 0)] == 0x0f,
-		.r = (rex != 0),
-		.l = (legacy != 0),
+		.x = !(instr[!!legacy + !!rex] ^ 0x0f),
+		.r = !!rex,
+		.l = !!legacy,
 		.e = _intel64_legacy_ext(instr),
 	};
 
-	opcode_len = _intel64_opcode_len(instr, info.l, info.r);
+	u8 opcode_len = _intel64_opcode_len(info.l, info.r, instr);
 	u64 mask = n_mask(opcode_len);
 
 	if (info.r && info.e){
 		return (const intel64_opcode){
-			.val = (((*(u32*)offp(instr, 1)) & mask) & ~0xff) | legacy,
+			.val = ((*(u32*)offp(instr, 1)) & (mask & ~0xff)) | legacy,
 			.len = opcode_len,
 			.info = info,
 			.legacy = legacy,
@@ -205,7 +160,7 @@ _inline_force bool _intel64_modrm_check(
 		return true;
 	}
 	
-	// Only possiblity is 1 or 2
+	// Only possiblity is 1 or 2 or 3
 	if (opcode.len == 1){
 		return INTEL64_MODRM_VTB(modrm_tables->l0_mask, opcode.val & 0xff);
 	}
@@ -213,8 +168,7 @@ _inline_force bool _intel64_modrm_check(
 		return INTEL64_MODRM_VTB(modrm_tables->l1_mask, (opcode.val >> 8) & 0xff);
 	}
 
-	const u64 *modrm_table = L2M_MASK_LOOKUP[opcode.val & 0x7];
-	return INTEL64_MODRM_VTB(modrm_table, (opcode.val >> 16) & 0xff);
+	return INTEL64_MODRM_VTB(L2M_MASK_LOOKUP[opcode.val & 0x7], (opcode.val >> 16) & 0xff);
 }
 /*
  	Opcode checking modrm read.
@@ -443,8 +397,6 @@ _inline_force u64 _intel64_get_immd(
 			+ _intel64_sib_ext(modrm)
 			+ _intel64_disp_len(opcode, modrm);
 	immd_i += !(modrm == 0);
-	io_i64(opcode.info.l);
-	io_i64(opcode.info.r);
 
 	u8 buf[8] = {0}; // 64 bit buffer
 	for (u8 i = 0; i < len; i++){
@@ -453,5 +405,5 @@ _inline_force u64 _intel64_get_immd(
 	return *(u64*)buf;
 }
 
-#endif // !defined(AX_INTEL64_INSTR_INT)
+#endif // !defined(MTE_INTEL64_INSTR_INT)
 

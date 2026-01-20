@@ -3,11 +3,11 @@
 */
 
 #include "mte/core.h"
-#include "mte/ir.h"
+#include "mte/ir/ir.h"
 
-#include "mte/asm/mips/mips32.h"
-#include "mte/asm/mips/mips32_op_lookup.h"
-#include "mte/asm/mips/mips32_reg_lookup.h"
+#include "mips32.h"
+#include "tables/mips32_op_lookup.h"
+#include "tables/mips32_reg_lookup.h"
 #include "mte/asm/bits.h"
 
 /*

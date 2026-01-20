@@ -1,6 +1,7 @@
 #include <ax_memory.h>
-#include "mte/asm/mips/mips32_asm.h"
 #include "mte/asm/bits.h"
+
+#include "mips32_asm.h"
 
 axres mips32_byte_to_raw(
 	_in register mte_byte_instr		*instr,

@@ -1,4 +1,6 @@
-#include "mte/asm/intel/intel64.h"
+#include "mte/ir/ir.h"
+
+#include "intel64.h"
 
 axres intel64_raw_to_ir(
 	_in intel64_mte_raw_instr	instr,

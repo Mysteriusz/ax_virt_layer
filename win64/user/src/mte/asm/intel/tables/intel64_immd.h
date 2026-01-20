@@ -1,5 +1,5 @@
-#if !defined(INTEL64_IMMD_INT)
-#define INTEL64_IMMD_INT
+#if !defined(MTE_INTEL64_IMMD_INT)
+#define MTE_INTEL64_IMMD_INT
 
 #include <ax_type.h>
 
@@ -82,5 +82,5 @@ static void _intel64_prefetch_immd(void){
 	_mm_prefetch(offp(immd_tables, 64 * 10), _MM_HINT_T0);
 };
 
-#endif // !defined(INTEL64_IMMD_INT)
+#endif // !defined(MTE_INTEL64_IMMD_INT)
 
