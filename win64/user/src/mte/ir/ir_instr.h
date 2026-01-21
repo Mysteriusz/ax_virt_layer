@@ -10,7 +10,7 @@
 typedef struct _ir_raw_instr{
 	ir_opcode 		opcode;
 	u8			reg_used;
-	ir_reg			reg[4]; // Each reg corresponds to offset of ir->reg_map
+	ir_reg_desc		reg[4]; // Each reg corresponds to offset of ir->reg_map
 } ir_raw_instr;
 
 #endif // !defined(MTE_IR_INSTR_INT)

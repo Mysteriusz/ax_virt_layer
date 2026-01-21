@@ -8,12 +8,12 @@ typedef enum _ir_reg_type : u8{
 	IR_REG_VAL, // val == Any value
 } ir_reg_type;
 
-typedef struct _ir_reg{
+typedef struct _ir_reg_desc{
 	u64 			id;
-} ir_reg;
-// Initalize IR register on the stack
-#define init_ir_reg(v) 	((ir_reg){.id = (v)})
+} ir_reg_desc;
 
+// Initalize IR register on the stack
+#define init_ir_reg(v) 	((ir_reg_desc){.id = (v)})
 
 #endif // !defined(MTE_IR_REG_INT)
 

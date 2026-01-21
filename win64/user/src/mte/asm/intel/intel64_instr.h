@@ -4,9 +4,9 @@
 #include <ax_type.h>
 #include <ax_io.h>
 
-#include "tables/intel64_qtables.h"
-#include "tables/intel64_modrm.h"
-#include "tables/intel64_immd.h"
+#include "intel/tables/intel64_qtables.h"
+#include "intel/tables/intel64_modrm.h"
+#include "intel/tables/intel64_immd.h"
 
 /*
  	IMPORTANT!

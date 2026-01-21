@@ -110,7 +110,7 @@ static const struct mips32_op_info _mips32_op_table[] = {
       { .mnem_u64=0/*"lwle"*/},
       {0}, {0},
       { .mnem_u64=0/*"syscall"*/},
-      { .mnem_u64 = 0x646461ULL/*"add"*/, 	.type = R, .opcode = 0b100000, .ir_rule = (ir_rule){.type = IR_RULE_OP_INFO, .data = 0} },
+      { .mnem_u64 = 0x646461ULL/*"add"*/, 	.type = R, .opcode = 0b100000, .ir_rule = (ir_rule){.type = IR_RULE_OP_DESC, .data = 0} },
       { .mnem_u64 = 0/*"addu"*/},
       {0}, {0}, {0},
       { .mnem_u64=0/*"srl"*/},

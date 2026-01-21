@@ -7,8 +7,8 @@
 
 #include <ax_error.h>
 
-#include "mte/asm/mips/mips32.h"
-#include "mte/asm/intel/intel64.h"
+#include "mips/mips32.h"
+#include "intel/intel64.h"
 
 #include "mte/asm/decode_u64.h"
 

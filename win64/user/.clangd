@@ -8,15 +8,17 @@ CompileFlags:
     - -Wno-unknown-pragmas
     - -std=c23
     - -m64
+    - -mbmi2
     - -mavx2
 
     - "-IC:/msys64/ucrt64/include"
     - "-ID:/ax_project/ax_virt_layer_utils/utils/ax_utility_lib/build/WIN_UM/headers"
     - "-ID:/ax_project/ax_virt_layer/win64/user/src"
-    - "-ID:/ax_project/ax_virt_layer/win64/user/src/mte"
+    - "-ID:/ax_project/ax_virt_layer/win64/user/src/mte/asm"
 
     - "-DAX_WIN64"
     - "-DAX_UM"
 Diagnostics:
   Suppress:
     - "unused-includes"
+

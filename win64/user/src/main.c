@@ -1,5 +1,6 @@
 #include "mte/core.h"
 #include "mte/ir/ir.h"
+#include "mte/perf.h"
 
 #include "mte/asm/mips/mips32.h"
 #include "mte/asm/intel/intel64.h"
@@ -29,7 +30,7 @@ static void instr_dis(
 	_in u32 		disp,
 	_in u64 		immd
 ){
-	__asm__ __volatile__("" :: "g"(opcode), "g"(modrm), "g"(sib), "g"(disp), "g"(immd));
+	//__asm__ __volatile__("" :: "g"(opcode), "g"(modrm), "g"(sib), "g"(disp), "g"(immd));
 	/*io_str(u"Opcode value:");
 	printf(" - 0x%x\n", opcode.val);
 	io_str(u"Legacy value:");
@@ -62,58 +63,36 @@ static void instr_dis(
 	printf("  - Displacement: %02x\n", disp);
 	printf("  - Immediate: %02llx\n", immd);*/
 }
+
+
 _inline_avert void foo(
 	u8 b[15]
 ){
 	intel64_mte_raw_instr instr = b;
-	volatile u64 l1, l2;
 
-	unsigned int aux = 0;
-	(void)__rdtscp(&aux);
-
-	__asm__ __volatile__("lfence");
-	l1 = __rdtsc();
-	__asm__ __volatile__("sfence");
-
-	__asm__ __volatile__("mfence");
-	l2 = __rdtscp(&aux);
-	__asm__ __volatile__("mfence");
-
-	aux = 0;
-
-	u32 empty = l2 - l1;
-	u32 sum = 0;
-
-	__asm__ __volatile__("lfence");
-	l1 = __rdtsc();
-	__asm__ __volatile__("sfence");
+	__INL_PERF_INIT
+	__INL_PERF_START
 
 	volatile const intel64_opcode opcode = _intel64_get_opcode(instr);
-	volatile u8 modrm = _intel64_modrm_check(opcode);
+	volatile u8 modrm = _intel64_get_modrm(opcode, instr);
 	volatile const intel64_sib sib = _intel64_get_sib(opcode, modrm, instr);
 	volatile u32 disp = _intel64_get_disp(opcode, modrm, instr);
 	volatile u64 immd = _intel64_get_immd(opcode, modrm, instr);
 
-	__asm__ __volatile__("mfence");
-	l2 = __rdtscp(&aux);
-	__asm__ __volatile__("mfence");
+	__INL_PERF_END
 
-	sum = l2 - l1;
-
-	//instr_dis(opcode, modrm, sib, disp, immd;
-	printf("Empty in ns: %lf\n", (empty / 4.2));
-	printf("Time in ns: %lf\n", ((sum - empty) / 4.2));
-	//printf("%02x %02x %02x", rex, legacy);
-	//printf("%02x\n", modrm);
+	printf("Empty in ns: %lf\n", (mm_perf_empty / 4.2));
+	printf("Time in ns: %lf\n", (__INL_PERF_SUM / 4.2));
+	printf("%02x\n", modrm);
 	printf("%u %u %u %u\n", opcode.info.x, opcode.info.r, opcode.info.l, opcode.info.e);
 	printf("%02x %02x %02x\n", opcode.val, opcode.legacy, opcode.rex);
 	printf("%02x %02llx\n", disp, immd);
 	printf("%02x\n", sib.val);
 	printf("%02x\n", opcode.len);
-	//printf("%02x %02x\n", 0, rg[0]);
 }
 // TEMPORARY
 #include <windows.h>
+#include "mte/pipe/ring_queue.h"
 
 int main(){
 	SetPriorityClass(GetCurrentProcess(), REALTIME_PRIORITY_CLASS);
@@ -124,8 +103,31 @@ int main(){
 	intel64_load_qtables();
 	__asm__ __volatile__("mfence");
 
-	//foo((u8[15]){0x48, 0xC7, 0xC1, 0xFF, 0x00, 0x00, 0x00});
-	foo((u8[15]){0x66, 0x0f, 0x3a, 0x0e, 0xca, 0x0a});
+	rqueue_desc rqueue = {0};
+	axcheck_r(init_rqueue(&rqueue), 0);
+	rqueue_desc *rqueue_ref = &rqueue; 
+
+	__INL_PERF_INIT
+	__INL_PERF_START
+
+	volatile bool lock 
+		= rqueue_region_push(rqueue_ref, 0, (rqueue_payload){.control = {10, 20, 30}, .data = {40, 50, 60}});
+	/*volatile bool lock2 
+		= rqueue_region_push(rqueue_ref, 1, (rqueue_payload){0});
+	volatile bool lock3 
+		= rqueue_region_push(rqueue_ref, 2, (rqueue_payload){0});
+	unref(lock3);
+	unref(lock2);*/
+
+	__INL_PERF_END
+	printf("Empty in ns: %lf\n", (mm_perf_empty / 4.2));
+	printf("Time in ns: %lf\n", (__INL_PERF_SUM / 4.2));
+	printf("%x\n", lock);
+	io_i64(rqueue_ref->base[0]);
+	io_i64(rqueue_ref->base[1]);
+	io_i64(rqueue_ref->base[2]);
+
+	/*foo((u8[15]){0x66, 0x0f, 0x3a, 0x0e, 0xca, 0x0a});
 	foo((u8[15]){0x0f, 0x3a, 0x0e, 0xca, 0x0a});
 	foo((u8[15]){0x66, 0x0f, 0x3a, 0x0e, 0xca, 0x0a});
 	foo((u8[15]){0x0f, 0x3a, 0x0e, 0xca, 0x0a});
@@ -141,6 +143,8 @@ int main(){
 	foo((u8[15]){0x0f, 0x3a, 0x0e, 0xca, 0x0a});
 	foo((u8[15]){0x66, 0x0f, 0x3a, 0x0e, 0xca, 0x0a});
 	foo((u8[15]){0x0f, 0x3a, 0x0e, 0xca, 0x0a});
+	foo((u8[15]){0x48, 0xC7, 0xC1, 0xFF, 0x00, 0x00, 0x00});*/
+
 	/*const char str[] = "       add $t1,$t2,$t3";
 	mte_raw_instr enc = {0};
 	const ir_rule *rule = nullptr;

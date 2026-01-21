@@ -4,7 +4,14 @@ if ($km){
 }
 
 $files_c = $(gci "$PSScriptRoot\src" -file -r -filter "*.c")
-$files_h = @("$PSScriptRoot\src", "D:/ax_project/ax_virt_layer/win64/type_2/src/mte")
+
+# Directory 'hooks'
+$files_h = @(
+	"$PSScriptRoot\src",
+	"D:/ax_project/ax_virt_layer/win64/user/src",
+	"D:/ax_project/ax_virt_layer/win64/user/src/mte/asm"
+)
+
 $files_lib = @("C:\msys64\ucrt64\x86_64-w64-mingw32\lib\")
 
 $build_path = "$PSScriptRoot\build\"
