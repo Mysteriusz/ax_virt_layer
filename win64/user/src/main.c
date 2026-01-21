@@ -92,7 +92,7 @@ _inline_avert void foo(
 }
 // TEMPORARY
 #include <windows.h>
-#include "mte/pipe/ring_queue.h"
+#include "mte/pipe/vrow.h"
 
 int main(){
 	SetPriorityClass(GetCurrentProcess(), REALTIME_PRIORITY_CLASS);
@@ -103,29 +103,23 @@ int main(){
 	intel64_load_qtables();
 	__asm__ __volatile__("mfence");
 
-	rqueue_desc rqueue = {0};
-	axcheck_r(init_rqueue(&rqueue), 0);
-	rqueue_desc *rqueue_ref = &rqueue; 
+	vrow_desc vrow = {0};
+	axcheck_r(init_vrow(&vrow), 0);
+	vrow_desc *vrow_ref = &vrow; 
 
 	__INL_PERF_INIT
 	__INL_PERF_START
 
 	volatile bool lock 
-		= rqueue_region_push(rqueue_ref, 0, (rqueue_payload){.control = {10, 20, 30}, .data = {40, 50, 60}});
-	/*volatile bool lock2 
-		= rqueue_region_push(rqueue_ref, 1, (rqueue_payload){0});
-	volatile bool lock3 
-		= rqueue_region_push(rqueue_ref, 2, (rqueue_payload){0});
-	unref(lock3);
-	unref(lock2);*/
+		= vrow_load(vrow_ref, (vrow_payload){.control = {10, 20, 30}, .data = {40, 50, 60}});
 
 	__INL_PERF_END
 	printf("Empty in ns: %lf\n", (mm_perf_empty / 4.2));
 	printf("Time in ns: %lf\n", (__INL_PERF_SUM / 4.2));
 	printf("%x\n", lock);
-	io_i64(rqueue_ref->base[0]);
-	io_i64(rqueue_ref->base[1]);
-	io_i64(rqueue_ref->base[2]);
+
+	io_i64(vrow.states);
+	io_i64(vrow.base[0]);
 
 	/*foo((u8[15]){0x66, 0x0f, 0x3a, 0x0e, 0xca, 0x0a});
 	foo((u8[15]){0x0f, 0x3a, 0x0e, 0xca, 0x0a});
