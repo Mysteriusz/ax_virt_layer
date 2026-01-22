@@ -93,6 +93,8 @@ _inline_avert void foo(
 // TEMPORARY
 #include <windows.h>
 #include "mte/pipe/vrow.h"
+#include "mte/pipe/vrow_b0.h"
+#include "mips/mips32_asm.h"
 
 int main(){
 	SetPriorityClass(GetCurrentProcess(), REALTIME_PRIORITY_CLASS);
@@ -107,11 +109,30 @@ int main(){
 	axcheck_r(init_vrow(&vrow), 0);
 	vrow_desc *vrow_ref = &vrow; 
 
+	ir_context context = ir_init(
+		IR_VER,
+		MIPS32,
+		INTEL64
+	);
+
+	mte_raw_instr instr = {0};
+	const ir_rule *rule = nullptr;
+	mips32_byte_to_raw(
+		&(mte_byte_instr){
+			.syn = INTEL,
+			.arch = MIPS32,
+			.val = _str_to_u64("add $t0, $t1, $t2", strlen("add $t0, $t1, $t2"))
+		},
+		&rule,
+		&instr
+	);
+	struct vrow_b0_payload b0 = init_vrow_b0_payload(&context, instr);
+
 	__INL_PERF_INIT
 	__INL_PERF_START
 
-	volatile bool lock 
-		= vrow_load(vrow_ref, (vrow_payload){.control = {10, 20, 30}, .data = {40, 50, 60}});
+	volatile bool lock
+		= vrow_load(vrow_ref, *(vrow_payload*)&b0);
 
 	__INL_PERF_END
 	printf("Empty in ns: %lf\n", (mm_perf_empty / 4.2));
@@ -119,7 +140,9 @@ int main(){
 	printf("%x\n", lock);
 
 	io_i64(vrow.states);
-	io_i64(vrow.base[0]);
+
+	//struct vrow_b0_payload p = *(struct vrow_b0_payload*)vrow.base;
+	//printf("%s", (u8*)&p.control.context->version);
 
 	/*foo((u8[15]){0x66, 0x0f, 0x3a, 0x0e, 0xca, 0x0a});
 	foo((u8[15]){0x0f, 0x3a, 0x0e, 0xca, 0x0a});

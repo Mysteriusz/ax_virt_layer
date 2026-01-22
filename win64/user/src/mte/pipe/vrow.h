@@ -1,5 +1,5 @@
-#if !defined(MTE_RING_QUEUE_INT)
-#define MTE_RING_QUEUE_INT
+#if !defined(MTE_VROW_INT)
+#define MTE_VROW_INT
 
 #include <ax_type.h>
 #include <ax_memory.h>
@@ -56,5 +56,5 @@ volatile bool vrow_bank_unload(
 	_in u8			bank_i	
 );
 
-#endif // !defined(MTE_RING_QUEUE_INT)
+#endif // !defined(MTE_VROW_INT)
 

@@ -2,6 +2,7 @@
 #define MTE_MIPS32_OPCODE_TABLE_INT
 
 #include "mte/asm/mips/mips32.h"
+#include "mte/asm/mips/mips32_ir.h"
 
 /*
 	MIPS32-specific lookup tables provided by GNU gpref

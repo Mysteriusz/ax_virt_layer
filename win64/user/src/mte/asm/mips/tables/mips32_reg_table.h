@@ -2,8 +2,10 @@
 #define MTE_MIPS32_REG_TABLE_INT
 
 #include "mte/asm/mips/mips32.h"
+#include "mte/asm/mips/mips32_ir.h"
 
 _unused
+_align(32)
 static const struct mips32_reg_info _mips32_reg_table[] = {
 	{0}, {0},
 	{ .name_u64=0/*$2*/},

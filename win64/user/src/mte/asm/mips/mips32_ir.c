@@ -30,3 +30,12 @@ axres mips32_raw_to_ir(
 	return AX_SUCC;
 }
 
+ir_raw_instr mips32_to_ir_call(
+	_in mips32_mte_raw_instr	instr,	
+	_in ir_context			*context
+){
+	ir_raw_instr buf = {0};
+	mips32_raw_to_ir(instr, &context->rule, &buf);
+	return (ir_raw_instr){0};
+}
+

@@ -9,7 +9,7 @@ typedef enum _ir_reg_type : u8{
 } ir_reg_type;
 
 typedef struct _ir_reg_desc{
-	u64 			id;
+	u16 			id;
 } ir_reg_desc;
 
 // Initalize IR register on the stack

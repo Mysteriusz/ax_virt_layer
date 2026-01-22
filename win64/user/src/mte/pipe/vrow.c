@@ -42,6 +42,8 @@ volatile bool vrow_load(
 
 	vrow->states |= (0x3 << (i << 1));
 
+	_mm_prefetch(vrow->base + (64 * i), _MM_HINT_T0);
+
 	return true;
 }
 
@@ -64,6 +66,8 @@ volatile bool vrow_bank_load(
 	simd_imax_store_512(offp(vrow->base, bank_off), &payload);
 
 	vrow->states |= (3 << i);
+
+	_mm_prefetch(vrow->base + (64 * i), _MM_HINT_T0);
 
 	return true;
 }

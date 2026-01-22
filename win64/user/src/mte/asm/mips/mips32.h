@@ -5,14 +5,6 @@
 
 #include "mte/asm/decode_u64.h"
 #include "mte/cpu.h"
-#include "mte/ir/ir.h"
-
-_unused
-static struct cpu_reg_map _mips32_cpu_reg_map = {
-	.gpr_count = 32, // 32 registers r0-r31
-	.reg_width = 32, // 32-Bit architecture
-	.root = (reg64[32]){}
-};
 
 typedef u32 mips32_mte_raw_instr;
 /*	
@@ -71,20 +63,6 @@ _inline_force enum mips32_type _mips32_check_type(
 	}
 	return 0;
 }
-
-// Maximum mnemonic length for currently supported mips32 instructions
-#define MIPS32_MNEM_LEN_MAX 8
-struct mips32_op_info{
-	const u64		mnem_u64;
-	const enum mips32_type 	type;
-	const u8		opcode;
-	ir_rule 		ir_rule;
-} _align(64);
-struct mips32_reg_info{
-	const u64		name_u64;
-	const enum mips32_reg 	val;
-	ir_rule 		ir_rule;
-} _align(64);
 
 #endif // !defined(MTE_MIPS32_INT)
 

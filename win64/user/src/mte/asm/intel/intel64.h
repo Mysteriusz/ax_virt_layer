@@ -6,12 +6,5 @@
 
 #include "intel64_instr.h"
 
-_unused
-static const struct cpu_reg_map _intel64_cpu_reg_map = {
-	.gpr_count = 16, // 16 gprs registers rax-r15
-	.reg_width = 64, // 64-Bit architecture
-	.root = (reg64[16]){}
-};
-
 #endif
 

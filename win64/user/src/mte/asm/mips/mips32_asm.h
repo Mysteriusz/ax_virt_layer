@@ -10,6 +10,8 @@
 #include "tables/mips32_reg_lookup.h"
 #include "mte/asm/bits.h"
 
+#include "mte/perf.h"
+
 /*
  	Currently achives speeds around
 		- ~1000ns for 4.2GHZ CPU with cold cache
@@ -63,11 +65,9 @@ _inline_force static void _mips32_eval(
 	if (mte_byte_instr_inv(instr)){
 		return;
 	}
-	u64 l1, l2;
 
-	__builtin_prefetch(buf);
-	(void)__rdtsc();
-	l1 = __rdtsc();
+	//__INL_PERF_INIT
+	//__INL_PERF_START
 
 	register u64 *lhs = nullptr;
 	register u64 *rhs = nullptr;
@@ -103,8 +103,8 @@ _inline_force static void _mips32_eval(
 		return;
 	}
 
-	l2 = __rdtsc();
-	printf("Time in ns: %lf\n", ((l2 - l1) / 4.2) - 4);
+	//__INL_PERF_END
+	//printf("Time in ns: %lf\n", (__INL_PERF_SUM / 4.2));
 	/*printf("Time in ns: %lf\n", ((l2 - l1) / 4.2) - 4);
 	printf("Mnemonic: %s\n", (char*)&info.mnem_u64);
 	printf("%u\n", info.type);
