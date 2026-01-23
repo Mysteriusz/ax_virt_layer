@@ -29,9 +29,14 @@ void *vrow_b0_entry(
 	struct vrow_bank_thread_stack		*stack
 );
 
+/*
+	Main execution function
+*/
 void vrow_b0_exec(
-	u8			bank,
-	vrow_desc		*vrow
+	vrow_desc				*vrow,
+	volatile ir_context *const 		ir,
+	volatile struct ir_context_desc *const 	ir_desc,
+	volatile struct vrow_b0_payload *const 	b0
 );
 
 #endif // !defined(MTE_VROW_B0_INT)

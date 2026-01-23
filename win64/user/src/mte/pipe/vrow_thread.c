@@ -7,11 +7,10 @@ axres vrow_thread_start(
 		return AX_INV_ARG;
 	}
 
-	// Set 2 indexing bits of the vrow lock to false
-	atomic_fetch_and_explicit(
-		&thread->vrow->lock,
-		~(0b11 << (thread->bank << 1)),
-		memory_order_release);
+	// Unlock if thread if locked
+	if (vrow_is_locked(&thread->vrow->states, thread->bank)){
+		vrow_lock_switch(&thread->vrow->states, thread->bank);
+	}
 
 	int code = 0;
 
@@ -43,10 +42,9 @@ void vrow_thread_stop(
 		return;
 	}
 
-	// Set 2 indexing bits of the vrow lock to true
-	atomic_fetch_or_explicit(
-		&thread->vrow->lock,
-		0b11 << (thread->bank << 1),
-		memory_order_release);
+	// Lock if thread if unlocked
+	if (!vrow_is_locked(&thread->vrow->states, thread->bank)){
+		vrow_lock_switch(&thread->vrow->states, thread->bank);
+	}
 }
 

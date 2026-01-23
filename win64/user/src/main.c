@@ -101,7 +101,7 @@ _inline_avert void foo(
 
 int main(){
 	SetPriorityClass(GetCurrentProcess(), REALTIME_PRIORITY_CLASS);
-	SetProcessAffinityMask(GetCurrentProcess(), 1);
+	//SetProcessAffinityMask(GetCurrentProcess(), 1);
 
 	_intel64_prefetch_immd();
 	_intel64_prefetch_modrm();
@@ -113,8 +113,11 @@ int main(){
 	/*
 		Create single vertical row
 	*/
-	vrow_desc vrow = {0};
-	vrow_desc *vrow_ref = &vrow; 
+	vrow_desc *vrow = nullptr;
+	res = init_vrow(
+		&vrow
+	);
+	axcheck(res, ax_log(res));
 
 	/*
 		Create IR context
@@ -149,26 +152,20 @@ int main(){
 	struct vrow_b0_payload b0 
 		= init_vrow_b0_payload(ir, instr);
 	vrow_bank_thread b0_thread 
-		= init_vrow_bank_thread(vrow_ref, 0, vrow_b0_entry, ((struct vrow_bank_thread_stack){.vrow = vrow_ref, .bank = 0}));
-
-	__INL_PERF_INIT
-	__INL_PERF_START
-
-	volatile bool lock
-		= vrow_load(vrow_ref, *(vrow_payload*)&b0);
-
-	__INL_PERF_END
+		= init_vrow_bank_thread(vrow, 0, vrow_b0_entry, ((struct vrow_bank_thread_stack){.vrow = vrow, .bank = 0}));
 
 	vrow_thread_start(&b0_thread);
-	_sleep(20);
 
-	__INL_PERF_LOG
+	volatile bool lock
+		= vrow_bank_load(vrow, 0, *(vrow_payload*)&b0);
 
-	io_i64(vrow.lock);
-	vrow_thread_stop(&b0_thread);
-	printf("%x\n", lock);
-	io_i64(vrow.states);
-	io_i64(vrow.lock);
+	//__INL_PERF_LOG
+
+	unref(lock);
+	while(1){
+		_mm_pause();
+		vrow_bank_load(vrow, 0, *(vrow_payload*)&b0);
+	}
 
 	//struct vrow_b0_payload p = *(struct vrow_b0_payload*)vrow.base;
 	//printf("%s", (u8*)&p.control.context->version);

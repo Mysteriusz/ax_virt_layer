@@ -35,6 +35,7 @@ axres vrow_thread_start(
 
 /*
 	Lock vrow_bank_thread`s vrow bank to locked.
+	lock & 
 */
 void vrow_thread_stop(
 	_in vrow_bank_thread	*thread

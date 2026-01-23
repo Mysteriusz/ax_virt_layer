@@ -10,36 +10,52 @@ void *vrow_b0_entry(
 		return nullptr;
 	}
 
-	vrow_b0_exec(stack->bank, stack->vrow);
+	// Parse payload
+	volatile struct vrow_b0_payload *const b0 
+		= (struct vrow_b0_payload*)offp(stack->vrow->base, VROW_BANK_SIZE * stack->bank);
+	// Parse IR context
+	volatile ir_context *const ir
+		= (ir_context*)b0->control.context;
+	// Parse IR context descriptor
+	volatile struct ir_context_desc *const ir_desc
+		= (struct ir_context_desc*)ir->rule.data;
+
+	_Atomic u8 *states = &stack->vrow->states;
+	while(!vrow_is_locked(states, stack->bank)){
+		if (!vrow_is_filled(states, stack->bank)){
+			_mm_pause();
+			continue;
+		}
+
+		vrow_b0_exec(
+			stack->vrow,
+			ir,
+			ir_desc,
+			b0
+		);
+	}
 
 	return nullptr;
 }
 void vrow_b0_exec(
-	u8			bank,
-	vrow_desc		*vrow
+	vrow_desc				*vrow,
+	volatile ir_context *const 		ir,
+	volatile struct ir_context_desc *const 	ir_desc,
+	volatile struct vrow_b0_payload *const 	b0
 ){
 	__INL_PERF_INIT
 	__INL_PERF_START
 
-	// Parse payload
-	struct vrow_b0_payload *b0
-		= (struct vrow_b0_payload*)offp(vrow->base, VROW_BANK_SIZE * bank);
-
-	// Parse IR structures
-	ir_context* ir
-		= (ir_context*)b0->control.context;
-	struct ir_context_desc* ir_desc
-		= (struct ir_context_desc*)ir->rule.data;
-
 	// Translate using the IR context descriptor
-	ir_raw_instr res = ir_desc->call.org_to_ir(b0->payload.instr, ir);
+	ir_raw_instr res = ir_desc->call.org_to_ir(b0->payload.instr, (ir_context*)ir);
 	if (res.opcode == IR_INVALID_OPCODE){
 		return;
 	}
 
 	__INL_PERF_END
 	__INL_PERF_LOG
-	io_i64(res.opcode);
+
+	vrow_bank_unload(vrow, 0);
 
 	return;
 }
