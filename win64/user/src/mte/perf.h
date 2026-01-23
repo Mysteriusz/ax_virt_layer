@@ -34,5 +34,9 @@
 	__INL_PERF_END \
 	mm_perf_empty = __INL_PERF_SUM;
 
+#define __INL_PERF_LOG \
+	printf("Empty in ns: %lf\n", (mm_perf_empty / 4.2)); \
+	printf("Time in ns: %lf\n", (__INL_PERF_SUM / 4.2)); \
+
 #endif // !defined(MTE_PERF_INT)
 

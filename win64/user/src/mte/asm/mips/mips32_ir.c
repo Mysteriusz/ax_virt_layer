@@ -4,7 +4,6 @@
 
 axres mips32_raw_to_ir(
 	_in mips32_mte_raw_instr	instr,
-	_in const ir_rule		*rule,
 	_in_out ir_raw_instr		*buf
 ){
 	if (buf == nullptr){
@@ -16,7 +15,7 @@ axres mips32_raw_to_ir(
 		buf->reg[0] = init_ir_reg(mips32_rd(instr));
 		buf->reg[1] = init_ir_reg(mips32_rs(instr));
 		buf->reg[2] = init_ir_reg(mips32_rt(instr));
-		buf->opcode = ((u32*)rule->data)[0];
+		buf->opcode = ADD_I32;
 		buf->reg_used = 3;
 		break;
 	case I:
@@ -31,11 +30,13 @@ axres mips32_raw_to_ir(
 }
 
 ir_raw_instr mips32_to_ir_call(
-	_in mips32_mte_raw_instr	instr,	
-	_in ir_context			*context
+	_in mte_raw_instr	instr,	
+	_in ir_context		*context
 ){
 	ir_raw_instr buf = {0};
-	mips32_raw_to_ir(instr, &context->rule, &buf);
-	return (ir_raw_instr){0};
+	axres res = mips32_raw_to_ir(instr.mips32, &buf);
+	axcheck_r(res, (ir_raw_instr){0});
+
+	return buf;
 }
 

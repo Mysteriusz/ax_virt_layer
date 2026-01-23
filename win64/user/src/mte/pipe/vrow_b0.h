@@ -5,6 +5,7 @@
 #include "mte/ir/ir.h"
 
 #include "vrow.h"
+#include "vrow_thread.h"
 
 struct vrow_b0_payload{ _align(16)
 	struct{
@@ -23,6 +24,15 @@ struct vrow_b0_payload{ _align(16)
 	.payload.instr = (instr), \
 	.payload.result = (ir_raw_instr){0}, \
 })
+
+void *vrow_b0_entry(
+	struct vrow_bank_thread_stack		*stack
+);
+
+void vrow_b0_exec(
+	u8			bank,
+	vrow_desc		*vrow
+);
 
 #endif // !defined(MTE_VROW_B0_INT)
 

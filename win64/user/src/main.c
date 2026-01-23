@@ -92,9 +92,12 @@ _inline_avert void foo(
 }
 // TEMPORARY
 #include <windows.h>
+
+#include "mips/mips32_asm.h"
+
 #include "mte/pipe/vrow.h"
 #include "mte/pipe/vrow_b0.h"
-#include "mips/mips32_asm.h"
+#include "mte/pipe/vrow_thread.h"
 
 int main(){
 	SetPriorityClass(GetCurrentProcess(), REALTIME_PRIORITY_CLASS);
@@ -105,16 +108,29 @@ int main(){
 	intel64_load_qtables();
 	__asm__ __volatile__("mfence");
 
+	axres res = AX_SUCC;
+
+	/*
+		Create single vertical row
+	*/
 	vrow_desc vrow = {0};
-	axcheck_r(init_vrow(&vrow), 0);
 	vrow_desc *vrow_ref = &vrow; 
 
-	ir_context context = ir_init(
+	/*
+		Create IR context
+	*/
+	ir_context *ir = nullptr; 
+	res = ir_create(
 		IR_VER,
 		MIPS32,
-		INTEL64
+		INTEL64,
+		&ir
 	);
+	axcheck(res, ax_log(res));
 
+	/*
+		Create IR context
+	*/
 	mte_raw_instr instr = {0};
 	const ir_rule *rule = nullptr;
 	mips32_byte_to_raw(
@@ -126,7 +142,14 @@ int main(){
 		&rule,
 		&instr
 	);
-	struct vrow_b0_payload b0 = init_vrow_b0_payload(&context, instr);
+
+	/*
+		Initialize bank 0 handling thread
+	*/
+	struct vrow_b0_payload b0 
+		= init_vrow_b0_payload(ir, instr);
+	vrow_bank_thread b0_thread 
+		= init_vrow_bank_thread(vrow_ref, 0, vrow_b0_entry, ((struct vrow_bank_thread_stack){.vrow = vrow_ref, .bank = 0}));
 
 	__INL_PERF_INIT
 	__INL_PERF_START
@@ -135,11 +158,17 @@ int main(){
 		= vrow_load(vrow_ref, *(vrow_payload*)&b0);
 
 	__INL_PERF_END
-	printf("Empty in ns: %lf\n", (mm_perf_empty / 4.2));
-	printf("Time in ns: %lf\n", (__INL_PERF_SUM / 4.2));
-	printf("%x\n", lock);
 
+	vrow_thread_start(&b0_thread);
+	_sleep(20);
+
+	__INL_PERF_LOG
+
+	io_i64(vrow.lock);
+	vrow_thread_stop(&b0_thread);
+	printf("%x\n", lock);
 	io_i64(vrow.states);
+	io_i64(vrow.lock);
 
 	//struct vrow_b0_payload p = *(struct vrow_b0_payload*)vrow.base;
 	//printf("%s", (u8*)&p.control.context->version);

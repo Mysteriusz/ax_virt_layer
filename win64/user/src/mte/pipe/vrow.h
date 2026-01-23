@@ -8,6 +8,7 @@
 typedef struct _vrow_desc{ _align(8)
 	u8			base[0x100];
 	 _Atomic u8	 	states; // 2 status bits per bank (4 banks)
+	 _Atomic u8		lock;
 } vrow_desc;
 
 /*

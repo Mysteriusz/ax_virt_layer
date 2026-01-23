@@ -23,6 +23,18 @@ typedef u64 ir_unk_data;
 */
 
 /*
+ 	Ir context call interface
+*/
+typedef ir_raw_instr (*const org_to_ir_call)(
+	_in mte_raw_instr instr,
+	_in ir_context 	*context
+);
+typedef mte_raw_instr (*const ir_to_tar_call)(
+	_in ir_raw_instr instr,
+	_in ir_context 	*context
+);
+
+/*
  	IR_RULE_CONTEXT_DESC
 */
 struct ir_context_desc{
@@ -31,8 +43,8 @@ struct ir_context_desc{
 	const struct cpu_reg_map *const org_map;
 	const struct cpu_reg_map *const	tar_map;
 	const struct{
-		ir_raw_instr (*const org_to_ir)(ir_context*);
-		mte_raw_instr (*const ir_to_tar)(ir_context*);
+		org_to_ir_call org_to_ir;
+		ir_to_tar_call ir_to_tar;
 	} call;
 };
 
@@ -43,29 +55,24 @@ typedef struct _ir_rule{
 		IR_RULE_REG_DESC, // IR register descriptor (data -> ir_reg_desc)
 	} const type;
 	// Type of the data stored depends on the [type] field
-	const ir_unk_data 	data;
+	ir_unk_data 	data;
 } ir_rule;
 
 typedef struct _ir_context{
-	const u64 			version; // Ex: 0.01\0, 123.45\0
-	_Atomic bool 			blocked;
-	ir_rule 			rule; // type == IR_RULE_CONTEXT_DESC
+	const u64 		version; // Ex: 0.01\0, 123.45\0
+	_Atomic bool 		blocked;
+	ir_rule 		rule; // type == IR_RULE_CONTEXT_DESC
 } ir_context;
 
-ir_context ir_init(
+_inline_avert axres ir_create(
 	_in const u64 		version,
 	_in enum mte_arch 	org_arch,
-	_in enum mte_arch 	tar_arch
+	_in enum mte_arch 	tar_arch,
+	_out ir_context		**buf
 );
 
-/*
- 	Ir context call interface
-*/
-typedef ir_raw_instr (*const org_to_ir_call)(
-	_in ir_context 	*context
-);
-typedef mte_raw_instr (*const tar_to_ir_call)(
-	_in ir_context 	*context
+_inline_avert void ir_delete(
+	_in ir_context 		*ir
 );
 
 static void _invalid_call(
@@ -77,7 +84,7 @@ static void _invalid_call(
 org_to_ir_call arch_org_to_ir(
 	_in enum mte_arch 	arch
 );
-tar_to_ir_call arch_ir_to_tar(
+ir_to_tar_call arch_ir_to_tar(
 	_in enum mte_arch 	arch
 );
 

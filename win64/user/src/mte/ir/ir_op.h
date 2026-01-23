@@ -4,8 +4,9 @@
 #include <ax_type.h>
 
 typedef enum _ir_opcode : u32{
-	ADD_I32 = 0,
-	ADD_I32_IMMD = 1
+	IR_INVALID_OPCODE = 0,
+	ADD_I32 = 1,
+	ADD_I32_IMMD = 2
 } ir_opcode;
 
 
