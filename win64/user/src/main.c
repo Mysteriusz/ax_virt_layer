@@ -153,21 +153,36 @@ int main(){
 	/*
 		Load to bank 0
 	*/
-	__INL_PERF_INIT
-	__INL_PERF_START
 
-	
+	vrow_bank_thread b0 = init_vrow_bank_thread(vrow, 0, vrow_b0_entry);
+	vrow_thread_start(&b0);
+	struct vrow_b0_payload *b0_p = &init_vrow_b0_payload(ir, instr);
 
-	__INL_PERF_END
-	__INL_PERF_LOG
+	//__INL_PERF_INIT
+	//__INL_PERF_START
 
-	ax_log(r);
+	volatile bool lock = vrow_bank_load(vrow, 0, *(vrow_payload*)b0_p);
+	lock = vrow_bank_load(vrow, 0, *(vrow_payload*)b0_p);
+
+	//__INL_PERF_END
+	//__INL_PERF_LOG
+
+	//ax_log(r);
+	unref(r);
 	axfree(instr_str.org);
 
-	ir_delete(ir);
-	vrow_delete(vrow);
+	//io_i64(vrow->states);
 
-	io_i64(_MEM_ACTIVE);
+	//io_i64(lock);
+	//io_i64(_MEM_ACTIVE);
+
+	u32 i = 0;
+	while(++i < 1000) {
+		_mm_pause();
+		vrow_bank_load(vrow, 0, *(vrow_payload*)b0_p);
+	};
+	vrow_delete(vrow);
+	ir_delete(ir);
 
 	/*
 		Initialize bank 0 handling thread

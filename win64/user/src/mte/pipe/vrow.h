@@ -18,6 +18,7 @@ typedef struct _vrow_desc{ _align(8)
 		F -> Payload present in bank
 	*/
 	 _Atomic u8	 	states; // 2 status bits per bank (4 banks)
+	 _Atomic bool		close;
 } vrow_desc;
 
 /*
@@ -26,9 +27,7 @@ typedef struct _vrow_desc{ _align(8)
 	TODO: describe block internals
 
 	[16 bytes control block]
-	[16 byte data block]
-	[16 byte data block]
-	[16 byte data block] 
+	[3 * 16 byte data block]
 */
 typedef struct _vrow_payload{ _align(16)
 	u8	control[0x10]; // 16 bytes control block
@@ -36,6 +35,7 @@ typedef struct _vrow_payload{ _align(16)
 } vrow_payload;
 
 #define VROW_BANK_SIZE 0x40
+#define VROW_STATE_EMPTY 0b10101010
 
 /*
  	Find first non-filled bank and return it as a mask
@@ -61,6 +61,13 @@ typedef struct _vrow_payload{ _align(16)
 // Switch bank index (bi) locked state
 #define vrow_lock_switch(s_ptr, bi) \
 	(atomic_fetch_xor_explicit(s_ptr, (0b10 << (bi << 1)), memory_order_release))
+
+// Signal all threads to stop as soon as possible
+#define vrow_is_closed(s_ptr) \
+	(atomic_load_explicit(s_ptr, memory_order_acquire) == true)
+// Signal all threads to stop as soon as possible
+#define vrow_close(c_ptr) \
+	(atomic_store_explicit((_Atomic(bool)*)c_ptr, true, memory_order_release))
 
 axres vrow_create(
 	_out vrow_desc		**buf

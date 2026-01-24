@@ -22,6 +22,12 @@ void *vrow_b0_entry(
 
 	_Atomic u8 *states = &stack->vrow->states;
 	while(!vrow_is_locked(states, stack->bank)){
+ 		// Vrow is being deleted
+		if (vrow_is_closed(states)){
+			vrow_lock_switch(states, 0);
+			vrow_fill_switch(states, 0);
+			return nullptr;
+		}
 		if (!vrow_is_filled(states, stack->bank)){
 			_mm_pause();
 			continue;
@@ -47,7 +53,10 @@ void vrow_b0_exec(
 	__INL_PERF_START
 
 	// Translate using the IR context descriptor
-	ir_raw_instr res = ir_desc->call.org_to_ir(b0->payload.instr, (ir_context*)ir);
+	ir_raw_instr res =
+		ir_desc->call.org_to_ir(b0->payload.instr, (ir_context*)ir);
+
+	// Invlidate result
 	if (res.opcode == IR_INVALID_OPCODE){
 		return;
 	}
@@ -55,8 +64,7 @@ void vrow_b0_exec(
 	__INL_PERF_END
 	__INL_PERF_LOG
 
-	vrow_bank_unload(vrow, 0);
-
+	vrow_fill_switch(&vrow->states, 0);
 	return;
 }
 

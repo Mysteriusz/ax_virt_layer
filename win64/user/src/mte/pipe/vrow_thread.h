@@ -17,10 +17,10 @@ typedef struct _vrow_bank_thread{
 	u8				bank;
 	pthread_t 			pthread;
 } vrow_bank_thread;
-#define init_vrow_bank_thread(v_p, b, f_p, fs) \
+#define init_vrow_bank_thread(v_p, b, f_p) \
 	((vrow_bank_thread){ \
 		.func = (f_p), \
-		.func_stack = (fs), \
+		.func_stack = {.vrow = (v_p), .bank = (b)}, \
 		.vrow = (v_p), \
 		.bank = (b), \
 	})
