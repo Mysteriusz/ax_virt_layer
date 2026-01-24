@@ -1,6 +1,6 @@
 #include "vrow.h"
 
-axres init_vrow(
+axres vrow_create(
 	_out vrow_desc		**buf
 ){
 	if (buf == nullptr){
@@ -25,6 +25,13 @@ axres init_vrow(
 
 	return AX_SUCC;
 }
+void vrow_delete(
+	_in vrow_desc		*vrow
+){
+	if (vrow != nullptr){
+		axfree(vrow);
+	}
+}
 
 volatile bool vrow_load(
 	_in vrow_desc		*vrow,
@@ -36,8 +43,8 @@ volatile bool vrow_load(
 
 	u8 any = vrow_is_any(&vrow->states);
 	while(!any){
-		any = vrow_is_any(&vrow->states);
 		_mm_pause();
+		any = vrow_is_any(&vrow->states);
 	}
 	u8 i = __builtin_ctzl(any) >> 1;
 
@@ -66,6 +73,7 @@ volatile bool vrow_bank_load(
 	while (vrow_is_filled(&vrow->states, i)){
 		_mm_pause();
 	}
+
 	// Set the bank state to filled
 	vrow_fill_switch(&vrow->states, i);
 

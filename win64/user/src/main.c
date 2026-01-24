@@ -5,6 +5,8 @@
 #include "mte/asm/mips/mips32.h"
 #include "mte/asm/intel/intel64.h"
 
+#include "mte/asm/mips/mips32_asm.h"
+
 #include <stdarg.h>
 #include <intrin.h>
 
@@ -93,8 +95,6 @@ _inline_avert void foo(
 // TEMPORARY
 #include <windows.h>
 
-#include "mips/mips32_asm.h"
-
 #include "mte/pipe/vrow.h"
 #include "mte/pipe/vrow_b0.h"
 #include "mte/pipe/vrow_thread.h"
@@ -105,7 +105,12 @@ int main(){
 
 	_intel64_prefetch_immd();
 	_intel64_prefetch_modrm();
+
+	_mips32_prefetch_reg_byte_table();
+	_mips32_prefetch_op_byte_table();
+
 	intel64_load_qtables();
+	mips32_load_qtables();
 	__asm__ __volatile__("mfence");
 
 	axres res = AX_SUCC;
@@ -114,7 +119,7 @@ int main(){
 		Create single vertical row
 	*/
 	vrow_desc *vrow = nullptr;
-	res = init_vrow(
+	res = vrow_create(
 		&vrow
 	);
 	axcheck(res, ax_log(res));
@@ -134,22 +139,40 @@ int main(){
 	/*
 		Create IR context
 	*/
+	mte_u64_instr instr_str =  _str_to_u64("add $t0, $t1, $t2", strlen("add $t0, $t1, $t2"));
 	mte_raw_instr instr = {0};
-	const ir_rule *rule = nullptr;
-	mips32_byte_to_raw(
+	volatile axres r = mips32_byte_to_raw(
 		&(mte_byte_instr){
 			.syn = INTEL,
 			.arch = MIPS32,
-			.val = _str_to_u64("add $t0, $t1, $t2", strlen("add $t0, $t1, $t2"))
+			.val = instr_str,
 		},
-		&rule,
 		&instr
 	);
 
 	/*
+		Load to bank 0
+	*/
+	__INL_PERF_INIT
+	__INL_PERF_START
+
+	
+
+	__INL_PERF_END
+	__INL_PERF_LOG
+
+	ax_log(r);
+	axfree(instr_str.org);
+
+	ir_delete(ir);
+	vrow_delete(vrow);
+
+	io_i64(_MEM_ACTIVE);
+
+	/*
 		Initialize bank 0 handling thread
 	*/
-	struct vrow_b0_payload b0 
+	/*struct vrow_b0_payload b0 
 		= init_vrow_b0_payload(ir, instr);
 	vrow_bank_thread b0_thread 
 		= init_vrow_bank_thread(vrow, 0, vrow_b0_entry, ((struct vrow_bank_thread_stack){.vrow = vrow, .bank = 0}));
@@ -165,7 +188,7 @@ int main(){
 	while(1){
 		_mm_pause();
 		vrow_bank_load(vrow, 0, *(vrow_payload*)&b0);
-	}
+	}*/
 
 	//struct vrow_b0_payload p = *(struct vrow_b0_payload*)vrow.base;
 	//printf("%s", (u8*)&p.control.context->version);

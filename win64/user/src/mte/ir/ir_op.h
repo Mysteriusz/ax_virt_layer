@@ -3,10 +3,9 @@
 
 #include <ax_type.h>
 
-typedef enum _ir_opcode : u32{
+typedef enum _ir_opcode : u16{
 	IR_INVALID_OPCODE = 0,
-	ADD_I32 = 1,
-	ADD_I32_IMMD = 2
+	IR_ADD_I32 = 1,
 } ir_opcode;
 
 

@@ -4,7 +4,9 @@
 
 #include <ax_memory.h>
 
-#include "mips32_reg_table.h"
+#include "mte/asm/decode_u64.h"
+
+#include "mips32_reg.h"
 
 /*#define TOTAL_KEYWORDS 65
 #define MIN_WORD_LENGTH 2
@@ -57,15 +59,15 @@ _inline_force static u32 _reg_hash(
 	return hval;
 }
 
-_inline_force static const struct mips32_reg_info _mips32_reg_lookup(
+_inline_force static const struct mips32_reg_byte_info _mips32_reg_lookup(
 	_in u64 val // Register syntax
 ){
 	register u32 key = _reg_hash(val);
-	if (key <= 228){
-		if (val == _mips32_reg_table[key].name_u64){
-			return _mips32_reg_table[key];
+	if (key < 229){
+		if (val == _mips32_reg_byte_table[key].name_u64){
+			return _mips32_reg_byte_table[key];
 		}
 	}
-	return (struct mips32_reg_info){0};
+	return (struct mips32_reg_byte_info){0};
 }
 

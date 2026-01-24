@@ -1,15 +1,22 @@
 #if !defined(MTE_MIPS32_OPCODE_TABLE_INT)
 #define MTE_MIPS32_OPCODE_TABLE_INT
 
-#include "mte/asm/mips/mips32.h"
-#include "mte/asm/mips/mips32_ir.h"
+#include "mips/mips32_instr.h"
 
 /*
 	MIPS32-specific lookup tables provided by GNU gpref
 */
 
+// Maximum mnemonic length for currently supported mips32 instructions
+#define MIPS32_MNEM_LEN_MAX 8
+struct mips32_op_byte_info{
+	const u64			mnem_u64;
+	const enum mips32_instr_type 	type;
+	const u8			opcode;
+};
+
 _unused
-static const struct mips32_op_info _mips32_op_table[] = {
+static const struct mips32_op_byte_info _mips32_op_byte_table[] = {
       {0}, {0}, {0},
       { .mnem_u64=0/*"ll"*/},
       { .mnem_u64=0/*"tlt"*/},
@@ -111,7 +118,7 @@ static const struct mips32_op_info _mips32_op_table[] = {
       { .mnem_u64=0/*"lwle"*/},
       {0}, {0},
       { .mnem_u64=0/*"syscall"*/},
-      { .mnem_u64 = 0x646461ULL/*"add"*/, 	.type = R, .opcode = 0b100000, .ir_rule = (ir_rule){.type = IR_RULE_OP_DESC, .data = 0} },
+      { .mnem_u64 = 0x646461ULL/*"add"*/, 	.type = R, .opcode = 0b100000 },
       { .mnem_u64 = 0/*"addu"*/},
       {0}, {0}, {0},
       { .mnem_u64=0/*"srl"*/},
@@ -257,6 +264,15 @@ static const struct mips32_op_info _mips32_op_table[] = {
       {0}, {0}, {0}, {0}, {0}, {0}, {0}, {0}, {0},
       {0}, {0}, {0},
       { .mnem_u64=0/*"rotrv"*/}
+};
+
+static void _mips32_prefetch_op_byte_table(
+	void
+){
+	for (u16 i = 0; i < (sizeof(_mips32_op_byte_table) / 64); i++){
+		// Given size of the table prefetch to L2 to preserve L1 tables
+		_mm_prefetch(offp(_mips32_op_byte_table, (i << 6)), _MM_HINT_T1);
+	}
 };
 
 #endif // !defined(MTE_MIPS32_OPCODE_TABLE_INT)

@@ -65,7 +65,9 @@ extern const struct immd_tables_root *const immd_tables _align(64);
  	Prefetch immd tables
 */
 
-static void _intel64_prefetch_immd(void){
+static void _intel64_prefetch_immd(
+	void
+){
 	// L0 
 	_mm_prefetch(immd_tables, _MM_HINT_T0);
 	_mm_prefetch(offp(immd_tables, 64), _MM_HINT_T0);

@@ -2,13 +2,15 @@
  	MIPS32 assembler
 */
 
+#if !defined(MTE_MIPS32_ASM_INT)
+#define MTE_MIPS32_ASM_INT
+
 #include "mte/core.h"
 #include "mte/ir/ir.h"
 
 #include "mips32.h"
 #include "tables/mips32_op_lookup.h"
 #include "tables/mips32_reg_lookup.h"
-#include "mte/asm/bits.h"
 
 #include "mte/perf.h"
 
@@ -19,7 +21,6 @@
 */
 axres mips32_byte_to_raw(
 	_in mte_byte_instr			*instr,
-	_out const ir_rule			**rule,
 	_out mte_raw_instr			*buf
 );
 
@@ -58,39 +59,34 @@ mips32_mte_raw_instr mips32_eval_type_j(
 );
 
 _inline_force static void _mips32_eval(
-	_in register mte_byte_instr		*instr,
-	_out register const ir_rule		**rule,
-	_out register mips32_mte_raw_instr	*buf
+	_in mte_byte_instr		*instr,
+	_out mips32_mte_raw_instr	*buf
 ){
+
+	__builtin_prefetch(mips32_eval_type_r);
+	__builtin_prefetch(mips32_eval_type_j);
+	__builtin_prefetch(mips32_eval_type_i);
+
 	if (mte_byte_instr_inv(instr)){
 		return;
 	}
 
-	//__INL_PERF_INIT
-	//__INL_PERF_START
+	u64 *lhs = nullptr, *rhs = nullptr;
 
-	register u64 *lhs = nullptr;
-	register u64 *rhs = nullptr;
-
-	register mte_u64_instr *const instr_ptr = &instr->val;
+	mte_u64_instr *const instr_ptr = &instr->val;
 
 	_u64_byte_skip(0x20, instr_ptr);
 	lhs = instr_ptr->ptr;
 	_u64_byte_search(0x20, instr_ptr);
 	rhs = instr_ptr->ptr;
 
-	__builtin_prefetch(mips32_eval_type_r);
-	__builtin_prefetch(mips32_eval_type_j);
-	__builtin_prefetch(mips32_eval_type_i);
-
-	const struct mips32_op_info info =
+	const struct mips32_op_byte_info info =
 		_mips32_op_lookup(*lhs & n_mask((u64)rhs - (u64)lhs));
 
 	// Skip to first register
 	switch(info.type){
 	case R:
-		load_bits(*buf, info.opcode, MIPS32_SHAMT_SHIFT);
-		*rule = &info.ir_rule;
+		*buf |= (info.opcode << MIPS32_SHAMT_SHIFT);
 		*buf |= mips32_eval_type_r(instr_ptr);
 		break;
 	case I:
@@ -103,7 +99,6 @@ _inline_force static void _mips32_eval(
 		return;
 	}
 
-	//__INL_PERF_END
 	//printf("Time in ns: %lf\n", (__INL_PERF_SUM / 4.2));
 	/*printf("Time in ns: %lf\n", ((l2 - l1) / 4.2) - 4);
 	printf("Mnemonic: %s\n", (char*)&info.mnem_u64);
@@ -111,3 +106,5 @@ _inline_force static void _mips32_eval(
 	printf("Encoded: %u\n", *buf);
 	printf("%s\n", (char*)lhs);*/
 }
+
+#endif // !defined(MTE_MIPS32_ASM_INT)

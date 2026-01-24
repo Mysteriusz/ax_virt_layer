@@ -4,7 +4,9 @@
 
 #include <ax_memory.h>
 
-#include "mips32_op_table.h"
+#include "mte/asm/decode_u64.h"
+
+#include "mips32_op.h"
 
 /*#define TOTAL_KEYWORDS 142
 #define MIN_HASH_VALUE 3
@@ -65,15 +67,15 @@ _inline_force static u32 _op_hash(
 	return hval;
 }
 
-_inline_force static const struct mips32_op_info _mips32_op_lookup(
+_inline_force static const struct mips32_op_byte_info _mips32_op_lookup(
 	_in u64 mnem // Mnemonic 
 ){
 	register u32 key = _op_hash(mnem) + 1;
-	if (key <= 621){
-		if (mnem == _mips32_op_table[key].mnem_u64){
-			return _mips32_op_table[key];
+	if (key < 622){
+		if (mnem == _mips32_op_byte_table[key].mnem_u64){
+			return _mips32_op_byte_table[key];
 		}
 	}
-	return (struct mips32_op_info){0};
+	return (struct mips32_op_byte_info){0};
 }
 

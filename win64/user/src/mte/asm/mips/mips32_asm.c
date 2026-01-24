@@ -1,12 +1,10 @@
 #include <ax_memory.h>
-#include "mte/asm/bits.h"
 
 #include "mips32_asm.h"
 
 axres mips32_byte_to_raw(
-	_in register mte_byte_instr		*instr,
-	_out const ir_rule			**rule,
-	_out register mte_raw_instr		*buf
+	_in mte_byte_instr		*instr,
+	_out mte_raw_instr		*buf
 ){
 	if (instr == nullptr){
 		return AX_INV_ARG;
@@ -14,9 +12,12 @@ axres mips32_byte_to_raw(
 	if (buf == nullptr){
 		return AX_INV_BUF;
 	}
+	mips32_mte_raw_instr *raw = &buf->mips32;
+	_mm_prefetch(instr, _MM_HINT_T0);
+	_mm_prefetch(raw, _MM_HINT_T0);
 
-	_mips32_eval(instr, rule, &buf->mips32);
-	if (mips32_opcode(buf->mips32) == MIPS32_OPCODE_INVALID){
+	_mips32_eval(instr, raw);
+	if (_mips32_opcode(buf->mips32) == MIPS32_OPCODE_INVALID){
 		return AX_MTE_INV_INSTR;
 	}
 	buf->arch = instr->arch;
@@ -25,18 +26,17 @@ axres mips32_byte_to_raw(
 }
 
 mips32_mte_raw_instr mips32_eval_type_r(
-	_in register mte_u64_instr *const instr 
+	_in mte_u64_instr *const instr 
 ){
 	asrt(instr != nullptr);
 
-	register mips32_mte_raw_instr buf = 0;
+	mips32_mte_raw_instr buf = 0;
 
 	/*
 	 	1st register (rd)
 	*/
 
-	register u64 *lhs = nullptr;
-	register u64 *rhs = nullptr;
+	u64 *lhs = nullptr, *rhs = nullptr;
 
 	_u64_byte_skip(0x20, instr); // Skip to left side of the register
 	lhs = instr->ptr;
@@ -44,13 +44,9 @@ mips32_mte_raw_instr mips32_eval_type_r(
 	_u64_byte_search(0x2c, instr); // Skip to the right side of the register
 	rhs = instr->ptr;
 
-	load_bits(
-		buf,
-		// Lookup only the non spaced range
-		_mips32_reg_lookup(
-			*lhs & n_mask(_u64_real_dist(lhs, rhs))
-		).val,
-		MIPS32_RD_SHIFT);
+	// Load RD register bits to buffer
+	buf |= (_mips32_reg_lookup(*lhs & n_mask(_u64_real_dist(lhs, rhs))).val)
+		<< MIPS32_RD_SHIFT;
 
 	_u64_move(1, instr);
 
@@ -64,13 +60,9 @@ mips32_mte_raw_instr mips32_eval_type_r(
 	_u64_byte_search(0x2c, instr); // Skip to the right side of the register
 	rhs = instr->ptr;
 
-	load_bits(
-		buf,
-		// Lookup only the non spaced range
-		_mips32_reg_lookup(
-			*lhs & n_mask(_u64_real_dist(lhs, rhs))
-		).val,
-		MIPS32_RS_SHIFT);
+	// Load RS register bits to buffer
+	buf |= (_mips32_reg_lookup(*lhs & n_mask(_u64_real_dist(lhs, rhs))).val)
+		<< MIPS32_RS_SHIFT;
 
 	/*
 	 	3rd register (rt)
@@ -81,16 +73,9 @@ mips32_mte_raw_instr mips32_eval_type_r(
 	_u64_byte_skip(0x20, instr); // Skip to left side of the register
 	lhs = instr->ptr;
 
-	_u64_byte_search(0x00, instr);
-	rhs = instr->ptr;
-
-	load_bits(
-		buf,
-		// Lookup only the non spaced range
-		_mips32_reg_lookup(
-			*lhs & n_mask(_u64_real_dist(lhs, rhs))
-		).val,
-		MIPS32_RT_SHIFT);
+	// Load RT register bits to buffer
+	buf |= (_mips32_reg_lookup(*lhs & n_mask(_u64_real_dist(lhs, rhs))).val)
+		<< MIPS32_RT_SHIFT;
 
 	return buf;
 }

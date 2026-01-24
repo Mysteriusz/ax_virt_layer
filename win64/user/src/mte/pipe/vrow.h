@@ -62,8 +62,12 @@ typedef struct _vrow_payload{ _align(16)
 #define vrow_lock_switch(s_ptr, bi) \
 	(atomic_fetch_xor_explicit(s_ptr, (0b10 << (bi << 1)), memory_order_release))
 
-axres init_vrow(
+axres vrow_create(
 	_out vrow_desc		**buf
+);
+
+void vrow_delete(
+	_in vrow_desc		*vrow
 );
 
 /*

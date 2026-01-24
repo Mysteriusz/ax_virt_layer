@@ -1,16 +1,23 @@
 #if !defined(MTE_MIPS32_REG_TABLE_INT)
 #define MTE_MIPS32_REG_TABLE_INT
 
-#include "mte/asm/mips/mips32.h"
-#include "mte/asm/mips/mips32_ir.h"
+#include "mips/mips32_instr.h"
+
+/*
+	MIPS32-specific lookup tables provided by GNU gpref
+*/
+
+struct mips32_reg_byte_info{
+	const u64		name_u64;
+	const enum mips32_reg 	val;
+};
 
 _unused
-_align(32)
-static const struct mips32_reg_info _mips32_reg_table[] = {
+static const struct mips32_reg_byte_info _mips32_reg_byte_table[] = {
 	{0}, {0},
 	{ .name_u64=0/*$2*/},
 	{ .name_u64=0/*$28*/},
-	{ .name_u64 = 0x3824/*$8*/, 	.val = R8, 	.ir_rule = {0} },
+	{ .name_u64 = 0x3824/*$8*/, 	.val = R8 },
 	{ .name_u64=0/*$25*/},
 	{0},
 	{ .name_u64=0/*$1*/},
@@ -36,7 +43,7 @@ static const struct mips32_reg_info _mips32_reg_table[] = {
 	{0},
 	{ .name_u64=0/*$14*/},
 	{0}, {0},
-	{ .name_u64 = 0x303124/*$10*/,	.val = R10, 	.ir_rule = {0} },
+	{ .name_u64 = 0x303124/*$10*/,	.val = R10 },
 	{0},
 	{ .name_u64=0/*$s4*/},
 	{0}, {0},
@@ -44,7 +51,7 @@ static const struct mips32_reg_info _mips32_reg_table[] = {
 	{0},
 	{ .name_u64=0/*$t4*/},
 	{0}, {0},
-	{ .name_u64=0x307424/*$t0*/, 	.val = R8, 	.ir_rule = {0} },
+	{ .name_u64=0x307424/*$t0*/, 	.val = R8 },
 	{0},
 	{ .name_u64=0/*$27*/},
 	{0}, {0},
@@ -61,7 +68,7 @@ static const struct mips32_reg_info _mips32_reg_table[] = {
 	{0},
 	{ .name_u64=0/*$t7*/},
 	{0}, {0},
-	{ .name_u64 = 0x313124/*$11*/, 	.val = R11, 	.ir_rule = {0} },
+	{ .name_u64 = 0x313124/*$11*/, 	.val = R11 },
 	{0},
 	{ .name_u64=0/*$29*/},
 	{0}, {0},
@@ -69,7 +76,7 @@ static const struct mips32_reg_info _mips32_reg_table[] = {
 	{0},
 	{ .name_u64=0/*$19*/},
 	{0}, {0},
-	{ .name_u64 = 0x317424/*$t1*/, 	.val = R9, 	.ir_rule = {0} },
+	{ .name_u64 = 0x317424/*$t1*/, 	.val = R9 },
 	{0},
 	{ .name_u64=0/*$zero*/},
 	{0}, {0},
@@ -90,7 +97,7 @@ static const struct mips32_reg_info _mips32_reg_table[] = {
 	{0}, {0}, {0}, {0},
 	{ .name_u64=0/*$s3*/},
 	{0}, {0}, {0}, {0},
-	{ .name_u64 = 0x337424/*$t3*/, 	.val = R11, 	.ir_rule = {0} },
+	{ .name_u64 = 0x337424/*$t3*/, 	.val = R11 },
 	{0}, {0}, {0},
 	{ .name_u64=0/*$5*/},
 	{ .name_u64=0/*$22*/},
@@ -99,9 +106,9 @@ static const struct mips32_reg_info _mips32_reg_table[] = {
 	{0}, {0}, {0}, {0},
 	{ .name_u64=0/*$s2*/},
 	{0}, {0}, {0}, {0},
-	{ .name_u64 = 0x327424/*$t2*/, 	.val = R10, 	.ir_rule = {0} },
+	{ .name_u64 = 0x327424/*$t2*/, 	.val = R10 },
 	{0}, {0}, {0},
-	{ .name_u64 = 0x3924/*$9*/,	.val = R9, 	.ir_rule = {0} },
+	{ .name_u64 = 0x3924/*$9*/,	.val = R9 },
 	{ .name_u64=0/*$26*/},
 	{0}, {0}, {0}, {0},
 	{ .name_u64=0/*$16*/},
@@ -130,6 +137,15 @@ static const struct mips32_reg_info _mips32_reg_table[] = {
 	{0}, {0}, {0}, {0}, {0}, {0}, {0}, {0}, {0},
 	{0},
 	{ .name_u64=0/*$a2*/}
+};
+
+static void _mips32_prefetch_reg_byte_table(
+	void
+){
+	for (u8 i = 0; i < (sizeof(_mips32_reg_byte_table) / 64); i++){
+		// Given size of the table prefetch to L2 to preserve L1 tables
+		_mm_prefetch(offp(_mips32_reg_byte_table, (i << 6)), _MM_HINT_T1);
+	}
 };
 
 #endif // !defined(MTE_MIPS32_REG_TABLE_INT)

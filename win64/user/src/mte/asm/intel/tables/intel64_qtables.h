@@ -1,5 +1,5 @@
 /*
- 	Quick tables interface for x86_64 architecture interfaces
+ 	Quick tables interface for intel64 architecture interfaces
 */
 
 #if !defined(MTE_INTEL64_QTABLES_INT)
@@ -48,7 +48,9 @@ extern bool LEG_PREF_EXT_LOOKUP[0xff];
  	-----------------------------------IMPORTANT!-----------------------------------
 		Load tables with their data before instruction decoding.
 */
-void intel64_load_qtables();
+void intel64_load_qtables(
+	void
+);
 
 #endif // !defined(MTE_INTEL64_QTABLES_INT)
 

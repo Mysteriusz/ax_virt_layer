@@ -23,7 +23,9 @@ bool LEG_PREF_EXT_LOOKUP[0xff] = {[0 ... 0xfe] = 0};
  	Quick table loaders
 */
 
-void intel64_load_qtables(){
+void intel64_load_qtables(
+	void
+){
 	L2I_MASK_LOOKUP[0b111] = (u64*)immd_tables->l2_0f_mask; // 0fH & 7H = 111B
 	L2I_MASK_LOOKUP[0b110] = (u64*)immd_tables->l2_66_mask; // 66H & 7H = 110B
 	L2I_MASK_LOOKUP[0b001] = (u64*)immd_tables->l2_0f_mask; // f3H & 7H = 001B
