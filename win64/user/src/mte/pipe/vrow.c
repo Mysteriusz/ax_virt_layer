@@ -28,10 +28,10 @@ axres vrow_create(
 void vrow_delete(
 	_in vrow_desc		*vrow
 ){
-	vrow_close(&vrow->states);
+	vrow_close(vrow);
 
-	u8 exp = VROW_STATE_EMPTY;
-	while (atomic_compare_exchange_weak(&vrow->states, &exp, VROW_STATE_EMPTY)){
+	while (atomic_load(&vrow->states) != VROW_STATE_EMPTY
+	&& atomic_load(&vrow->close) != VROW_CLOSE_EMPTY){
 		_mm_pause();
 	}
 
@@ -48,31 +48,7 @@ volatile bool vrow_load(
 		return false;
 	}
 	
-	/*
-	 	Safely calculate index of the load
-	*/
-	u8 state = 0;
-	u8 i = 0;
-	while(1){
-		// Load state for masking
-		state = atomic_load_explicit(&vrow->states, memory_order_acquire);
-		// If state has no empty banks
-		if ((state & 0b01010101) == 0b01010101){
-			_mm_pause();
-			continue;
-		}
-
-		// Calculate index
-		i = __builtin_ctzl(~(state & 0b01010101) & 0b01010101) >> 1;
-
-		// Validate if states have not changed between now and load
-		if (atomic_compare_exchange_weak(
-			&vrow->states, &state,
-			state ^ (0b01 << (i << 1)))
-		){
-			break;
-		}
-	};
+	u8 i = vrow_alloc_thread(vrow);
 
 	u8 bank_off = VROW_BANK_SIZE * i;
 	// 64 bytes payload to bank copy
@@ -93,12 +69,12 @@ volatile bool vrow_bank_load(
 	}
 
 	u8 i = bank_i & 0x3;
-	while(vrow_is_filled(&vrow->states, i)){
+	while(vrow_is_filled(vrow, i)){
 		_mm_pause();
 	}
 
 	// Set the bank state to filled
-	vrow_fill_switch(&vrow->states, i);
+	vrow_fill_switch(vrow, i);
 
 	volatile u8 bank_off = VROW_BANK_SIZE * i;
 	// 64 bytes payload to bank copy
@@ -119,12 +95,12 @@ volatile bool vrow_bank_unload(
 	}
 
 	u8 i = bank_i & 0x3;
-	if(!vrow_is_filled(&vrow->states, i)){
+	if(!vrow_is_filled(vrow, i)){
 		return false;
 	}
 
 	// Switch bank state to not-filled
-	vrow_fill_switch(&vrow->states, i);
+	vrow_fill_switch(vrow, i);
 	
 	u8 bank_off = VROW_BANK_SIZE * i;
 	// cleanup 64 bytes from bank

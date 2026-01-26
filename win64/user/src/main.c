@@ -143,7 +143,7 @@ int main(){
 	mte_raw_instr instr = {0};
 	volatile axres r = mips32_byte_to_raw(
 		&(mte_byte_instr){
-			.syn = INTEL,
+			.syn = SYN_INTEL,
 			.arch = MIPS32,
 			.val = instr_str,
 		},
@@ -161,9 +161,6 @@ int main(){
 	//__INL_PERF_INIT
 	//__INL_PERF_START
 
-	volatile bool lock = vrow_bank_load(vrow, 0, *(vrow_payload*)b0_p);
-	lock = vrow_bank_load(vrow, 0, *(vrow_payload*)b0_p);
-
 	//__INL_PERF_END
 	//__INL_PERF_LOG
 
@@ -175,6 +172,11 @@ int main(){
 
 	//io_i64(lock);
 	//io_i64(_MEM_ACTIVE);
+
+	//io_i64(atomic_load(&vrow->close));
+
+	//vrow_alloc_action(vrow);
+	__asm__ __volatile__("mfence");
 
 	u32 i = 0;
 	while(++i < 1000) {

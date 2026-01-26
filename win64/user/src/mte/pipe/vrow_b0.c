@@ -20,15 +20,15 @@ void *vrow_b0_entry(
 	volatile struct ir_context_desc *const ir_desc
 		= (struct ir_context_desc*)ir->rule.data;
 
-	_Atomic u8 *states = &stack->vrow->states;
-	while(!vrow_is_locked(states, stack->bank)){
+	vrow_desc *vrow = stack->vrow;
+	while(!vrow_is_locked(vrow, stack->bank)){
  		// Vrow is being deleted
-		if (vrow_is_closed(states)){
-			vrow_lock_switch(states, 0);
-			vrow_fill_switch(states, 0);
+		if (vrow_is_closed(vrow)){
+			vrow_lock_switch(vrow, 0);
+			vrow_fill_switch(vrow, 0);
 			return nullptr;
 		}
-		if (!vrow_is_filled(states, stack->bank)){
+		if (!vrow_is_filled(vrow, stack->bank)){
 			_mm_pause();
 			continue;
 		}
@@ -64,7 +64,7 @@ void vrow_b0_exec(
 	__INL_PERF_END
 	__INL_PERF_LOG
 
-	vrow_fill_switch(&vrow->states, 0);
+	vrow_fill_switch(vrow, 0);
 	return;
 }
 

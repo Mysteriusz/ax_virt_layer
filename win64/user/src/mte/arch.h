@@ -8,8 +8,8 @@ enum mte_arch : u32{
 };
 enum mte_syn : u32{
 	MTE_SYN_MIN,
-	INTEL = 1,
-	ATNT = 2,
+	SYN_INTEL = 1,
+	SYN_ATNT = 2,
 	MTE_SYN_MAX
 };
 
