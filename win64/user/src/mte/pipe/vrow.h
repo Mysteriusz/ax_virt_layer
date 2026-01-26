@@ -44,7 +44,8 @@ typedef struct _vrow_desc{ _align(8)
 	[3 * 16 byte data block]
 */
 typedef struct _vrow_payload{ _align(16)
-	u8	control[0x10]; // 16 bytes control block
+	u8	vrow_level; // 1 byte vrow level + 15 bytes control block
+	u8	control[0xf];
 	u8	data[0x30]; // 48 bytes payload
 } vrow_payload;
 
@@ -79,7 +80,7 @@ typedef struct _vrow_payload{ _align(16)
 
 // Switch action bit at index (bi) (1-8)
 #define vrow_action_switch(vrow_ptr, bi) \
-	(atomic_fetch_xor_explicit(&(vrow_ptr)->states, (1 << bi), memory_order_release))
+	(atomic_fetch_xor_explicit(&(vrow_ptr)->close, (1 << bi), memory_order_release))
 
 // Check [C] bit of close was issued
 #define vrow_is_closed(vrow_ptr) \
@@ -177,12 +178,21 @@ volatile bool vrow_load(
 );
 
 /*
- 	Blocking payload copy to indexed bank
+ 	Non-blocking payload copy to indexed bank
 */
 volatile bool vrow_bank_load(
 	_in vrow_desc		*vrow,
 	_in u8			bank_i,
 	_in vrow_payload	payload
+);
+
+/*
+ 	Non-blocking payload move between banks
+*/
+volatile bool vrow_bank_move(
+	_in vrow_desc		*vrow,
+	_in u8			from, // From bank index
+	_in u8			to // To bank index
 );
 
 /*

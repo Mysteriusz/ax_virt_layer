@@ -8,8 +8,8 @@ axres vrow_thread_start(
 	}
 
 	// Unlock if thread if locked
-	if (vrow_is_locked(thread->vrow, thread->bank)){
-		vrow_lock_switch(thread->vrow, thread->bank);
+	if (vrow_is_locked(thread->func_stack.sched->vrow, thread->func_stack.bank)){
+		vrow_lock_switch(thread->func_stack.sched->vrow, thread->func_stack.bank);
 	}
 
 	int code = 0;
@@ -43,8 +43,8 @@ void vrow_thread_stop(
 	}
 
 	// Lock if thread if unlocked
-	if (!vrow_is_locked(thread->vrow, thread->bank)){
-		vrow_lock_switch(thread->vrow, thread->bank);
+	if (!vrow_is_locked(thread->func_stack.sched->vrow, thread->func_stack.bank)){
+		vrow_lock_switch(thread->func_stack.sched->vrow, thread->func_stack.bank);
 	}
 }
 

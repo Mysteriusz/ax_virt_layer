@@ -98,10 +98,11 @@ _inline_avert void foo(
 #include "mte/pipe/vrow.h"
 #include "mte/pipe/vrow_b0.h"
 #include "mte/pipe/vrow_thread.h"
+#include "mte/pipe/scheduler.h"
 
 int main(){
 	SetPriorityClass(GetCurrentProcess(), REALTIME_PRIORITY_CLASS);
-	//SetProcessAffinityMask(GetCurrentProcess(), 1);
+	//SetProcessAffinityMask(GetCurrentProcess(), 3);
 
 	_intel64_prefetch_immd();
 	_intel64_prefetch_modrm();
@@ -136,9 +137,6 @@ int main(){
 	);
 	axcheck(res, ax_log(res));
 
-	/*
-		Create IR context
-	*/
 	mte_u64_instr instr_str =  _str_to_u64("add $t0, $t1, $t2", strlen("add $t0, $t1, $t2"));
 	mte_raw_instr instr = {0};
 	volatile axres r = mips32_byte_to_raw(
@@ -154,9 +152,24 @@ int main(){
 		Load to bank 0
 	*/
 
-	vrow_bank_thread b0 = init_vrow_bank_thread(vrow, 0, vrow_b0_entry);
+	sched_context *sched = nullptr;
+	sched_create(ir, vrow, &sched);
+
+	vrow_bank_thread b0 = init_vrow_bank_thread(sched, 0, vrow_b0_main);
 	vrow_thread_start(&b0);
 	struct vrow_b0_payload *b0_p = &init_vrow_b0_payload(ir, instr);
+
+	/*vrow_bank_thread b1 = init_vrow_bank_thread(vrow, 0, vrow_b0_entry);
+	vrow_thread_start(&b1);
+	struct vrow_b0_payload *b1_p = &init_vrow_b0_payload(ir, instr);
+
+	vrow_bank_thread b2 = init_vrow_bank_thread(vrow, 0, vrow_b0_entry);
+	vrow_thread_start(&b2);
+	struct vrow_b0_payload *b2_p = &init_vrow_b0_payload(ir, instr);
+
+	vrow_bank_thread b3 = init_vrow_bank_thread(vrow, 0, vrow_b0_entry);
+	vrow_thread_start(&b3);
+	struct vrow_b0_payload *b3_p = &init_vrow_b0_payload(ir, instr);*/
 
 	//__INL_PERF_INIT
 	//__INL_PERF_START
@@ -175,16 +188,23 @@ int main(){
 
 	//io_i64(atomic_load(&vrow->close));
 
+
 	//vrow_alloc_action(vrow);
 	__asm__ __volatile__("mfence");
+	__INL_PERF_INIT
+	__INL_PERF_START
 
 	u32 i = 0;
-	while(++i < 1000) {
+	while(i++ < 10) {
 		_mm_pause();
 		vrow_bank_load(vrow, 0, *(vrow_payload*)b0_p);
-	};
+	}
 	vrow_delete(vrow);
 	ir_delete(ir);
+
+	__INL_PERF_END
+	__INL_PERF_LOG
+	__INL_PERF_LOG_MS
 
 	/*
 		Initialize bank 0 handling thread

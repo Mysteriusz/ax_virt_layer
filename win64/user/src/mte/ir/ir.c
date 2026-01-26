@@ -53,8 +53,8 @@ _inline_avert axres ir_create(
 			.ir_to_tar = arch_ir_to_tar(tar_arch),
 		},
 	};
-	struct ir_context_desc *desc
-		= axmalloc(sizeof(struct ir_context_desc));
+	struct ir_context_desc *desc =
+		axmalloc(sizeof(struct ir_context_desc));
 	memcpy(desc, &temp_desc, sizeof(struct ir_context_desc));
 
 	// Create temporary IR context
@@ -64,8 +64,8 @@ _inline_avert axres ir_create(
 		.blocked = false,
 		.version = version,
 	};
-	ir_context *ir
-		= axmalloc(sizeof(ir_context));
+	ir_context *ir =
+		axmalloc(sizeof(ir_context));
 	memcpy(ir, &temp_ir, sizeof(ir_context));
 
 	*buf = ir;

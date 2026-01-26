@@ -28,16 +28,20 @@ axres vrow_create(
 void vrow_delete(
 	_in vrow_desc		*vrow
 ){
+	if (vrow == nullptr){
+		return;
+	}
+
 	vrow_close(vrow);
 
 	while (atomic_load(&vrow->states) != VROW_STATE_EMPTY
-	&& atomic_load(&vrow->close) != VROW_CLOSE_EMPTY){
+	|| atomic_load(&vrow->close) != VROW_CLOSE_EMPTY){
+		io_i64(atomic_load(&vrow->states));
+		io_i64(atomic_load(&vrow->close));
 		_mm_pause();
 	}
 
-	if (vrow != nullptr){
-		axfree(vrow);
-	}
+	axfree(vrow);
 }
 
 volatile bool vrow_load(
@@ -69,7 +73,7 @@ volatile bool vrow_bank_load(
 	}
 
 	u8 i = bank_i & 0x3;
-	while(vrow_is_filled(vrow, i)){
+	while (vrow_is_filled(vrow, i)){
 		_mm_pause();
 	}
 
@@ -82,6 +86,31 @@ volatile bool vrow_bank_load(
 
 	// Refresh new base with cache
 	_mm_prefetch(vrow->base + (64 * i), _MM_HINT_T0);
+
+	return true;
+}
+
+volatile bool vrow_bank_move(
+	_in vrow_desc		*vrow,
+	_in u8			from, // From bank index
+	_in u8			to // To bank index
+){
+	if (vrow == nullptr){
+		return false;
+	}
+
+	if (vrow_is_filled(vrow, to)){
+		return false;
+	}
+
+	vrow_fill_switch(vrow, to);
+
+	// Copy from one bank to another
+	u8 *from_off = offp(vrow->base, VROW_BANK_SIZE * from);
+	u8 *to_off = offp(vrow->base, VROW_BANK_SIZE * to);
+	simd_imax_store_512(from_off, to_off);
+
+	vrow_fill_switch(vrow, from);
 
 	return true;
 }

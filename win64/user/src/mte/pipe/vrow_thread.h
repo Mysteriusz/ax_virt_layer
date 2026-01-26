@@ -5,24 +5,21 @@
 #include <stdatomic.h>
 
 #include "vrow.h"
+#include "scheduler.h"
 
 struct vrow_bank_thread_stack{
-	vrow_desc 	*vrow;
+	sched_context 	*sched;
 	u8		bank;
 };
 typedef struct _vrow_bank_thread{
 	void 				*(*func)(struct vrow_bank_thread_stack*);
 	struct vrow_bank_thread_stack 	func_stack;
-	vrow_desc			*vrow;
-	u8				bank;
 	pthread_t 			pthread;
 } vrow_bank_thread;
-#define init_vrow_bank_thread(v_p, b, f_p) \
+#define init_vrow_bank_thread(s_p, b, f_p) \
 	((vrow_bank_thread){ \
 		.func = (f_p), \
-		.func_stack = {.vrow = (v_p), .bank = (b)}, \
-		.vrow = (v_p), \
-		.bank = (b), \
+		.func_stack = {.bank = (b), .sched = (s_p)}, \
 	})
 
 /*
@@ -35,7 +32,6 @@ axres vrow_thread_start(
 
 /*
 	Lock vrow_bank_thread`s vrow bank to locked.
-	lock & 
 */
 void vrow_thread_stop(
 	_in vrow_bank_thread	*thread
