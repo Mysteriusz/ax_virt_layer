@@ -4,19 +4,19 @@
 #include "scheduler.h"
 
 void *vrow_b0_main(
-	struct vrow_bank_thread_stack		*stack
+	//struct vrow_bank_thread_stack		*stack
 ){
-	if (stack == nullptr){
+	/*if (stack == nullptr){
 		return nullptr;
-	}
+	}*/
 
-	vrow_desc *vrow = stack->sched->vrow;
-	_mm_prefetch(vrow, _MM_HINT_T0);
+	//vrow_desc *vrow = stack->sched->vrow;
+	//_mm_prefetch(vrow, _MM_HINT_T0);
 
 	/*
 	 	Lock and wait for payload or vrow closure
 	*/
-	while(!vrow_is_filled(vrow, stack->bank)){
+	/*while(!vrow_is_filled(vrow, stack->bank)){
 		_mm_pause();
 		if (vrow_is_locked(vrow, stack->bank) 
 			|| vrow_is_closed(vrow)){
@@ -58,7 +58,7 @@ exit:
 			vrow_fill_switch(vrow, stack->bank);
 		}
 		vrow_lock_switch(vrow, stack->bank);
-	}
+	}*/
 
 	return nullptr;
 }
@@ -80,8 +80,5 @@ void vrow_b0_exec(
 	if (res.opcode == IR_INVALID_OPCODE){
 		return;
 	}
-
-	// Move to next bank or to queue
-	sched_to_next(sched, 0);
 }
 

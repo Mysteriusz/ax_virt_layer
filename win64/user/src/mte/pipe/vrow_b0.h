@@ -5,7 +5,7 @@
 #include "mte/ir/ir.h"
 
 #include "vrow.h"
-#include "vrow_thread.h"
+//#include "vrow_thread.h"
 #include "scheduler.h"
 
 struct vrow_b0_payload{ _align(16)
@@ -29,7 +29,7 @@ struct vrow_b0_payload{ _align(16)
 })
 
 void *vrow_b0_main(
-	struct vrow_bank_thread_stack		*stack
+	//struct vrow_bank_thread_stack		*stack
 );
 
 /*

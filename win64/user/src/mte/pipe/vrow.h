@@ -1,3 +1,15 @@
+/*	
+	|==============[MTE_SYNC_MAP_INT]==============|
+	To initialize:
+	1) call [vrow_link_sync] for [struct _vrow_desc]
+
+	Bit set when:
+	1) Payload processing starts
+
+	Bit unset when:
+	1) Payload processing ends
+*/
+
 #if !defined(MTE_VROW_INT)
 #define MTE_VROW_INT
 
@@ -6,6 +18,21 @@
 #include <ax_type.h>
 #include <ax_memory.h>
 #include <ax_error.h>
+#include <pthread.h>
+
+#include "sync_map.h"
+
+/*
+ 	Vrow processing thread.
+	Signals the [vrow->smap] bitmap.
+*/
+typedef struct _vrow_thread{
+	struct _vrow_thread_stack {
+		struct _vrow_desc 	*vrow;
+		u8 			curr_bank;
+	} stack;
+	pthread_t 		pthread;
+} vrow_thread;
 
 /*
  	Any code using vrow should atomically (vrow_is_closed)
@@ -14,26 +41,39 @@
 typedef struct _vrow_desc{ _align(8)
 	u8			base[0x100];
 	/*
+		Signaling bitmap (described at the beggining)
+	*/
+	sync_map_desc		smap;
+	/*
+		Processing thread for the vrow.
+	*/
+	struct _vrow_thread	thread;
+	/*
 	 	Bank thread states.
 
 		(LFLFLFLF)
 	 	2 status bits per bank (4 banks):
 			LF -> is_locked | is_filled
 
-		L -> Processing thread not available
-		F -> Payload present in bank
+		L -> Processing enabled in this bank
+		F -> Payload present in this bank
 	*/
 	 _Atomic u8	 	states;
 	/*
-	 	On-Close usage states.
-
-		(AAAAAAAC)
-
-		A -> Empty action bit (1 if used) ('allocate' using vrow_alloc_action(vrow))
-		C -> Close requested
+	 	Close request holder.
+		On any close vrow thread will exit and set states to empty asap.
 	*/
-	 _Atomic u8		close;
+	 _Atomic bool 		closed;
 } vrow_desc;
+
+axres vrow_thread_init(
+	_in vrow_desc		*vrow,
+	_in_out vrow_thread	*th
+);
+
+void *vrow_thread_main(
+	struct _vrow_thread_stack *stack
+);
 
 /*
  	MEMORY LAYOUT:
@@ -51,43 +91,25 @@ typedef struct _vrow_payload{ _align(16)
 
 #define VROW_BANK_SIZE 0x40
 #define VROW_STATE_EMPTY 0b10101010
-#define VROW_CLOSE_EMPTY 0b00000001
-
-/*
- 	Find first non-filled bank and return it as a mask
-
-	Example:
-	For state mask of: 0b01010001
-	Output would be: 0b00000100 (non-filled bank would be set to 0b01)
-
-*/
-#define vrow_is_any(s_ptr) \
-	(~(atomic_load_explicit(s_ptr, memory_order_acquire) & 0b01010101))
 
 // Check if bank index (bi) is marked as filled [F]
-#define vrow_is_filled(vrow_ptr, bi) \
-	(atomic_load_explicit(&(vrow_ptr)->states, memory_order_acquire) & (0b01 << (bi << 1)))
+#define vrow_is_filled(v_p, bi) \
+	(atomic_load_explicit(&(v_p)->states, memory_order_acquire) & (0b01 << (bi << 1)))
 // Switch bank index (bi) filled [F] state
-#define vrow_fill_switch(vrow_ptr, bi) \
-	(atomic_fetch_xor_explicit(&(vrow_ptr)->states, (0b01 << (bi << 1)), memory_order_release))
+#define vrow_fill_switch(v_p, bi) \
+	(atomic_fetch_xor_explicit(&(v_p)->states, (0b01 << (bi << 1)), memory_order_release))
 
 // Check if bank index (bi) is marked as locked [L]
-#define vrow_is_locked(vrow_ptr, bi) \
-	(atomic_load_explicit(&(vrow_ptr)->states, memory_order_acquire) & (0b10 << (bi << 1)))
+#define vrow_is_locked(v_p, bi) \
+	(atomic_load_explicit(&(v_p)->states, memory_order_acquire) & (0b10 << (bi << 1)))
 // Switch bank index (bi) locked [L] state
-#define vrow_lock_switch(vrow_ptr, bi) \
-	(atomic_fetch_xor_explicit(&(vrow_ptr)->states, (0b10 << (bi << 1)), memory_order_release))
+#define vrow_lock_switch(v_p, bi) \
+	(atomic_fetch_xor_explicit(&(v_p)->states, (0b10 << (bi << 1)), memory_order_release))
 
-// Switch action bit at index (bi) (1-8)
-#define vrow_action_switch(vrow_ptr, bi) \
-	(atomic_fetch_xor_explicit(&(vrow_ptr)->close, (1 << bi), memory_order_release))
-
-// Check [C] bit of close was issued
-#define vrow_is_closed(vrow_ptr) \
-	(atomic_load_explicit(&(vrow_ptr)->close, memory_order_acquire) & 1)
-// Switch [C] bit of the close
-#define vrow_close(vrow_ptr) \
-	(atomic_fetch_or_explicit(&(vrow_ptr)->close, 1, memory_order_release))
+#define vrow_is_closed(v_p) \
+	(atomic_load_explicit(&(v_p)->closed, memory_order_acquire))
+#define vrow_close(v_p) \
+	(atomic_store_explicit(&(v_p)->closed, true, memory_order_release))
 
 /*
    	Blocking safe thread bit allocation.
@@ -126,42 +148,8 @@ _inline_force u8 vrow_alloc_thread(
 	return i;
 }
 
-/*
- 	Non-blocking safe action bit allocation.
-
-	Return index of the allocation (1-8)
-*/
-_inline_force u8 vrow_alloc_action(
-	_in vrow_desc		*vrow
-){
-	/*
-	 	0xfe -> ~VROW_CLOSE_EMPTY (0b11111110)
-	*/
-	u8 i = 0;
-	u8 close = 0;
-	while(1){
-		// Load close for masking
-		close = atomic_load_explicit(&vrow->close, memory_order_acquire);
-		// No empty action bits or closed
-		if (!(~close & 0xfe) || vrow_is_closed(vrow)){
-			return 0;
-		}
-
-		// Calculate index
-		i = __builtin_ctzl(~(close & 0xfe) & 0xfe);
-
-		// Validate close with the initialy loaded one
-		if (atomic_compare_exchange_weak(
-			&vrow->close, &close,
-			close ^ (1 << i))
-		){
-			break;
-		}
-	}
-	return i;
-}
-
 axres vrow_create(
+	_in_opt sync_map_desc	*smap,
 	_out vrow_desc		**buf
 );
 
@@ -169,38 +157,18 @@ void vrow_delete(
 	_in vrow_desc		*vrow
 );
 
-/*
- 	Blocking payload copy to first available bank
-*/
-volatile bool vrow_load(
-	_in vrow_desc		*vrow,
-	_in vrow_payload	payload
+bool vrow_link_sync(
+	_in vrow_desc 		*vrow,
+	_in sync_map_desc	map
 );
 
 /*
- 	Non-blocking payload copy to indexed bank
+ 	Blocking load to indexed bank.
 */
-volatile bool vrow_bank_load(
+bool vrow_bank_load(
 	_in vrow_desc		*vrow,
 	_in u8			bank_i,
 	_in vrow_payload	payload
-);
-
-/*
- 	Non-blocking payload move between banks
-*/
-volatile bool vrow_bank_move(
-	_in vrow_desc		*vrow,
-	_in u8			from, // From bank index
-	_in u8			to // To bank index
-);
-
-/*
- 	Non-blocking unload of indexed bank
-*/
-volatile bool vrow_bank_unload(
-	_in vrow_desc		*vrow,
-	_in u8			bank_i	
 );
 
 #endif // !defined(MTE_VROW_INT)
