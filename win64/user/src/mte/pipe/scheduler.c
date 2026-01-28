@@ -45,7 +45,10 @@ _inline_avert axres sched_create(
 	};
 	for (u8 i = 0; i < vrow_count; i++){
 		vrow_smap.index = i;
-		vrow_create(&vrow_smap, &vrow_base[i]);
+		vrow_create(
+			ir,
+			&vrow_smap,
+			&vrow_base[i]);
 	}
 
 	*buf = sched;

@@ -1,7 +1,11 @@
+#include "mte/perf.h"
+
 #include "vrow.h"
+#include "vrow_bank.h"
 
 axres vrow_thread_init(
 	_in vrow_desc		*vrow,
+	_in ir_context		*ir,
 	_in_out vrow_thread	*th
 ){
 	if (th == nullptr){
@@ -10,6 +14,7 @@ axres vrow_thread_init(
 
 	th->stack.vrow = vrow;
 	th->stack.curr_bank = 0;
+	th->stack.ir = ir;
 
 	i32 res = 0;
 	pthread_attr_t attr = {0};
@@ -29,7 +34,6 @@ axres vrow_thread_init(
 
 	return AX_SUCC;
 }
-#include "mte/perf.h"
 
 void *vrow_thread_main(
 	struct _vrow_thread_stack *stack
@@ -42,6 +46,9 @@ void *vrow_thread_main(
 
 	u8 i = smap->index / sizeof(u64); // bitmap data offset index
 	u8 bi = smap->index % (sizeof(u64) * 8); // bit index
+
+	// Preload conversion data
+	org_to_ir_call b0_func = ir_rule_to_context(&stack->ir->rule)->call.org_to_ir;
 
 	// Main thread loop
 	while(!vrow_is_closed(vrow)){
@@ -56,6 +63,16 @@ void *vrow_thread_main(
 		// Signal thread business
 		sync_map_sigi(smap->map, i, bi);
 
+		/*
+		 	Pipelined processing
+		*/
+
+		// Process data at bank 0
+		if (!vrow_bank_0_proc(vrow, b0_func)){
+			sync_map_sigi(smap->map, i, bi);
+			break;
+		}
+
 		// Signal thread emptiness
 		sync_map_sigi(smap->map, i, bi);
 
@@ -68,6 +85,7 @@ void *vrow_thread_main(
 }
 
 axres vrow_create(
+	_in ir_context		*ir,
 	_in_opt sync_map_desc	*smap,
 	_out vrow_desc		**buf
 ){
@@ -82,10 +100,10 @@ axres vrow_create(
 	/*
 	 	Prefetch 256 bytes (max base buffer size)
 	*/
-	_mm_prefetch(vrow->base, _MM_HINT_T0);
-	_mm_prefetch(offp(vrow->base, 64), _MM_HINT_T0);
-	_mm_prefetch(offp(vrow->base, 128), _MM_HINT_T0);
-	_mm_prefetch(offp(vrow->base, 192), _MM_HINT_T0);
+	_mm_prefetch(vrow, _MM_HINT_T0);
+	_mm_prefetch(offp(vrow, 64), _MM_HINT_T0);
+	_mm_prefetch(offp(vrow, 128), _MM_HINT_T0);
+	_mm_prefetch(offp(vrow, 192), _MM_HINT_T0);
 
 	atomic_store(&vrow->states, VROW_STATE_EMPTY);
 
@@ -93,7 +111,7 @@ axres vrow_create(
 		vrow_link_sync(vrow, *smap);
 	}
 
-	res = vrow_thread_init(vrow, &vrow->thread);
+	res = vrow_thread_init(vrow, ir, &vrow->thread);
 	axcheck_r(res, res, axfree(vrow)); // TODO: Change the return code.
 
 	*buf = vrow;
@@ -131,10 +149,19 @@ bool vrow_link_sync(
 }
 
 bool vrow_bank_load(
-	_in vrow_desc		*desc,
+	_in vrow_desc		*vrow,
 	_in u8			bank_i,
 	_in vrow_payload	payload
 ){
-	return 0;
+	while(vrow_is_filled(vrow, bank_i)){
+		_mm_pause();
+	}
+
+	u8 *base_off = offp(vrow->base, bank_i * VROW_BANK_SIZE);
+	simd_imax_store_512(base_off, &payload);
+
+	vrow_fill_switch(vrow, bank_i);
+
+	return false;
 }
 

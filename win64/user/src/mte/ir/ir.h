@@ -58,6 +58,10 @@ typedef struct _ir_rule{
 	ir_unk_data 	data;
 } ir_rule;
 
+#define ir_rule_to_context(r_p) ( \
+	(struct ir_context_desc*)((ir_unk_data*)(((ir_rule*)(r_p))->data)) \
+)
+
 typedef struct _ir_context{
 	const u64 		version; // Ex: 0.01\0, 123.45\0
 	_Atomic bool 		blocked;

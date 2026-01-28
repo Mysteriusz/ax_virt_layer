@@ -14,11 +14,13 @@
 #define MTE_VROW_INT
 
 #include <stdatomic.h>
+#include <pthread.h>
 
 #include <ax_type.h>
 #include <ax_memory.h>
 #include <ax_error.h>
-#include <pthread.h>
+
+#include "mte/ir/ir.h"
 
 #include "sync_map.h"
 
@@ -26,8 +28,9 @@
  	Vrow processing thread.
 	Signals the [vrow->smap] bitmap.
 */
-typedef struct _vrow_thread{
+typedef struct _vrow_thread{ _align(64)
 	struct _vrow_thread_stack {
+		ir_context		*ir;
 		struct _vrow_desc 	*vrow;
 		u8 			curr_bank;
 	} stack;
@@ -38,16 +41,16 @@ typedef struct _vrow_thread{
  	Any code using vrow should atomically (vrow_is_closed)
 	check it`s close state before accessing to avoid use after free.
 */
-typedef struct _vrow_desc{ _align(8)
-	u8			base[0x100];
+typedef struct _vrow_desc{
+	u8			base[0x100]; // 4 Cache lines
 	/*
 		Signaling bitmap (described at the beggining)
 	*/
-	sync_map_desc		smap;
+	sync_map_desc		smap; // 1 \Cache line
 	/*
 		Processing thread for the vrow.
 	*/
-	struct _vrow_thread	thread;
+	struct _vrow_thread	thread; // 1 Cache line
 	/*
 	 	Bank thread states.
 
@@ -68,6 +71,7 @@ typedef struct _vrow_desc{ _align(8)
 
 axres vrow_thread_init(
 	_in vrow_desc		*vrow,
+	_in ir_context		*ir,
 	_in_out vrow_thread	*th
 );
 
@@ -149,6 +153,7 @@ _inline_force u8 vrow_alloc_thread(
 }
 
 axres vrow_create(
+	_in ir_context		*ir,
 	_in_opt sync_map_desc	*smap,
 	_out vrow_desc		**buf
 );

@@ -96,7 +96,7 @@ _inline_avert void foo(
 #include <windows.h>
 
 #include "mte/pipe/vrow.h"
-#include "mte/pipe/vrow_b0.h"
+#include "mte/pipe/vrow_bank.h"
 #include "mte/pipe/scheduler.h"
 
 int main(){
@@ -158,9 +158,8 @@ int main(){
 	sched_delete(sched);
 	ir_delete(ir);*/
 
-
-	vrow_fill_switch(sched->vrow_base[0], 0);
-	vrow_fill_switch(sched->vrow_base[1], 0);
+	vrow_payload b0 = *(vrow_payload*)&init_vrow_b0_payload(ir, instr);
+	vrow_bank_load(sched->vrow_base[0], 0, b0);
 
 	while(1){_mm_pause();}
 	//sched_delete(sched);

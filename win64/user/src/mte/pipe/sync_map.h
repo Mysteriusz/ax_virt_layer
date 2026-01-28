@@ -29,7 +29,7 @@ typedef _Atomic(u64)* 		sync_map;
 /*
 	Unspecified thread-safe and lock-free bitmap
 */
-typedef struct _sync_map_desc{
+typedef struct _sync_map_desc{ _align(64)
 	sync_map	map; // Map pointer
 	u32		index; // Index of the owner
 	u32		size; // Size in bytes of the map
