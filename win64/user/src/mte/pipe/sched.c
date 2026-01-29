@@ -1,4 +1,4 @@
-#include "scheduler.h"
+#include "sched.h"
 
 _inline_avert axres sched_create(
 	_in ir_context		*ir,
@@ -14,17 +14,16 @@ _inline_avert axres sched_create(
 		return AX_INV_BUF;
 	}
 
+	axres res = AX_SUCC;
+
 	/*
 		Create [vrow_count] amout of vrows
 	*/
-	vrow_desc **const vrow_base =
-		axmalloc(sizeof(vrow_desc*) * vrow_count);
 
 	// Create temporary IR context
 	sched_context temp_sched = (sched_context){
 		.ir = ir,
-		.vrow_smap = axmalloc(sizeof(u64) * ((vrow_count / 8) + 1)),
-		.vrow_base = vrow_base,
+		.vrow_base = axmalloc(sizeof(vrow_desc*) * vrow_count),
 		.vrow_count = vrow_count,
 		.queue_base = nullptr,
 	};
@@ -39,17 +38,20 @@ _inline_avert axres sched_create(
 	/*
 	 	Load vrow`s with linkage to scheduler
 	*/
-	sync_map_desc vrow_smap = (sync_map_desc){
-		.size = sizeof(u64) * (vrow_count / 8),
-		.map = sched->vrow_smap
-	};
+	sync_map_init(sizeof(u64) * (vrow_count / 8), &sched->vrow_smap);
 	for (u8 i = 0; i < vrow_count; i++){
-		vrow_smap.index = i;
-		vrow_create(
+		sched->vrow_smap.index = i;
+		res = vrow_create(
 			ir,
-			&vrow_smap,
-			&vrow_base[i]);
+			&sched->vrow_smap,
+			&sched->vrow_base[i]);
+
+		axcheck_r(res, res, { // TODO: Change the return code
+			sched->vrow_count = i;
+			sched_delete(sched);
+		});
 	}
+	sched->vrow_smap.index = 0;
 
 	*buf = sched;
 
@@ -63,13 +65,21 @@ _inline_avert void sched_delete(
 		return;
 	}
 
+	if (sched->vrow_base != nullptr){
+		// Cleanup vrow`s
+		for (u8 i = 0; i < sched->vrow_count; i++){
+			vrow_delete(sched->vrow_base[i]);
+		}
+		axfree(sched->vrow_base);
+	}
+
+	// TODO: When queue/pool structure ready change this
 	if (sched->queue_base != nullptr){
 		axfree(sched->queue_base);
 	}
-	for (u8 i = 0; i < sched->vrow_count; i++){
-		vrow_delete(sched->vrow_base[i]);
-	}
-	axfree(sched->vrow_base);
+
+	//sync_map_disp(&sched->vrow_smap);
+	axfree(sched);
 }
 
 void *sched_main(

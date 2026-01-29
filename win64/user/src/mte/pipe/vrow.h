@@ -46,7 +46,7 @@ typedef struct _vrow_desc{
 	/*
 		Signaling bitmap (described at the beggining)
 	*/
-	sync_map_desc		smap; // 1 \Cache line
+	sync_map_desc		smap; // 1 Cache line
 	/*
 		Processing thread for the vrow.
 	*/
@@ -54,11 +54,11 @@ typedef struct _vrow_desc{
 	/*
 	 	Bank thread states.
 
-		(LFLFLFLF)
+		(AFAFAFAF)
 	 	2 status bits per bank (4 banks):
-			LF -> is_locked | is_filled
+			AF -> is_active | is_filled
 
-		L -> Processing enabled in this bank
+		A -> Thread active in this bank
 		F -> Payload present in this bank
 	*/
 	 _Atomic u8	 	states;
@@ -94,7 +94,7 @@ typedef struct _vrow_payload{ _align(16)
 } vrow_payload;
 
 #define VROW_BANK_SIZE 0x40
-#define VROW_STATE_EMPTY 0b10101010
+#define VROW_STATE_EMPTY 0
 
 // Check if bank index (bi) is marked as filled [F]
 #define vrow_is_filled(v_p, bi) \
@@ -103,11 +103,11 @@ typedef struct _vrow_payload{ _align(16)
 #define vrow_fill_switch(v_p, bi) \
 	(atomic_fetch_xor_explicit(&(v_p)->states, (0b01 << (bi << 1)), memory_order_release))
 
-// Check if bank index (bi) is marked as locked [L]
-#define vrow_is_locked(v_p, bi) \
+// Check if bank index (bi) is marked as active [A]
+#define vrow_is_active(v_p, bi) \
 	(atomic_load_explicit(&(v_p)->states, memory_order_acquire) & (0b10 << (bi << 1)))
-// Switch bank index (bi) locked [L] state
-#define vrow_lock_switch(v_p, bi) \
+// Switch bank index (bi) active [A] state
+#define vrow_active_switch(v_p, bi) \
 	(atomic_fetch_xor_explicit(&(v_p)->states, (0b10 << (bi << 1)), memory_order_release))
 
 #define vrow_is_closed(v_p) \
@@ -116,40 +116,24 @@ typedef struct _vrow_payload{ _align(16)
 	(atomic_store_explicit(&(v_p)->closed, true, memory_order_release))
 
 /*
-   	Blocking safe thread bit allocation.
+	Flush entire vrow structure.
 
-	Return index of the allocation (0-3)
+	MAY be dangerous if used on vrow with a thread!
 */
-_inline_force u8 vrow_alloc_thread(
+inline void _vrow_force_flush(
 	_in vrow_desc		*vrow
 ){
-	/*
-	 	0x50 -> ~VROW_STATE_EMPTY (0b01010101)
-	*/
-
-	u8 state = 0;
-	u8 i = 0;
-	while(1){
-		// Load state for masking
-		state = atomic_load_explicit(&vrow->states, memory_order_acquire);
-		// If state has no empty banks
-		if ((state & 0x50) == 0x50 || vrow_is_closed(vrow)){
-			_mm_pause();
-			continue;
-		}
-
-		// Calculate index
-		i = __builtin_ctzl(~(state & 0x50) & 0x50) >> 1;
-
-		// Validate states with the initialy loaded one
-		if (atomic_compare_exchange_weak(
-			&vrow->states, &state,
-			state ^ (0b01 << (i << 1)))
-		){
-			break;
-		}
+	if (vrow == nullptr){
+		return;
 	}
-	return i;
+
+	simd_imax_zero_512(vrow->base);
+	simd_imax_zero_512(offp(vrow->base, 64));
+	simd_imax_zero_512(offp(vrow->base, 128));
+	simd_imax_zero_512(offp(vrow->base, 192));
+
+	// Force all threads and payload states to default.
+	atomic_store_explicit(&vrow->states, VROW_STATE_EMPTY, memory_order_release);
 }
 
 axres vrow_create(
@@ -164,7 +148,7 @@ void vrow_delete(
 
 bool vrow_link_sync(
 	_in vrow_desc 		*vrow,
-	_in sync_map_desc	map
+	_in sync_map_desc	*map
 );
 
 /*

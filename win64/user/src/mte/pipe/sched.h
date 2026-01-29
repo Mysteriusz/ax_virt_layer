@@ -11,7 +11,7 @@
 
 typedef struct _sched_context{
 	const ir_context *const	ir;
-	sync_map		vrow_smap;
+	sync_map_desc		vrow_smap;
 	vrow_desc **const 	vrow_base;
 	u8 			vrow_count;
 	void 			*queue_base;

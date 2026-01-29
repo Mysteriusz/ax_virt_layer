@@ -97,7 +97,8 @@ _inline_avert void foo(
 
 #include "mte/pipe/vrow.h"
 #include "mte/pipe/vrow_bank.h"
-#include "mte/pipe/scheduler.h"
+#include "mte/pipe/sched.h"
+#include "mte/pipe/bitpool.h"
 
 int main(){
 	SetPriorityClass(GetCurrentProcess(), REALTIME_PRIORITY_CLASS);
@@ -145,24 +146,32 @@ int main(){
 	*/
 
 	sched_context *sched = nullptr;
-	sched_create(ir, 2, 0, &sched);
+	res = sched_create(ir, 2, 0, &sched);
+	axcheck(res, ax_log(res));
 
 	__asm__ __volatile__("mfence");
 
-	/*u32 i = 0;
-	while(i++ < 10) {
-		_mm_pause();
-		vrow_bank_load(vrow, 0, *(vrow_payload*)b0_p);
-	}
-	vrow_delete(vrow);
+	bitpool_desc *bitpool = nullptr;
+
+	/*bitpool_create(
+		64,
+		(struct bitpool_desc_perc){
+			.real_perc = 10,
+			.high_perc = 15,
+			.med_perc = 25,
+			.low_perc = 50,
+		},
+		&bitpool);*/
+
+	//vrow_payload b0 = *(vrow_payload*)&init_vrow_b0_payload(ir, instr);
+	//vrow_bank_load(sched->vrow_base[0], 0, b0);
+	//vrow_bank_load(sched->vrow_base[1], 0, b0);
+
+	//while(1){_mm_pause();}
+
 	sched_delete(sched);
-	ir_delete(ir);*/
-
-	vrow_payload b0 = *(vrow_payload*)&init_vrow_b0_payload(ir, instr);
-	vrow_bank_load(sched->vrow_base[0], 0, b0);
-
-	while(1){_mm_pause();}
-	//sched_delete(sched);
+	ir_delete(ir);
+	io_i64(_MEM_ACTIVE);
 
 	/*
 		Initialize bank 0 handling thread
