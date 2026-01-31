@@ -150,27 +150,29 @@ int main(){
 	axcheck(res, ax_log(res));
 
 	__asm__ __volatile__("mfence");
+	vrow_payload b0 = *(vrow_payload*)&init_vrow_b0_payload(ir, instr);
+	vrow_bank_load(sched->vrow_base[0], 0, b0);
+	vrow_bank_load(sched->vrow_base[1], 0, b0);
+	__asm__ __volatile__("mfence");
 
-	bitpool_desc *bitpool = nullptr;
+	/*bitpool_desc *bitpool = nullptr;
 
-	/*bitpool_create(
+	bitpool_create(
 		64,
-		(struct bitpool_desc_perc){
-			.real_perc = 10,
-			.high_perc = 15,
-			.med_perc = 25,
-			.low_perc = 50,
-		},
-		&bitpool);*/
+		64,
+		BITPOOL_PERC_DEFAULT,
+		&bitpool);
 
-	//vrow_payload b0 = *(vrow_payload*)&init_vrow_b0_payload(ir, instr);
-	//vrow_bank_load(sched->vrow_base[0], 0, b0);
-	//vrow_bank_load(sched->vrow_base[1], 0, b0);
+	bitpool_prior_load(bitpool, BITPOOL_PRIOR_REAL);*/
 
-	//while(1){_mm_pause();}
 
+	u32 i = 0;
+	while(i++ < 100000){_mm_pause();}
+
+	//bitpool_delete(bitpool);
 	sched_delete(sched);
 	ir_delete(ir);
+
 	io_i64(_MEM_ACTIVE);
 
 	/*

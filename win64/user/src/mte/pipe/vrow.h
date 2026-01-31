@@ -46,7 +46,7 @@ typedef struct _vrow_desc{
 	/*
 		Signaling bitmap (described at the beggining)
 	*/
-	sync_map_desc		smap; // 1 Cache line
+	sync_map_ref		smap; // 1 Cache line
 	/*
 		Processing thread for the vrow.
 	*/
@@ -138,6 +138,7 @@ inline void _vrow_force_flush(
 
 axres vrow_create(
 	_in ir_context		*ir,
+	_in_opt	u32		smap_i,
 	_in_opt sync_map_desc	*smap,
 	_out vrow_desc		**buf
 );

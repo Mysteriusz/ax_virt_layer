@@ -36,14 +36,13 @@ _inline_avert axres sched_create(
 	memcpy(sched, &temp_sched, sizeof(sched_context));
 
 	/*
-	 	Load vrow`s with linkage to scheduler
+	 	Load vrow`s with anonymous linkage to scheduler
 	*/
-	sync_map_init(sizeof(u64) * (vrow_count / 8), &sched->vrow_smap);
-	for (u8 i = 0; i < vrow_count; i++){
-		sched->vrow_smap.index = i;
+	sync_map_init((sizeof(u64) * (vrow_count / 8)) + 1, &sched->vrow_smap);
+	for (u32 i = 0; i < vrow_count; i++){
 		res = vrow_create(
 			ir,
-			&sched->vrow_smap,
+			i, &sched->vrow_smap,
 			&sched->vrow_base[i]);
 
 		axcheck_r(res, res, { // TODO: Change the return code
@@ -51,7 +50,6 @@ _inline_avert axres sched_create(
 			sched_delete(sched);
 		});
 	}
-	sched->vrow_smap.index = 0;
 
 	*buf = sched;
 
@@ -78,7 +76,7 @@ _inline_avert void sched_delete(
 		axfree(sched->queue_base);
 	}
 
-	//sync_map_disp(&sched->vrow_smap);
+	sync_map_disp(&sched->vrow_smap);
 	axfree(sched);
 }
 

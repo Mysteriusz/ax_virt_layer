@@ -1,3 +1,5 @@
+#include "mte/perf.h"
+
 #include "vrow.h"
 #include "vrow_bank.h"
 
@@ -44,17 +46,18 @@ void *vrow_thread_main(
 	 	Vrow constant references
 	*/
 	vrow_desc *const 	vrow = stack->vrow;
-	sync_map_desc *const 	smap = &vrow->smap;
+	sync_map_ref *const 	smap = &vrow->smap;
 
-	u8 i = smap->index / sizeof(u64); // bitmap data offset index
-	u8 bi = smap->index % (sizeof(u64) * 8); // bit index
+	// Assert vrow present
+	asrt(vrow != nullptr);
+	// Assert sync map present (Required for vrow state signaling)
+	asrt(smap != nullptr);
+	// Assert thread active on start
+	asrt(vrow_is_active(vrow, 0));
 
 	// Preload conversion data
 	org_to_ir_call b0_func = 
 		ir_rule_to_context(&stack->ir->rule)->call.org_to_ir;
-
-	// Assert thread active on start
-	asrt(vrow_is_active(vrow, 0));
 
 	// Main thread loop
 	while(!vrow_is_closed(vrow)){
@@ -63,11 +66,11 @@ void *vrow_thread_main(
 			continue;
 		}
 
-		/*__INL_PERF_INIT
-		__INL_PERF_START*/
+		__INL_PERF_INIT
+		__INL_PERF_START
 
 		// Signal thread business
-		sync_map_sig(smap->map, i, bi);
+		sync_map_sig(smap);
 
 		/*
 		 	Pipelined processing
@@ -75,7 +78,7 @@ void *vrow_thread_main(
 
 		// Process data at bank 0
 		if (!vrow_bank_0_proc(vrow, b0_func)){
-			sync_map_sigoff(smap->map, i, bi);
+			sync_map_sigoff(smap);
 			break;
 		}
 
@@ -84,10 +87,10 @@ void *vrow_thread_main(
 		vrow_active_switch(vrow, 0);
 
 		// Signal thread emptiness
-		sync_map_sig(smap->map, i, bi);
+		sync_map_sig(smap);
 
-		/*__INL_PERF_END
-		__INL_PERF_LOG*/
+		__INL_PERF_END
+		__INL_PERF_LOG
 	}
 	_vrow_force_flush(vrow);
 	return nullptr;

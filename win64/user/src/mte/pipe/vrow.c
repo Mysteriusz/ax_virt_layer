@@ -4,6 +4,7 @@
 
 axres vrow_create(
 	_in ir_context		*ir,
+	_in_opt	u32		smap_i,
 	_in_opt sync_map_desc	*smap,
 	_out vrow_desc		**buf
 ){
@@ -26,7 +27,7 @@ axres vrow_create(
 	atomic_store(&vrow->states, VROW_STATE_EMPTY);
 
 	if (smap != nullptr){
-		res = sync_map_copy(smap, &vrow->smap);
+		res = sync_map_ref_init(smap, smap_i, &vrow->smap);
 		axcheck_r(res, res, axfree(vrow));  // TODO: Change the return code
 	}
 
@@ -52,16 +53,6 @@ void vrow_delete(
 	}
 
 	axfree(vrow);
-}
-
-bool vrow_link_sync(
-	_in vrow_desc 		*vrow,
-	_in sync_map_desc	*map
-){
-	if (vrow == nullptr){
-		return false;
-	}
-	return true;
 }
 
 bool vrow_bank_load(

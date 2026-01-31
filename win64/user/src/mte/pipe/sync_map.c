@@ -12,12 +12,10 @@ axres sync_map_init(
 	}
 
 	sync_map_desc temp_smap = (sync_map_desc){
-		.index = 0,
 		.size = size,
 		.map = axmalloc(size * sizeof(u64)),
-		.owner = true
 	};
-	memcpy(buf, &temp_smap, sizeof(buf->meta));
+	memcpy(buf, &temp_smap, sizeof(sync_map_desc));
 
 	return AX_SUCC;
 }
@@ -33,9 +31,10 @@ void sync_map_disp(
 	memset(smap, 0, sizeof(sync_map_desc));
 }
 
-axres sync_map_copy(
+axres sync_map_ref_init(
 	_in sync_map_desc	*smap,
-	_in_out sync_map_desc	*buf
+	_in u32			index, // Member index to refernece
+	_in_out sync_map_ref	*buf
 ){
 	if (smap == nullptr){
 		return AX_INV_ARG;
@@ -44,13 +43,13 @@ axres sync_map_copy(
 		return AX_INV_BUF;
 	}
 
-	sync_map_desc temp_smap = (sync_map_desc){
-		.index = smap->index,
+	sync_map_ref temp_smap = (sync_map_ref){
+		.byte_index = index / sizeof(u64),
+		.bit_index = index % (sizeof(u64) * 8),
 		.map = smap->map,
 		.size = smap->size,
-		.owner = false
 	};
-	memcpy(buf, &temp_smap, sizeof(sync_map_desc));
+	memcpy(buf, &temp_smap, sizeof(sync_map_ref));
 
 	return AX_SUCC;
 }
