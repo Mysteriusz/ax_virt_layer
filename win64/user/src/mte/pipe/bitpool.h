@@ -20,13 +20,12 @@
 
 typedef struct _bitpool_prior_range{
 	u32		bit_n;
-	u32		from;
+	u32		bit_i;
 } bitpool_prior_range;
 typedef struct _bitpool_desc{
 	u32			bucket_count; // Best if capacity is multiplier of 64
 	u32			bucket_size; // Best if capacity is multiplier of 64
 	sync_map_desc		smap_desc;
-	sync_map_ref		smap;
 	struct bitpool_range_desc{
 		bitpool_prior_range	real;
 		bitpool_prior_range	high;
@@ -108,7 +107,7 @@ void bitpool_delete(
  	Calculate ranges for the sync_map given percentage descriptor
 */
 axres bitpool_range_populate(
-	_in sync_map_ref			*smap,
+	_in sync_map_desc			*smap_desc,
 	_in struct bitpool_perc_desc 		perc,
 	_in_out struct bitpool_range_desc 	*buf
 );

@@ -155,7 +155,7 @@ int main(){
 	vrow_bank_load(sched->vrow_base[1], 0, b0);
 	__asm__ __volatile__("mfence");
 
-	/*bitpool_desc *bitpool = nullptr;
+	bitpool_desc *bitpool = nullptr;
 
 	bitpool_create(
 		64,
@@ -163,13 +163,14 @@ int main(){
 		BITPOOL_PERC_DEFAULT,
 		&bitpool);
 
-	bitpool_prior_load(bitpool, BITPOOL_PRIOR_REAL);*/
+	bitpool_prior_load(bitpool, BITPOOL_PRIOR_REAL);
+	bitpool_prior_load(bitpool, BITPOOL_PRIOR_REAL);
+	io_u64(atomic_load_explicit(bitpool->smap_desc.map, memory_order_acquire));
 
+	/*u32 i = 0;
+	while(i++ < 100000){_mm_pause();}*/
 
-	u32 i = 0;
-	while(i++ < 100000){_mm_pause();}
-
-	//bitpool_delete(bitpool);
+	bitpool_delete(bitpool);
 	sched_delete(sched);
 	ir_delete(ir);
 

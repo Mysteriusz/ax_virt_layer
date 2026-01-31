@@ -78,6 +78,8 @@ void *vrow_thread_main(
 
 		// Process data at bank 0
 		if (!vrow_bank_0_proc(vrow, b0_func)){
+			// Force thread exit on fail
+			// TODO: backout and reset the thread instead of breaking
 			sync_map_sigoff(smap);
 			break;
 		}
