@@ -24,6 +24,9 @@ axres bitpool_create(
 	bitpool->bucket_count = bucket_count;
 	bitpool->bucket_size = bucket_size;
 
+	bitpool->qload = _bitpool_bucket_func(bucket_size);
+	_mm_prefetch(bitpool->qload, _MM_HINT_T0);
+
 	// Initialize the sync map
 	res = sync_map_init(bucket_count, &bitpool->smap_desc);
 	axcheck_r(res, res, axfree(bitpool)); // TODO: Change the return code
@@ -93,14 +96,14 @@ axres bitpool_range_populate(
 	 	Process high priority range
 	*/
 	buf->high.bit_n = round(((double)perc.high_perc / 100) * smap_bit_n);
-	buf->high.bit_i = smap_bit_n - buf->high.bit_n - taken - 1;
+	buf->high.bit_i = smap_bit_n - buf->high.bit_n - taken;
 
 	taken += buf->high.bit_n;
 	/*
 	 	Process med priority range
 	*/
 	buf->med.bit_n = round(((double)perc.med_perc / 100) * smap_bit_n);
-	buf->med.bit_i = smap_bit_n - buf->med.bit_n - taken - 1;
+	buf->med.bit_i = smap_bit_n - buf->med.bit_n - taken;
 
 	taken += buf->med.bit_n;
 
@@ -108,7 +111,7 @@ axres bitpool_range_populate(
 	 	Process low priority range
 	*/
 	buf->low.bit_n = round(((double)(perc.low_perc + low_add) / 100) * smap_bit_n);
-	buf->low.bit_i = smap_bit_n - buf->low.bit_n - taken - 1;
+	buf->low.bit_i = smap_bit_n - buf->low.bit_n - taken;
 	taken += buf->low.bit_n;
 
 	if (taken != smap_bit_n){
@@ -121,9 +124,11 @@ axres bitpool_range_populate(
 
 bool bitpool_prior_load(
 	_in bitpool_desc	*bitpool,
+	_in void		*bucket,
 	_in enum bitpool_prior  prior
 ){
-	if (bitpool == nullptr){
+	if (bitpool == nullptr
+	|| bucket == nullptr){
 		return false;
 	}
 	
@@ -135,10 +140,22 @@ bool bitpool_prior_load(
 		return false;
 	}
 
+	u32 index = 0;
 	// Signal first possible bit from index (if possible)
-	if (!sync_map_sig_first(range->bit_i, &bitpool->smap_desc)){
+	if (!sync_map_sig_first(
+		range->bit_i,
+		range->bit_i + range->bit_n,
+		&bitpool->smap_desc,
+		&index)
+	){
 		return false;
 	}
+
+	// Load the signaled bucket with data
+	bitpool->qload(
+		bucket,
+		offp(bitpool->base, bitpool->bucket_size * index),
+		bitpool->bucket_size);
 
 	return true;
 }

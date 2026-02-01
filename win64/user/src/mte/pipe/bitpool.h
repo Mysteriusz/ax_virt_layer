@@ -18,6 +18,49 @@
 
 #include "sync_map.h"
 
+/*
+ 	Bucket quick load functions
+*/
+typedef void (*bitpool_bucket_func)(void *from, void *to, u32 size);
+static void _bitpool_bucket_func_16byte(
+	void *from,
+	void *to,
+	u32 size
+){ /*simd_imax_store_128(from, to);*/ }
+static void _bitpool_bucket_func_32byte(
+	void *from,
+	void *to,
+	u32 size
+){ simd_imax_store_256(from, *(simd_imax*)to); }
+static void _bitpool_bucket_func_64byte(
+	void *from,
+	void *to,
+	u32 size
+){ simd_imax_store_512(from, to); }
+static void _bitpool_bucket_func_anybyte(
+	void *from,
+	void *to,
+	u32 size
+){ memcpy(to, from, size); }
+static bitpool_bucket_func _bitpool_bucket_func(
+	_in u32 		bucket_size
+){
+	switch(bucket_size){
+	case 16:
+		return _bitpool_bucket_func_16byte;
+	case 32:
+		return _bitpool_bucket_func_32byte;
+	case 64:
+		return _bitpool_bucket_func_64byte;
+	default:
+		return _bitpool_bucket_func_anybyte;
+	}
+	return nullptr;
+}
+
+/*
+ 	Bitpool core definitions
+*/
 typedef struct _bitpool_prior_range{
 	u32		bit_n;
 	u32		bit_i;
@@ -26,6 +69,7 @@ typedef struct _bitpool_desc{
 	u32			bucket_count; // Best if capacity is multiplier of 64
 	u32			bucket_size; // Best if capacity is multiplier of 64
 	sync_map_desc		smap_desc;
+	bitpool_bucket_func	qload;
 	struct bitpool_range_desc{
 		bitpool_prior_range	real;
 		bitpool_prior_range	high;
@@ -34,6 +78,10 @@ typedef struct _bitpool_desc{
 	} ranges;
 	u8			*base;
 } bitpool_desc;
+
+#define BITPOOL_BUCKET_AVX128 0x10 // simd_imax_store_128
+#define BITPOOL_BUCKET_AVX256 0x20 // simd_imax_store_256
+#define BITPOOL_BUCKET_AVX512 0x40 // simd_imax_store_512
 
 enum bitpool_prior{
 	BITPOOL_PRIOR_REAL,
@@ -117,6 +165,7 @@ axres bitpool_range_populate(
 */
 bool bitpool_prior_load(
 	_in bitpool_desc	*bitpool,
+	_in void		*bucket,
 	_in enum bitpool_prior  prior
 );
 

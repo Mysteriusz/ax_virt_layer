@@ -89,8 +89,10 @@ axres sync_map_ref_init(
  	Sign first non-signaled bit if found
 */
 bool sync_map_sig_first(
-	_in u32			from,
-	_in sync_map_desc	*smap
+	_in u32			from_bit_index,	
+	_in_opt u32		to_bit_index, // 0 if ignored
+	_in sync_map_desc	*smap,
+	_out_opt u32		*index
 );
 
 #endif // !defined(MTE_SYNC_MAP_INT)

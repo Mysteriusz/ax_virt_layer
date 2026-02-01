@@ -102,7 +102,7 @@ _inline_avert void foo(
 
 int main(){
 	SetPriorityClass(GetCurrentProcess(), REALTIME_PRIORITY_CLASS);
-	//SetProcessAffinityMask(GetCurrentProcess(), 3);
+	SetThreadAffinityMask(GetCurrentThread(), 1);
 
 	_intel64_prefetch_immd();
 	_intel64_prefetch_modrm();
@@ -145,33 +145,37 @@ int main(){
 	 	Create scheduler for the IR
 	*/
 
-	sched_context *sched = nullptr;
+	/*sched_context *sched = nullptr;
 	res = sched_create(ir, 2, 0, &sched);
-	axcheck(res, ax_log(res));
+	axcheck(res, ax_log(res));*/
 
-	__asm__ __volatile__("mfence");
 	vrow_payload b0 = *(vrow_payload*)&init_vrow_b0_payload(ir, instr);
-	vrow_bank_load(sched->vrow_base[0], 0, b0);
-	vrow_bank_load(sched->vrow_base[1], 0, b0);
-	__asm__ __volatile__("mfence");
+	/*vrow_bank_load(sched->vrow_base[0], 0, b0);
+	vrow_bank_load(sched->vrow_base[1], 0, b0);*/
 
 	bitpool_desc *bitpool = nullptr;
 
-	bitpool_create(
+	res = bitpool_create(
 		64,
-		64,
+		BITPOOL_BUCKET_AVX512,
 		BITPOOL_PERC_DEFAULT,
 		&bitpool);
+	axcheck(res, ax_log(res));
 
-	bitpool_prior_load(bitpool, BITPOOL_PRIOR_REAL);
-	bitpool_prior_load(bitpool, BITPOOL_PRIOR_REAL);
-	io_u64(atomic_load_explicit(bitpool->smap_desc.map, memory_order_acquire));
+	volatile bool b = false;
+	for (u32 i =0; i < 33; i++){
+		b = bitpool_prior_load(bitpool, &b0, BITPOOL_PRIOR_LOW);
+	}
+	io_i64(b);
+	io_i64(atomic_load(&bitpool->smap_desc.map[0]));
 
+	//printf("Empty in ns: %lf\n", (mm_perf_empty / 4.2));
+	//printf("Time in ns: %lf\n", ((mm_perf_l2 - mm_perf_l1) - mm_perf_empty) / 4.2);
 	/*u32 i = 0;
 	while(i++ < 100000){_mm_pause();}*/
 
 	bitpool_delete(bitpool);
-	sched_delete(sched);
+	//sched_delete(sched);
 	ir_delete(ir);
 
 	io_i64(_MEM_ACTIVE);

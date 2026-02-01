@@ -18,6 +18,8 @@ axres sync_map_init(
 	};
 	memcpy(buf, &temp_smap, sizeof(sync_map_desc));
 
+	_mm_prefetch(buf->map, _MM_HINT_T0);
+
 	return AX_SUCC;
 }
 
@@ -57,44 +59,76 @@ axres sync_map_ref_init(
 }
 
 bool sync_map_sig_first(
-	_in u32			bit_index,
-	_in sync_map_desc	*smap
+	_in u32			from_bit_index,	
+	_in_opt u32		to_bit_index,
+	_in sync_map_desc	*smap,
+	_out_opt u32		*index
 ){
 	if (smap == nullptr){
 		return false;
 	}
 
-	u32 bit = sync_map_ind2bit(bit_index);
-	u32 quad = sync_map_ind2quad(bit_index);
+	u32 from_bit = sync_map_ind2bit(from_bit_index);
+	u32 from_quad = sync_map_ind2quad(from_bit_index);
 
 	// Check bounds
-	if (quad >= smap->size){
+	if (from_quad >= smap->size){
 		return false;
 	}
 
 	// Mask for the first shift
-	u64 mask = ((~0ULL) << bit);
-	sync_map ptr = &smap->map[quad];
+	u64 from_mask = ((~0ULL) << from_bit);
+	sync_map ptr = &smap->map[from_quad];
 
 	// Try to mask out bit at first byte index
-	u64 val = atomic_load_explicit(ptr, memory_order_acquire) & mask;
-	if (val != mask){ // If previous & did not returned only 1 bits
-		atomic_fetch_xor_explicit(ptr, (1ULL << (__builtin_ctzll(~val & mask))), memory_order_release);
+	u64 val = atomic_load_explicit(ptr, memory_order_acquire) & from_mask;
+
+	u32 sigi = 0;
+	u32 desi = 0;
+
+	if (val != from_mask){ // If val quad is not full
+		sigi = __builtin_ctzll(~val & from_mask);
+		desi = sigi + (64 * from_quad);
+		if (desi >= to_bit_index){
+			return false;
+		}
+		atomic_fetch_xor_explicit(
+			ptr,
+			(1ULL << sigi),
+			memory_order_release);
+
+		if (index != nullptr){
+			*index = sigi + (64 * from_quad);
+		}
 		return true;
 	}
 
 	// Continue search
-	while(++quad < smap->size){
+	while(++from_quad < smap->size){
 		ptr++;
 		val = atomic_load_explicit(ptr, memory_order_acquire);
 		if (~val){
-			atomic_fetch_xor(ptr, 1ULL << (__builtin_ctzll(~val)));
+			sigi = __builtin_ctzll(~val);
+			desi = sigi + (64 * from_quad);
+			if (desi >= to_bit_index){
+				return false;
+			}
+
+			atomic_fetch_xor_explicit(
+				ptr,
+				1ULL << sigi,
+				memory_order_release);
+			break;
 		}
 	}
 
 	// Check if reached sync map limit
-	if (quad == smap->size){
+	if (from_quad == smap->size){
 		return false;
+	}
+
+	if (index != nullptr){
+		*index = sigi + (64 * from_quad);
 	}
 
 	return true;
