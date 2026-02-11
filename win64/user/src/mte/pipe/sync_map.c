@@ -60,7 +60,7 @@ axres sync_map_ref_init(
 
 bool sync_map_sig_first(
 	_in u32			from_bit_index,	
-	_in_opt u32		to_bit_index,
+	_in u32			to_bit_index,
 	_in sync_map_desc	*smap,
 	_out_opt u32		*index
 ){
@@ -83,15 +83,19 @@ bool sync_map_sig_first(
 	// Try to mask out bit at first byte index
 	u64 val = atomic_load_explicit(ptr, memory_order_acquire) & from_mask;
 
-	u32 sigi = 0;
-	u32 desi = 0;
+	u32 sigi = 0; // Signal index (relative to current from_quad)
+	u32 desi = 0; // Desired index (smap bit index of sigi)
 
 	if (val != from_mask){ // If val quad is not full
+		// Calculate signal index on current quad with bitmask
 		sigi = __builtin_ctzll(~val & from_mask);
+		// Calculate smap desired index
 		desi = sigi + (64 * from_quad);
+		// Check bounds
 		if (desi >= to_bit_index){
 			return false;
 		}
+		// xor usign the relative bit index
 		atomic_fetch_xor_explicit(
 			ptr,
 			(1ULL << sigi),

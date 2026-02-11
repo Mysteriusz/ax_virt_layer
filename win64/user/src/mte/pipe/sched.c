@@ -25,7 +25,6 @@ _inline_avert axres sched_create(
 		.ir = ir,
 		.vrow_base = axmalloc(sizeof(vrow_desc*) * vrow_count),
 		.vrow_count = vrow_count,
-		.queue_base = nullptr,
 	};
 
 	/*
@@ -59,6 +58,19 @@ _inline_avert axres sched_create(
 		});
 	}
 
+	/*
+	 	Create queue bitpool
+	*/
+	res = bitpool_create(
+		64,
+		BITPOOL_BUCKET_AVX512,
+		BITPOOL_PERC_DEFAULT,
+		&sched->queue);
+	axcheck_r(res, res, { // TODO: Change the return code
+		ax_log(res);
+		sched_delete(sched);
+	});
+
 	*buf = sched;
 
 	return AX_SUCC;
@@ -79,11 +91,7 @@ _inline_avert void sched_delete(
 		axfree(sched->vrow_base);
 	}
 
-	// TODO: When queue/pool structure ready change this
-	if (sched->queue_base != nullptr){
-		axfree(sched->queue_base);
-	}
-
+	bitpool_delete(sched->queue);
 	sync_map_disp(&sched->vrow_smap);
 	axfree(sched);
 }
@@ -91,17 +99,36 @@ _inline_avert void sched_delete(
 void *sched_main(
 	_in sched_context 	*sched
 ){
-	while(0){
+	while(1){
 		_mm_pause();
 	}
 	sched_delete(sched);
 	return nullptr;
 }
 
-void sched_push(
+bool sched_push(
 	_in sched_context	*sched,
-	_in vrow_payload	payload
+	_in vrow_payload	payload,
+	_out_opt u32		*index
 ){
-	return;
+	if (sched == nullptr){
+		return false;
+	}
+
+	// Check if queue is not corrupted
+	asrt(sched->queue != nullptr);
+	asrt(sched->queue->bucket_size == sizeof(vrow_payload));
+
+	struct bitpool_prior_load_res res = bitpool_prior_load( // BLOCKS IF QUEUE IS FULL!!!
+		sched->queue,
+		&payload,
+		payload.priority);
+	axcheck_r(res.code, false);
+
+	if (index != nullptr){
+		*index = res.index;
+	}
+
+	return true;
 }
 

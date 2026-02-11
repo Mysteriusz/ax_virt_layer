@@ -12,4 +12,16 @@ enum mte_syn : u32{
 	SYN_ATNT = 2,
 	MTE_SYN_MAX
 };
+enum mte_prior : u8{
+	MTE_PRIOR_MIN,
+	PRIOR_MIN,
+	PRIOR_LOW,
+	PRIOR_MOD,
+	PRIOR_MED,
+	PRIOR_HIGH,
+	PRIOR_VERY_HIGH,
+	PRIOR_REAL,
+	PRIOR_MAX,
+	MTE_PRIOR_MAX
+};
 

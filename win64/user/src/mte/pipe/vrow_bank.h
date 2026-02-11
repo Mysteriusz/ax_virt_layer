@@ -11,10 +11,14 @@
 */
 #define VROW_B0_OFFSET 0
 
+/*
+ 	Polimorphed structure of [struct _vrow_payload]
+*/
 struct vrow_b0_payload{ _align(16)
 	struct{
 		u8 		level; // Always 0 for b0
-		u8 		reserved[7];
+		enum mte_prior 	priority;
+		u8 		reserved[6];
 		ir_context 	*context; // 8 bytes
 	} control;
 	struct{
@@ -26,6 +30,7 @@ struct vrow_b0_payload{ _align(16)
 
 #define init_vrow_b0_payload(ir_p, i_p) ((struct vrow_b0_payload){ \
 	.control.level = 0, \
+	.control.priority = PRIOR_LOW, \
 	.control.context = (ir_p), \
 	.payload.instr = (i_p), \
 	.payload.result = (ir_raw_instr){0}, \

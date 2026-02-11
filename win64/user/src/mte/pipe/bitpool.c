@@ -39,7 +39,8 @@ axres bitpool_create(
 	});
 
 	// Allocate the buffer
-	bitpool->base = axmalloc(bucket_size * bucket_count);
+	bitpool->bucket_base
+		= axmalloc(bucket_size * bucket_count);
 
 	*buf = bitpool;
 
@@ -54,8 +55,8 @@ void bitpool_delete(
 	}
 	
 	sync_map_disp(&bitpool->smap_desc);
-	if (bitpool->base != nullptr){
-		axfree(bitpool->base);
+	if (bitpool->bucket_base != nullptr){
+		axfree(bitpool->bucket_base);
 	}
 
 	axfree(bitpool);
@@ -122,41 +123,72 @@ axres bitpool_range_populate(
 	return AX_SUCC;
 }
 
-bool bitpool_prior_load(
+struct bitpool_prior_load_res bitpool_prior_load(
 	_in bitpool_desc	*bitpool,
 	_in void		*bucket,
-	_in enum bitpool_prior  prior
+	_in enum mte_prior  	prior
 ){
+	struct bitpool_prior_load_res res = {
+		.code = AX_SUCC,
+		.index = 0
+	};
+
 	if (bitpool == nullptr
 	|| bucket == nullptr){
-		return false;
+		res.code = AX_INV_ARG;
+		return res;
 	}
-	
+
+	// Convert priority to range pointer of the [*bitpool]
 	bitpool_prior_range *range = 
 		_bitpool_range_from_prior(&bitpool->ranges, prior);
 
 	if (range == nullptr
 	|| range->bit_n == 0){
-		return false;
+		res.code = AX_INV_DATA;
+		return res;
 	}
 
 	u32 index = 0;
 	// Signal first possible bit from index (if possible)
-	if (!sync_map_sig_first(
+	while (!sync_map_sig_first(
 		range->bit_i,
 		range->bit_i + range->bit_n,
 		&bitpool->smap_desc,
 		&index)
 	){
-		return false;
+		_mm_pause();
 	}
 
-	// Load the signaled bucket with data
+	/*
+	 	Chceck if bitpool qload is not corrupted
+	*/
+	asrt(bitpool->qload != nullptr);
+
+	/*
+	 	Load the signaled bucket with data using the quick_load function
+		This function depends on the [bucket_size] parameter of [bitpool_create]
+		It is recommended to use any of the BITPOOL_BUCKET_* for SIMD copy 
+	*/
 	bitpool->qload(
 		bucket,
-		offp(bitpool->base, bitpool->bucket_size * index),
+		offp(bitpool->bucket_base, bitpool->bucket_size * index),
 		bitpool->bucket_size);
 
-	return true;
+	// Directly compute the presence bit based on the memory layout of the ranges
+	_Atomic(u32) *pres_ptr = &bitpool->presence[((u64)range - (u64)&bitpool->ranges) / sizeof(bitpool_prior_range) - 1];
+
+	// Add presence at this priority
+	atomic_fetch_add_explicit(pres_ptr, 1, memory_order_seq_cst);
+
+	// Write index to result buffer
+	res.index = index;
+	return res;
+}
+
+void bitpool_prior_unload(
+	_in bitpool_desc	*bitpool
+)
+{
 }
 

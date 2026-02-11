@@ -64,14 +64,6 @@ typedef struct _sync_map_ref{ _align(64)
 #define sync_map_issig(mr_p) \
 	(atomic_load_explicit(&((mr_p)->map[(mr_p)->quad_index]), memory_order_acquire) & (1ULL << (mr_p)->bit_index))
 
-axres sync_map_init(
-	_in u32 		size,
-	_in_out sync_map_desc	*buf
-);
-void sync_map_disp(
-	_in sync_map_desc	*smap
-);
-
 #define sync_map_ind2byte(i) \
 	((i) / sizeof(u64))
 #define sync_map_ind2bit(i) \
@@ -79,6 +71,26 @@ void sync_map_disp(
 #define sync_map_ind2quad(i) \
 	((i) / 64)
 
+/*
+ 	Initialize a local synchronized map
+	(local means the sync_map can be passed by reference)
+*/
+axres sync_map_init(
+	_in u32 		size,
+	_in_out sync_map_desc	*buf
+);
+
+/*
+ 	Dispose the local synchronized map
+	(local means the sync_map can be passed by reference)
+*/
+void sync_map_disp(
+	_in sync_map_desc	*smap
+);
+
+/*
+ 	Initialize a synchronized map reference
+*/
 axres sync_map_ref_init(
 	_in sync_map_desc	*smap,
 	_in u32			index, // Member index for the refernece
@@ -90,7 +102,7 @@ axres sync_map_ref_init(
 */
 bool sync_map_sig_first(
 	_in u32			from_bit_index,	
-	_in_opt u32		to_bit_index, // 0 if ignored
+	_in u32			to_bit_index,
 	_in sync_map_desc	*smap,
 	_out_opt u32		*index
 );

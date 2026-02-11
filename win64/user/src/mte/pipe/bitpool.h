@@ -16,6 +16,8 @@
 #include <ax_error.h>
 #include <ax_memory.h>
 
+#include "mte/core.h"
+
 #include "sync_map.h"
 
 /*
@@ -53,7 +55,7 @@ static bitpool_bucket_func _bitpool_bucket_func(
 	case 64:
 		return _bitpool_bucket_func_64byte;
 	default:
-		return _bitpool_bucket_func_anybyte;
+		return _bitpool_bucket_func_anybyte; // Slowest (unaligned/too big for SIMD/register copy)
 	}
 	return nullptr;
 }
@@ -61,51 +63,66 @@ static bitpool_bucket_func _bitpool_bucket_func(
 /*
  	Bitpool core definitions
 */
+
+/*
+ 	Bit range of a bitpool
+*/
 typedef struct _bitpool_prior_range{
-	u32		bit_n;
-	u32		bit_i;
+	u32		bit_n; // Count of bits in range
+	u32		bit_i; // Index of the first bit
 } bitpool_prior_range;
 typedef struct _bitpool_desc{
-	u32			bucket_count; // Best if capacity is multiplier of 64
-	u32			bucket_size; // Best if capacity is multiplier of 64
-	sync_map_desc		smap_desc;
-	bitpool_bucket_func	qload;
+ 	/*
+		Base address of the bucket array
+		(count and bucket size depends on [bucket_count] and [bucket_size])
+	*/
+	u8			*bucket_base;
+	u32			bucket_count; // Count of buckets (multiplication of 64)
+	u32			bucket_size; // Bucket size in bytes (multiplication of 16)
 	struct bitpool_range_desc{
-		bitpool_prior_range	real;
-		bitpool_prior_range	high;
-		bitpool_prior_range	med;
 		bitpool_prior_range	low;
+		bitpool_prior_range	med;
+		bitpool_prior_range	high;
+		bitpool_prior_range	real;
 	} ranges;
-	u8			*base;
+ 	/* 
+	 	Active bucket count per priority range.
+		0 -> real
+		1 -> high
+		2 -> med
+		3 -> low
+	*/
+	_Atomic(u32)			presence[4];
+ 	// TODO: If more functions then make an anonymous struct???
+	bitpool_bucket_func	qload;
+	sync_map_desc		smap_desc; // sync map signaling each bucket emptiness
 } bitpool_desc;
 
 #define BITPOOL_BUCKET_AVX128 0x10 // simd_imax_store_128
 #define BITPOOL_BUCKET_AVX256 0x20 // simd_imax_store_256
 #define BITPOOL_BUCKET_AVX512 0x40 // simd_imax_store_512
 
-enum bitpool_prior{
-	BITPOOL_PRIOR_REAL,
-	BITPOOL_PRIOR_HIGH,
-	BITPOOL_PRIOR_MED,
-	BITPOOL_PRIOR_LOW,
-};
 static bitpool_prior_range *_bitpool_range_from_prior(
 	_in struct bitpool_range_desc	*desc,
-	_in enum bitpool_prior		prior
+	_in enum mte_prior		prior
 ){
 	if (desc == nullptr){
 		return nullptr;
 	}
 
 	switch(prior){
-	case BITPOOL_PRIOR_REAL:
-		return &desc->real;
-	case BITPOOL_PRIOR_HIGH:
-		return &desc->high;
-	case BITPOOL_PRIOR_MED:
-		return &desc->med;
-	case BITPOOL_PRIOR_LOW:
+	case PRIOR_MIN:
+	case PRIOR_LOW:
 		return &desc->low;
+	case PRIOR_MOD:
+	case PRIOR_MED:
+		return &desc->med;
+	case PRIOR_HIGH:
+	case PRIOR_VERY_HIGH:
+		return &desc->high;
+	case PRIOR_REAL:
+	case PRIOR_MAX:
+		return &desc->real;
 	default:
 		return nullptr;
 	}
@@ -163,10 +180,16 @@ axres bitpool_range_populate(
 /*
  	Blocking bitpool load to priority range
 */
-bool bitpool_prior_load(
+
+
+struct bitpool_prior_load_res{
+	axres		code;
+	u32		index;
+
+} bitpool_prior_load(
 	_in bitpool_desc	*bitpool,
 	_in void		*bucket,
-	_in enum bitpool_prior  prior
+	_in enum mte_prior  	prior
 );
 
 #endif // !defined(MTE_BITPOOL_INT)

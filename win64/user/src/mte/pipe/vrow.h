@@ -80,17 +80,25 @@ void *vrow_thread_main(
 );
 
 /*
- 	MEMORY LAYOUT:
-	
-	TODO: describe block internals
-
-	[16 bytes control block]
-	[3 * 16 byte data block]
+	Payload can be abstracted tho it has to be polymorhable with structure below
 */
 typedef struct _vrow_payload{ _align(16)
-	u8	vrow_level; // 1 byte vrow level + 15 bytes control block
-	u8	control[0xf];
-	u8	data[0x30]; // 48 bytes payload
+	/*
+	 	[CONTROL BLOCK]
+
+	 	1 byte payload state
+		1 byte payload priority
+		14 bytes abstraction defined
+	*/
+	u8			state;
+	enum mte_prior		priority;
+	u8			control[0xe];
+	/*
+	 	[DATA BLOCK]
+
+		3 * 16 bytes data block
+	*/
+	u8			data[0x30]; // 48 bytes payload
 } vrow_payload;
 
 #define VROW_BANK_SIZE 0x40
