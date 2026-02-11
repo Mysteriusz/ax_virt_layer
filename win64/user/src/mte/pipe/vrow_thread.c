@@ -70,7 +70,7 @@ void *vrow_thread_main(
 		__INL_PERF_START
 
 		// Signal thread business
-		sync_map_sigon(smap);
+		sync_map_ref_sigon(smap);
 
 		/*
 		 	Pipelined processing
@@ -80,7 +80,7 @@ void *vrow_thread_main(
 		if (!vrow_bank_0_proc(vrow, b0_func)){
 			// Force thread exit on fail
 			// TODO: backout and reset the thread instead of breaking
-			sync_map_sigoff(smap);
+			sync_map_ref_sigoff(smap);
 			break;
 		}
 
@@ -89,7 +89,7 @@ void *vrow_thread_main(
 		vrow_active_switch(vrow, 0);
 
 		// Signal thread emptiness
-		sync_map_sigoff(smap);
+		sync_map_ref_sigoff(smap);
 
 		__INL_PERF_END
 		__INL_PERF_LOG

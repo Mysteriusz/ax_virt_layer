@@ -164,6 +164,7 @@ int main(){
 		ax_log(AX_UNK_ERR);
 		return 1;
 	}
+
 	while(1){_mm_pause();}
 
 	sched_delete(sched);

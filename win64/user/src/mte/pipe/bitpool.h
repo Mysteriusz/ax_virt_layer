@@ -87,16 +87,19 @@ typedef struct _bitpool_desc{
 	} ranges;
  	/* 
 	 	Active bucket count per priority range.
-		0 -> real
-		1 -> high
-		2 -> med
-		3 -> low
+		0 -> real;
+		1 -> high;
+		2 -> med;
+		3 -> low;
 	*/
 	_Atomic(u32)			presence[4];
  	// TODO: If more functions then make an anonymous struct???
 	bitpool_bucket_func	qload;
 	sync_map_desc		smap_desc; // sync map signaling each bucket emptiness
 } bitpool_desc;
+
+#define bitpool_presence_any(b_p) \
+	(simd_cmpz_128(simd_load_128((b_p)->presence)))
 
 #define BITPOOL_BUCKET_AVX128 0x10 // simd_imax_store_128
 #define BITPOOL_BUCKET_AVX256 0x20 // simd_imax_store_256
@@ -180,16 +183,60 @@ axres bitpool_range_populate(
 /*
  	Blocking bitpool load to priority range
 */
-
-
 struct bitpool_prior_load_res{
 	axres		code;
 	u32		index;
-
 } bitpool_prior_load(
 	_in bitpool_desc	*bitpool,
 	_in void		*bucket,
 	_in enum mte_prior  	prior
+);
+
+_inline_force void *_bitpool_index_to_bucket(
+	_in bitpool_desc			*bitpool,
+	_in u32					index
+){
+	asrt(index < bitpool->bucket_count);
+	return offp(bitpool->bucket_base, bitpool->bucket_size * index);
+}
+
+/*
+ 	Convert bitpool anonymous index to [bitpool->presence] index 
+*/
+_inline_force u8 _bitpool_index_to_presence(
+	_in bitpool_desc	*bitpool,
+	_in u32			index
+){
+	asrt(bitpool != nullptr);
+	asrt(bitpool->bucket_count <= index);
+
+	if (bitpool->ranges.real.bit_n > 0
+	&& index >= bitpool->ranges.real.bit_i){
+		return 0;
+	}
+	if (bitpool->ranges.high.bit_n > 0
+	&& index >= bitpool->ranges.high.bit_i){
+		return 1;
+	}
+	if (bitpool->ranges.med.bit_n > 0
+	&& index >= bitpool->ranges.med.bit_i){
+		return 2;
+	}
+	if (bitpool->ranges.low.bit_n > 0
+	&& index >= bitpool->ranges.low.bit_i){
+		return 3;
+	}
+
+	// No fallback (bitpool and index are completely unaligned)
+	asrt(0);
+}
+
+/*
+ 	Bitpool unload from index of priority
+*/
+void bitpool_prior_unload(
+	_in bitpool_desc	*bitpool,
+	_in u32			index
 );
 
 #endif // !defined(MTE_BITPOOL_INT)

@@ -71,6 +71,14 @@ _inline_avert axres sched_create(
 		sched_delete(sched);
 	});
 
+	pthread_attr_t attr = {0};
+	pthread_attr_init(&attr);
+	pthread_create(
+		&sched->pthread,
+		&attr,
+		(void *(*)(void*))sched_main,
+		sched);
+
 	*buf = sched;
 
 	return AX_SUCC;
@@ -81,6 +89,11 @@ _inline_avert void sched_delete(
 ){
 	if(sched == nullptr){
 		return;
+	}
+
+	sched_close(sched);
+	while(!sched_is_terminated(sched)){
+		_mm_pause();
 	}
 
 	if (sched->vrow_base != nullptr){
@@ -99,25 +112,26 @@ _inline_avert void sched_delete(
 void *sched_main(
 	_in sched_context 	*sched
 ){
-	while(1){
-		_mm_pause();
+	bitpool_desc *queue = sched->queue;
+
+	while(!sched_is_closed(sched)){
+		if(!bitpool_presence_any(queue)){
+			_mm_pause();
+			continue;
+		}
 	}
-	sched_delete(sched);
+	sched_terminate(sched);
 	return nullptr;
 }
 
 bool sched_push(
 	_in sched_context	*sched,
 	_in vrow_payload	payload,
-	_out_opt u32		*index
+	_out_opt u32		*queue_index
 ){
-	if (sched == nullptr){
+	if (_sched_context_inv(sched)){
 		return false;
 	}
-
-	// Check if queue is not corrupted
-	asrt(sched->queue != nullptr);
-	asrt(sched->queue->bucket_size == sizeof(vrow_payload));
 
 	struct bitpool_prior_load_res res = bitpool_prior_load( // BLOCKS IF QUEUE IS FULL!!!
 		sched->queue,
@@ -125,9 +139,42 @@ bool sched_push(
 		payload.priority);
 	axcheck_r(res.code, false);
 
-	if (index != nullptr){
-		*index = res.index;
+	if (queue_index != nullptr){
+		*queue_index = res.index;
 	}
+
+	return true;
+}
+
+bool sched_pop(
+	_in sched_context	*sched,
+	_in u8			vrow_index,
+	_in u32			queue_index
+){
+	if (_sched_context_inv(sched)){
+		return AX_INV_ARG;
+	}
+	
+	if (vrow_index >= sched->vrow_count
+	|| queue_index >= sched->queue->bucket_count){
+		return AX_INV_DATA;
+	}
+
+	/*
+	 	Move the payload from queue to vrow
+	*/
+
+	if (!vrow_bank_load( // Blocks until vrow is free
+		sched->vrow_base[vrow_index],
+		0,
+		*(vrow_payload*)_bitpool_index_to_bucket(sched->queue, queue_index))){
+		return false;
+	}
+
+	/*
+	 	Clear out the queue at [queue_index]
+	*/
+	bitpool_prior_unload(sched->queue, queue_index);
 
 	return true;
 }

@@ -29,6 +29,16 @@
 */
 typedef _Atomic(u64)* 		sync_map;
 
+// Convert index (i) to bit aligned to [sync_map]
+#define sync_map_ind2bit(i) \
+	((i) % 64)
+// Convert index (i) to byte aligned to [sync_map]
+#define sync_map_ind2byte(i) \
+	((i) / sizeof(u64))
+// Convert index (i) to quad aligned to [sync_map]
+#define sync_map_ind2quad(i) \
+	((i) / 64)
+
 /*
 	Unspecified thread-safe and lock-free bitmap descriptor
 */
@@ -37,6 +47,13 @@ typedef struct _sync_map_desc{ _align(64)
 	u32		size; // Size in bytes of the map
 } sync_map_desc;
 
+// Unset map (m_p) at index (i)
+#define sync_map_sigoff(m_p, i) \
+	(atomic_fetch_and_explicit(&((m_p).map[sync_map_ind2quad(i)]), ~(1ULL << sync_map_ind2bit(i)), memory_order_release))
+
+// Set map (m_p) at index (i)
+#define sync_map_sigon(m_p, i) \
+	(atomic_fetch_or_explicit(&((m_p).map[sync_map_ind2quad(i)]), (1ULL << sync_map_ind2bit(i)), memory_order_release))
 /*
 	Map descriptor reference for member
 */
@@ -49,27 +66,16 @@ typedef struct _sync_map_ref{ _align(64)
 } sync_map_ref;
 
 // Unset map reference (mr_p)
-#define sync_map_sigoff(mr_p) \
+#define sync_map_ref_sigoff(mr_p) \
 	(atomic_fetch_and_explicit(&((mr_p)->map[(mr_p)->quad_index]), ~(1ULL << (mr_p)->bit_index), memory_order_release))
 
 // Set map reference (mr_p)
-#define sync_map_sigon(mr_p) \
+#define sync_map_ref_sigon(mr_p) \
 	(atomic_fetch_or_explicit(&((mr_p)->map[(mr_p)->quad_index]), (1ULL << (mr_p)->bit_index), memory_order_release))
 
-// Signal (switch) in map reference (mr_p)
-#define sync_map_sig(mr_p) \
-	(atomic_fetch_xor_explicit(&((mr_p)->map[(mr_p)->quad_index]), (1ULL << (mr_p)->bit_index), memory_order_release))
-
 // Check signal in map reference (mr_p)
-#define sync_map_issig(mr_p) \
+#define sync_map_ref_issig(mr_p) \
 	(atomic_load_explicit(&((mr_p)->map[(mr_p)->quad_index]), memory_order_acquire) & (1ULL << (mr_p)->bit_index))
-
-#define sync_map_ind2byte(i) \
-	((i) / sizeof(u64))
-#define sync_map_ind2bit(i) \
-	((i) % 64)
-#define sync_map_ind2quad(i) \
-	((i) / 64)
 
 /*
  	Initialize a local synchronized map

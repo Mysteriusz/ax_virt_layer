@@ -149,8 +149,12 @@ struct bitpool_prior_load_res bitpool_prior_load(
 		return res;
 	}
 
+	/*
+		Block and signal first possible bit
+		from [range->bit_i] to [range->bit_n]
+	*/
+
 	u32 index = 0;
-	// Signal first possible bit from index (if possible)
 	while (!sync_map_sig_first(
 		range->bit_i,
 		range->bit_i + range->bit_n,
@@ -176,10 +180,14 @@ struct bitpool_prior_load_res bitpool_prior_load(
 		bitpool->bucket_size);
 
 	// Directly compute the presence bit based on the memory layout of the ranges
-	_Atomic(u32) *pres_ptr = &bitpool->presence[((u64)range - (u64)&bitpool->ranges) / sizeof(bitpool_prior_range) - 1];
+	_Atomic(u32) *pres_ptr =
+		&bitpool->presence[((u64)range - (u64)&bitpool->ranges) / sizeof(bitpool_prior_range) - 1];
 
 	// Add presence at this priority
-	atomic_fetch_add_explicit(pres_ptr, 1, memory_order_seq_cst);
+	atomic_fetch_add_explicit(
+		pres_ptr,
+		1,
+		memory_order_seq_cst);
 
 	// Write index to result buffer
 	res.index = index;
@@ -187,8 +195,21 @@ struct bitpool_prior_load_res bitpool_prior_load(
 }
 
 void bitpool_prior_unload(
-	_in bitpool_desc	*bitpool
-)
-{
+	_in bitpool_desc	*bitpool,
+	_in u32			index
+){
+	if (bitpool == nullptr 
+	|| bitpool->bucket_count <= index){
+		return;
+	}
+
+	// Signal the bucket index to off
+	sync_map_sigoff(bitpool->smap_desc, index);
+
+	// Subtract from presence value
+	atomic_fetch_sub_explicit(
+		&bitpool->presence[_bitpool_index_to_presence(bitpool, index)],
+		1,
+		memory_order_acq_rel);
 }
 
