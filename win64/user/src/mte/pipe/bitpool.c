@@ -224,6 +224,10 @@ struct bitpool_prior_unload_disp_res bitpool_prior_unload_disp(
 		return res;
 	}
 
+	/*
+		Iterate over each priority and clear out [disp_presence[i]] 
+		if reached bit_disp (bits per low for this range)
+	*/
 	u8 i = 0;
 	for (; i < 3; i++){
 		if (atomic_load_explicit(&bitpool->presence[i], memory_order_acquire) > 0){
@@ -235,6 +239,9 @@ struct bitpool_prior_unload_disp_res bitpool_prior_unload_disp(
 		
 	}	
 
+	/*
+	 	Get the first active payload in range [bitpool->ranges[i]]
+	*/
 	u32 bucket_i = 0;
 	if (!sync_map_unsig_first(
 		bitpool->ranges[i].bit_i,
@@ -244,12 +251,6 @@ struct bitpool_prior_unload_disp_res bitpool_prior_unload_disp(
 	){
 		return res;
 	}
-
-	// Sub after unloading indexed (bucket_i) bucket
-	atomic_fetch_sub_explicit(
-		&bitpool->presence[i],
-		1,
-		memory_order_release);
 
 	res.presence_i = i;
 	res.bucket_i = bucket_i;

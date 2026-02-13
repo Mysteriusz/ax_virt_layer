@@ -36,9 +36,29 @@ struct vrow_b0_payload{ _align(16)
 	.payload.result = (ir_raw_instr){0}, \
 })
 
+/*
+ 	Original architecture to IR conversion process.
+*/
 bool vrow_bank_0_proc(
 	_in vrow_desc		*vrow,
 	_in org_to_ir_call	func
+);
+
+/*
+ 	TODO: Fully implements optimizations once base translation process is finished
+
+	IR optimisations process.
+*/
+bool vrow_bank_1_proc(
+	_in vrow_desc		*vrow
+);
+
+/*
+	IR to target architecture process.
+*/
+bool vrow_bank_2_proc(
+	_in vrow_desc		*vrow,
+	_in ir_to_tar_call	func
 );
 
 #endif // !defined(MTE_VROW_BANK_INT)

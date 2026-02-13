@@ -55,9 +55,11 @@ void *vrow_thread_main(
 	// Assert thread active on start
 	asrt(vrow_is_active(vrow, 0));
 
-	// Preload conversion data
+	// Prefetch conversion data
 	org_to_ir_call b0_func = 
 		ir_rule_to_context(&stack->ir->rule)->call.org_to_ir;
+	ir_to_tar_call b2_func = 
+		ir_rule_to_context(&stack->ir->rule)->call.ir_to_tar;
 
 	// Main thread loop
 	while(!vrow_is_closed(vrow)){
@@ -83,6 +85,7 @@ void *vrow_thread_main(
 		if (!vrow_bank_0_proc(vrow, b0_func)){
 			// Force thread exit on fail
 			// TODO: backout and reset the thread instead of breaking
+			io_str(u"Bank 0 fail");
 			sync_map_ref_sigoff(smap);
 			break;
 		}
@@ -95,6 +98,34 @@ void *vrow_thread_main(
 		if (!vrow_bank_swap(vrow, 0, 1)){
 			// Force thread exit on fail
 			// TODO: backout and reset the thread instead of breaking
+			sync_map_ref_sigoff(smap);
+			break;
+		}
+		// Process data at bank 1
+		if (!vrow_bank_1_proc(vrow)){
+			// Force thread exit on fail
+			// TODO: backout and reset the thread instead of breaking
+			io_str(u"Bank 1 fail");
+			sync_map_ref_sigoff(smap);
+			break;
+		}
+
+		// Signal vrow thread is processing bank 2
+		vrow_active_switch(vrow, 2);
+		vrow_active_switch(vrow, 1);
+
+		// Move processed payload from bank 1 to bank 2
+		if (!vrow_bank_swap(vrow, 1, 2)){
+			// Force thread exit on fail
+			// TODO: backout and reset the thread instead of breaking
+			sync_map_ref_sigoff(smap);
+			break;
+		}
+		// Process data at bank 2
+		if (!vrow_bank_2_proc(vrow, b2_func)){
+			// Force thread exit on fail
+			// TODO: backout and reset the thread instead of breaking
+			io_str(u"Bank 2 fail");
 			sync_map_ref_sigoff(smap);
 			break;
 		}

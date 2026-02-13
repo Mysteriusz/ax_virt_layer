@@ -160,10 +160,14 @@ int main(){
 	vrow_payload b0 =
 		*(vrow_payload*)&init_vrow_b0_payload(ir, instr);
 
+	while(1){
 	if (!sched_push(sched, b0, nullptr)){
 		ax_log(AX_UNK_ERR);
 		return 1;
 	}
+	_mm_pause();
+	}
+	while(1) {_mm_pause();}
 
 	/*sync_map_desc smap = {0};
 	sync_map_init(64, &smap);
