@@ -33,12 +33,12 @@ static void _bitpool_bucket_func_32byte(
 	void *from,
 	void *to,
 	u32 size
-){ simd_imax_store_256(from, *(simd_imax*)to); }
+){ simd_imax_store_256(to, *(simd_imax*)from); }
 static void _bitpool_bucket_func_64byte(
 	void *from,
 	void *to,
 	u32 size
-){ simd_imax_store_512(from, to); }
+){ simd_imax_store_512(to, from); }
 static void _bitpool_bucket_func_anybyte(
 	void *from,
 	void *to,
@@ -67,24 +67,12 @@ static bitpool_bucket_func _bitpool_bucket_func(
 /*
  	Bit range of a bitpool
 */
-typedef struct _bitpool_prior_range{
+typedef struct _bitpool_prior_range{ _align(16)
 	u32		bit_n; // Count of bits in range
 	u32		bit_i; // Index of the first bit
+	const u32	bit_disp; // Disposition per lowest priority 
 } bitpool_prior_range;
 typedef struct _bitpool_desc{
- 	/*
-		Base address of the bucket array
-		(count and bucket size depends on [bucket_count] and [bucket_size])
-	*/
-	u8			*bucket_base;
-	u32			bucket_count; // Count of buckets (multiplication of 64)
-	u32			bucket_size; // Bucket size in bytes (multiplication of 16)
-	struct bitpool_range_desc{
-		bitpool_prior_range	low;
-		bitpool_prior_range	med;
-		bitpool_prior_range	high;
-		bitpool_prior_range	real;
-	} ranges;
  	/* 
 	 	Active bucket count per priority range.
 		0 -> real;
@@ -92,12 +80,25 @@ typedef struct _bitpool_desc{
 		2 -> med;
 		3 -> low;
 	*/
-	_Atomic(u32)			presence[4];
+	_Atomic(u32)		presence[4];
+ 	/*
+		Base address of the bucket array
+		(count and bucket size depends on [bucket_count] and [bucket_size])
+	*/
+	u8			*bucket_base;
+	u32			bucket_count; // Count of buckets (multiplication of 64)
+	u32			bucket_size; // Bucket size in bytes (multiplication of 16)
+	bitpool_prior_range 	ranges[4];
  	// TODO: If more functions then make an anonymous struct???
 	bitpool_bucket_func	qload;
 	sync_map_desc		smap_desc; // sync map signaling each bucket emptiness
 } bitpool_desc;
 
+/*
+ 	Since presence is atomic it should be fetched using atomic operations.
+
+	TODO: Fetch each presence atomic, then create 128bit vector and compare.
+*/
 #define bitpool_presence_any(b_p) \
 	(simd_cmpz_128(simd_load_128((b_p)->presence)))
 
@@ -105,53 +106,79 @@ typedef struct _bitpool_desc{
 #define BITPOOL_BUCKET_AVX256 0x20 // simd_imax_store_256
 #define BITPOOL_BUCKET_AVX512 0x40 // simd_imax_store_512
 
-static bitpool_prior_range *_bitpool_range_from_prior(
-	_in struct bitpool_range_desc	*desc,
+static u8 _bitpool_prior_to_presence(
+	_in bitpool_desc		*bitpool,
 	_in enum mte_prior		prior
 ){
-	if (desc == nullptr){
-		return nullptr;
-	}
+	asrt(bitpool != nullptr);
 
 	switch(prior){
 	case PRIOR_MIN:
 	case PRIOR_LOW:
-		return &desc->low;
+		return 3;
 	case PRIOR_MOD:
 	case PRIOR_MED:
-		return &desc->med;
+		return 2;
 	case PRIOR_HIGH:
 	case PRIOR_VERY_HIGH:
-		return &desc->high;
+		return 1;
 	case PRIOR_REAL:
 	case PRIOR_MAX:
-		return &desc->real;
+		return 0;
 	default:
-		return nullptr;
+		asrt(0);
 	}
 }
 
-struct bitpool_perc_desc{
-	_in const u8		real_perc;
-	_in const u8		high_perc;
-	_in const u8		med_perc;
-	_in const u8		low_perc;
-};
-#define bitpool_perc_desc_sum(bp) \
-	((bp).real_perc + (bp).high_perc + (bp).med_perc + (bp).low_perc)
+/*
+ 	Convert [bitpool] bit index to [bitpool->presence] index 
+*/
+static u8 _bitpool_index_to_presence(
+	_in bitpool_desc	*bitpool,
+	_in u32			index
+){
+	asrt(bitpool != nullptr);
+	asrt(bitpool->bucket_count > index);
+
+	for (u8 i = 0; i < 4; i++){
+		if (bitpool->ranges[i].bit_n > 0
+		&& index >= bitpool->ranges[i].bit_i){
+			return i;
+		}
+	}
+
+	// No fallback (bitpool and index are completely unaligned)
+	asrt(0);
+}
+
+/*
+	Convert [bitpool] bit index to bucket pointer
+*/
+_inline_force void *_bitpool_index_to_bucket(
+	_in bitpool_desc			*bitpool,
+	_in u32					index
+){
+	asrt(index < bitpool->bucket_count);
+	return offp(bitpool->bucket_base, bitpool->bucket_size * index);
+}
+
+typedef u8 	bitpool_perc_desc[4];
+
+#define bitpool_perc_desc_sum(b_p) \
+	(b_p[0] + b_p[1] + b_p[2] + b_p[3])
 
 #define BITPOOL_PERC_DEFAULT \
-	(struct bitpool_perc_desc){ \
-		.real_perc = 10, \
-		.high_perc = 15, \
-		.med_perc = 25, \
-		.low_perc = 50, \
+	(bitpool_perc_desc){ \
+		[0] /*real_perc*/ = 10, \
+		[1] /*high_perc*/ = 15, \
+		[2] /*med_perc*/ = 25, \
+		[3] /*low_perc*/ = 50, \
 	}
 #define BITPOOL_PERC_OFFLOAD \
-	(struct bitpool_perc_desc){ \
-		.high_perc = 10, \
-		.med_perc = 20, \
-		.low_perc = 70, \
+	(bitpool_perc_desc){ \
+		[1] /*high_perc*/ = 10, \
+		[2] /*med_perc*/ = 20, \
+		[3] /*low_perc*/ = 70, \
 	}
 
 /*
@@ -160,7 +187,7 @@ struct bitpool_perc_desc{
 axres bitpool_create(
 	_in const u32				bucket_count, 
 	_in const u32				bucket_size, 
-	_in struct bitpool_perc_desc 		perc,
+	_in bitpool_perc_desc 			perc,
 	_out bitpool_desc			**buf
 );
 
@@ -176,14 +203,14 @@ void bitpool_delete(
 */
 axres bitpool_range_populate(
 	_in sync_map_desc			*smap_desc,
-	_in struct bitpool_perc_desc 		perc,
-	_in_out struct bitpool_range_desc 	*buf
+	_in bitpool_perc_desc 			perc,
+	_in_out bitpool_prior_range 		buf[4]
 );
 
 /*
  	Blocking bitpool load to priority range
 */
-struct bitpool_prior_load_res{
+struct bitpool_prior_load_res{ _align(8)
 	axres		code;
 	u32		index;
 } bitpool_prior_load(
@@ -192,51 +219,24 @@ struct bitpool_prior_load_res{
 	_in enum mte_prior  	prior
 );
 
-_inline_force void *_bitpool_index_to_bucket(
-	_in bitpool_desc			*bitpool,
-	_in u32					index
-){
-	asrt(index < bitpool->bucket_count);
-	return offp(bitpool->bucket_base, bitpool->bucket_size * index);
-}
-
-/*
- 	Convert bitpool anonymous index to [bitpool->presence] index 
-*/
-_inline_force u8 _bitpool_index_to_presence(
-	_in bitpool_desc	*bitpool,
-	_in u32			index
-){
-	asrt(bitpool != nullptr);
-	asrt(bitpool->bucket_count <= index);
-
-	if (bitpool->ranges.real.bit_n > 0
-	&& index >= bitpool->ranges.real.bit_i){
-		return 0;
-	}
-	if (bitpool->ranges.high.bit_n > 0
-	&& index >= bitpool->ranges.high.bit_i){
-		return 1;
-	}
-	if (bitpool->ranges.med.bit_n > 0
-	&& index >= bitpool->ranges.med.bit_i){
-		return 2;
-	}
-	if (bitpool->ranges.low.bit_n > 0
-	&& index >= bitpool->ranges.low.bit_i){
-		return 3;
-	}
-
-	// No fallback (bitpool and index are completely unaligned)
-	asrt(0);
-}
-
 /*
  	Bitpool unload from index of priority
 */
 void bitpool_prior_unload(
 	_in bitpool_desc	*bitpool,
 	_in u32			index
+);
+
+/*
+ 	Unload based on dispostitions per range
+*/
+struct bitpool_prior_unload_disp_res{ _align(8)
+	bool 		succ;
+	u8		presence_i; // Index of the unloaded presence (priority which took the disposition)
+	u8		bucket_i; // Index of the unloaded bucket
+} bitpool_prior_unload_disp(
+	_in bitpool_desc	*bitpool,
+	_in_out u32 		disp_presence[4]
 );
 
 #endif // !defined(MTE_BITPOOL_INT)

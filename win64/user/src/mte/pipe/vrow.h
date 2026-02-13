@@ -101,22 +101,28 @@ typedef struct _vrow_payload{ _align(16)
 	u8			data[0x30]; // 48 bytes payload
 } vrow_payload;
 
+#define VROW_BANK_COUNT 4
 #define VROW_BANK_SIZE 0x40
+
 #define VROW_STATE_EMPTY 0
+
+// Calculate byte offset to bank index (bi)  
+#define vrow_bank_off(v_p, bi) \
+	(offp((v_p)->base, (bi) * VROW_BANK_SIZE))
 
 // Check if bank index (bi) is marked as filled [F]
 #define vrow_is_filled(v_p, bi) \
-	(atomic_load_explicit(&(v_p)->states, memory_order_acquire) & (0b01 << (bi << 1)))
+	(atomic_load_explicit(&(v_p)->states, memory_order_acquire) & (0b01 << ((bi) << 1)))
 // Switch bank index (bi) filled [F] state
 #define vrow_fill_switch(v_p, bi) \
-	(atomic_fetch_xor_explicit(&(v_p)->states, (0b01 << (bi << 1)), memory_order_release))
+	(atomic_fetch_xor_explicit(&(v_p)->states, (0b01 << ((bi) << 1)), memory_order_release))
 
 // Check if bank index (bi) is marked as active [A]
 #define vrow_is_active(v_p, bi) \
-	(atomic_load_explicit(&(v_p)->states, memory_order_acquire) & (0b10 << (bi << 1)))
+	(atomic_load_explicit(&(v_p)->states, memory_order_acquire) & (0b10 << ((bi) << 1)))
 // Switch bank index (bi) active [A] state
 #define vrow_active_switch(v_p, bi) \
-	(atomic_fetch_xor_explicit(&(v_p)->states, (0b10 << (bi << 1)), memory_order_release))
+	(atomic_fetch_xor_explicit(&(v_p)->states, (0b10 << ((bi) << 1)), memory_order_release))
 
 #define vrow_is_closed(v_p) \
 	(atomic_load_explicit(&(v_p)->closed, memory_order_acquire))
@@ -155,11 +161,6 @@ void vrow_delete(
 	_in vrow_desc		*vrow
 );
 
-bool vrow_link_sync(
-	_in vrow_desc 		*vrow,
-	_in sync_map_desc	*map
-);
-
 /*
  	Blocking load to indexed bank.
 */
@@ -167,6 +168,15 @@ bool vrow_bank_load(
 	_in vrow_desc		*vrow,
 	_in u8			bank_i,
 	_in vrow_payload	payload
+);
+
+/*
+ 	Move payload from one bank to another.
+*/
+bool vrow_bank_swap(
+	_in vrow_desc		*vrow,
+	_in u8			from_i,
+	_in u8			to_i
 );
 
 #endif // !defined(MTE_VROW_INT)

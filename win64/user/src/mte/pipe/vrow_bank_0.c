@@ -4,6 +4,11 @@ bool vrow_bank_0_proc(
 	_in vrow_desc		*vrow,
 	_in org_to_ir_call	func
 ){
+	if (vrow == nullptr
+	|| func == nullptr){
+		return false;
+	}
+
 	// Get the payload
 	struct vrow_b0_payload *b0 =
 		(struct vrow_b0_payload*)offp(vrow->base, VROW_B0_OFFSET);

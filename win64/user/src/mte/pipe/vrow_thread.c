@@ -30,7 +30,7 @@ axres vrow_thread_init(
 	res = pthread_create(
 		&th->pthread,
 		&attr,
-		(void* (*)(void*))vrow_thread_main,
+		(void *(*)(void*))vrow_thread_main,
 		&th->stack);
 	if (res != 0){
 		return AX_UNK_ERR; // TODO: Different code
@@ -69,6 +69,9 @@ void *vrow_thread_main(
 		__INL_PERF_INIT
 		__INL_PERF_START
 
+		// Signal vrow thread is processing bank 0
+		vrow_active_switch(vrow, 0);
+
 		// Signal thread business
 		sync_map_ref_sigon(smap);
 
@@ -84,11 +87,19 @@ void *vrow_thread_main(
 			break;
 		}
 
-		// Tell vrow that thread is now at bank 1
+		// Signal vrow thread is processing bank 1
 		vrow_active_switch(vrow, 1);
 		vrow_active_switch(vrow, 0);
 
-		// Signal thread emptiness
+		// Move processed payload from bank 0 to bank 1
+		if (!vrow_bank_swap(vrow, 0, 1)){
+			// Force thread exit on fail
+			// TODO: backout and reset the thread instead of breaking
+			sync_map_ref_sigoff(smap);
+			break;
+		}
+
+		// Signal thread finished
 		sync_map_ref_sigoff(smap);
 
 		__INL_PERF_END

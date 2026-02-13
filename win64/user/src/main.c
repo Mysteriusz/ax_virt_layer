@@ -165,7 +165,14 @@ int main(){
 		return 1;
 	}
 
-	while(1){_mm_pause();}
+	/*sync_map_desc smap = {0};
+	sync_map_init(64, &smap);
+	sync_map_sigon(smap, 0);
+	//io_i64(sync_map_issig(smap, 1));
+
+	u32 i = 0;
+	sync_map_unsig_first(0, 10, &smap, &i);*/
+	//io_i64(i);
 
 	sched_delete(sched);
 	ir_delete(ir);

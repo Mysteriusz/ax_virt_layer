@@ -48,6 +48,7 @@ void vrow_delete(
 
 	vrow_close(vrow);
 
+	// Wait until state is equal to an empty state (all threads disposed)
 	while (atomic_load_explicit(&vrow->states, memory_order_acquire) != VROW_STATE_EMPTY){
 		_mm_pause();
 	}
@@ -60,15 +61,51 @@ bool vrow_bank_load(
 	_in u8			bank_i,
 	_in vrow_payload	payload
 ){
+	if (vrow == nullptr
+	|| bank_i >= VROW_BANK_COUNT){
+		return false;
+	}
+
+	// Block thread until vrow not filled
 	while(vrow_is_filled(vrow, bank_i)){
 		_mm_pause();
 	}
 
-	u8 *base_off = offp(vrow->base, bank_i * VROW_BANK_SIZE);
+	// Calculate offset of the bank using the index
+	u8 *base_off = vrow_bank_off(vrow, bank_i);
+
+	// Copy payload from stack to vrow
 	simd_imax_store_512(base_off, &payload);
 
+	// Set thread to loaded
 	vrow_fill_switch(vrow, bank_i);
 
-	return false;
+	return true;
+}
+
+bool vrow_bank_swap(
+	_in vrow_desc		*vrow,
+	_in u8			from_i,
+	_in u8			to_i
+){
+	if (vrow == nullptr
+	|| from_i >= VROW_BANK_COUNT
+	|| to_i >= VROW_BANK_COUNT){
+		return false;
+	}
+
+	// Set (to_i) bank to filled
+	vrow_fill_switch(vrow, to_i);
+
+	u8 *from_off = vrow_bank_off(vrow, from_i);
+	u8 *to_off = vrow_bank_off(vrow, to_i);
+
+	// Move payload from [from_i] bank to [to_i] bank
+	simd_imax_store_512(to_off, (simd_imax*)from_off);
+
+	// Set (to_i) bank to empty
+	vrow_fill_switch(vrow, from_i);
+
+	return true;
 }
 

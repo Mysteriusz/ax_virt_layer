@@ -109,21 +109,6 @@ _inline_avert void sched_delete(
 	axfree(sched);
 }
 
-void *sched_main(
-	_in sched_context 	*sched
-){
-	bitpool_desc *queue = sched->queue;
-
-	while(!sched_is_closed(sched)){
-		if(!bitpool_presence_any(queue)){
-			_mm_pause();
-			continue;
-		}
-	}
-	sched_terminate(sched);
-	return nullptr;
-}
-
 bool sched_push(
 	_in sched_context	*sched,
 	_in vrow_payload	payload,
@@ -133,7 +118,8 @@ bool sched_push(
 		return false;
 	}
 
-	struct bitpool_prior_load_res res = bitpool_prior_load( // BLOCKS IF QUEUE IS FULL!!!
+	struct bitpool_prior_load_res res =
+	bitpool_prior_load( // BLOCKS IF QUEUE IS FULL!!!
 		sched->queue,
 		&payload,
 		payload.priority);
@@ -167,7 +153,8 @@ bool sched_pop(
 	if (!vrow_bank_load( // Blocks until vrow is free
 		sched->vrow_base[vrow_index],
 		0,
-		*(vrow_payload*)_bitpool_index_to_bucket(sched->queue, queue_index))){
+		*(vrow_payload*)_bitpool_index_to_bucket(sched->queue, queue_index))
+	){
 		return false;
 	}
 
@@ -177,5 +164,64 @@ bool sched_pop(
 	bitpool_prior_unload(sched->queue, queue_index);
 
 	return true;
+}
+
+void *sched_main(
+	_in sched_context 	*sched
+){
+	bitpool_desc *queue = sched->queue;
+
+	// Disposition array (Follows same indeces as [bitpool_desc->presence])
+	u32 disp_presence[4] = {0};
+
+	while(!sched_is_closed(sched)){
+		if(!bitpool_presence_any(queue)){
+			_mm_pause();
+			continue;
+		}
+
+		/*
+		 	Try to allocate first available vrow
+		*/
+		u32 vrow_i = 0;
+		if (!sync_map_sig_first(
+			0,
+			sched->vrow_count,
+			&sched->vrow_smap,
+			&vrow_i)
+		){
+			continue;
+		}
+
+		/*
+			Decide which bucket to pop from the queue
+		*/
+		struct bitpool_prior_unload_disp_res res = 
+		bitpool_prior_unload_disp(
+			queue,
+			disp_presence
+		);
+		if (!res.succ){
+			// Reverse signaling of vrow
+			sync_map_sigoff(sched->vrow_smap, vrow_i);
+			continue;
+		}
+
+		/*io_str(u"Presence:");
+		io_i64(atomic_load(&queue->presence[3]));
+		io_i64(atomic_load(&queue->presence[2]));
+		io_str(u"Unload bucket:");
+		io_i64(res.bucket_i);
+		io_i64(res.presence_i);*/
+
+		/*
+		 	TODO: Some kind of fallback
+			Pop the bucket to signaled vrow 
+			(Now the vrow thread handles the rest)
+		*/
+		sched_pop(sched, vrow_i, res.bucket_i);
+	}
+	sched_terminate(sched);
+	return nullptr;
 }
 

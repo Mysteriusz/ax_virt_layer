@@ -42,22 +42,26 @@ typedef _Atomic(u64)* 		sync_map;
 /*
 	Unspecified thread-safe and lock-free bitmap descriptor
 */
-typedef struct _sync_map_desc{ _align(64)
+typedef struct _sync_map_desc{ _align(8)
 	sync_map	map; // Map pointer
 	u32		size; // Size in bytes of the map
 } sync_map_desc;
 
-// Unset map (m_p) at index (i)
-#define sync_map_sigoff(m_p, i) \
-	(atomic_fetch_and_explicit(&((m_p).map[sync_map_ind2quad(i)]), ~(1ULL << sync_map_ind2bit(i)), memory_order_release))
+// Unset map (m) at index (i)
+#define sync_map_sigoff(m, i) \
+	(atomic_fetch_and_explicit(&((m).map[sync_map_ind2quad(i)]), ~(1ULL << sync_map_ind2bit(i)), memory_order_release))
 
-// Set map (m_p) at index (i)
-#define sync_map_sigon(m_p, i) \
-	(atomic_fetch_or_explicit(&((m_p).map[sync_map_ind2quad(i)]), (1ULL << sync_map_ind2bit(i)), memory_order_release))
+// Set map (m) at index (i)
+#define sync_map_sigon(m, i) \
+	(atomic_fetch_or_explicit(&((m).map[sync_map_ind2quad(i)]), (1ULL << sync_map_ind2bit(i)), memory_order_release))
+
+// Check signal in map (m)
+#define sync_map_issig(m, i) \
+	(atomic_load_explicit(&((m).map[sync_map_ind2quad(i)]), memory_order_acquire) & (1ULL << sync_map_ind2bit(i)))
 /*
 	Map descriptor reference for member
 */
-typedef struct _sync_map_ref{ _align(64)
+typedef struct _sync_map_ref{
 	sync_map	map; // Map pointer
 	u32		quad_index; // Quad index of this member
 	u32		byte_index; // Index of this member
@@ -82,7 +86,7 @@ typedef struct _sync_map_ref{ _align(64)
 	(local means the sync_map can be passed by reference)
 */
 axres sync_map_init(
-	_in u32 		size,
+	_in u32 		size, // In bits (has to be multiplication of 64)
 	_in_out sync_map_desc	*buf
 );
 
@@ -104,9 +108,19 @@ axres sync_map_ref_init(
 );
 
 /*
- 	Sign first non-signaled bit if found
+ 	Signal first non-signaled bit if found
 */
 bool sync_map_sig_first(
+	_in u32			from_bit_index,	
+	_in u32			to_bit_index,
+	_in sync_map_desc	*smap,
+	_out_opt u32		*index
+);
+
+/*
+ 	Unsignal first non-signaled bit if found
+*/
+bool sync_map_unsig_first(
 	_in u32			from_bit_index,	
 	_in u32			to_bit_index,
 	_in sync_map_desc	*smap,
