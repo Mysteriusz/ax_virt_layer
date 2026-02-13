@@ -70,27 +70,26 @@ static void instr_dis(
 _inline_avert void foo(
 	u8 b[15]
 ){
-	intel64_mte_raw_instr instr = b;
-
 	__INL_PERF_INIT
+	//intel64_mte_raw_instr instr = b;
+
 	__INL_PERF_START
 
-	volatile const intel64_opcode opcode = _intel64_get_opcode(instr);
+	/*volatile const intel64_opcode opcode = _intel64_get_opcode(instr);
 	volatile u8 modrm = _intel64_get_modrm(opcode, instr);
 	volatile const intel64_sib sib = _intel64_get_sib(opcode, modrm, instr);
 	volatile u32 disp = _intel64_get_disp(opcode, modrm, instr);
-	volatile u64 immd = _intel64_get_immd(opcode, modrm, instr);
+	volatile u64 immd = _intel64_get_immd(opcode, modrm, instr);*/
 
 	__INL_PERF_END
+	__INL_PERF_LOG
 
-	printf("Empty in ns: %lf\n", (mm_perf_empty / 4.2));
-	printf("Time in ns: %lf\n", (__INL_PERF_SUM / 4.2));
-	printf("%02x\n", modrm);
+	/*printf("%02x\n", modrm);
 	printf("%u %u %u %u\n", opcode.info.x, opcode.info.r, opcode.info.l, opcode.info.e);
 	printf("%02x %02x %02x\n", opcode.val, opcode.legacy, opcode.rex);
-	printf("%02x %02llx\n", disp, immd);
-	printf("%02x\n", sib.val);
 	printf("%02x\n", opcode.len);
+	printf("%02x %02llx\n", disp, immd);
+	printf("%02x\n", sib.val);*/
 }
 // TEMPORARY
 #include <windows.h>
@@ -99,17 +98,22 @@ _inline_avert void foo(
 #include "mte/pipe/vrow_bank.h"
 #include "mte/pipe/sched.h"
 #include "mte/pipe/bitpool.h"
+#include "intel/emitter/intel64_emit.h"
 
 int main(){
 	SetPriorityClass(GetCurrentProcess(), REALTIME_PRIORITY_CLASS);
 	SetThreadAffinityMask(GetCurrentThread(), 1);
 
-	__INL_PERF_INIT
 	_intel64_prefetch_immd();
 	_intel64_prefetch_modrm();
+	intel64_load_qtables();
+	mips32_load_qtables();
 
-	_mips32_prefetch_reg_byte_table();
-	_mips32_prefetch_op_byte_table();
+	init_intel64_mte_raw_instr(0x40);
+
+#if 0
+	_intel64_prefetch_immd();
+	_intel64_prefetch_modrm();
 
 	intel64_load_qtables();
 	mips32_load_qtables();
@@ -149,9 +153,9 @@ int main(){
 	 	Create scheduler context for the IR
 	*/
 
-	sched_context *sched = nullptr;
+	/*sched_context *sched = nullptr;
 	res = sched_create(ir, 2, 0, &sched);
-	axcheck(res, ax_log(res));
+	axcheck(res, ax_log(res));*/
 
 	/*
 	 	Initialize and push the payload
@@ -180,6 +184,7 @@ int main(){
 
 	sched_delete(sched);
 	ir_delete(ir);
+#endif
 
 	io_i64(_MEM_ACTIVE);
 
@@ -270,6 +275,6 @@ int main(){
 	/*ir_raw_instr buf = init_ir_raw_instr(0);
 	mips32_raw_to_ir(enc.mips32, &buf);*/
 
-	return 0;
+	return 1;
 }
 

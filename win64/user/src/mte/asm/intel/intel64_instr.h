@@ -14,8 +14,9 @@
  	Currently all translations are expected to be in IA-32E with 64-bit mode.
 */
 
-typedef u8 const* intel64_mte_raw_instr; // Unknown length instruction (up to 15 bytes)
-#define init_intel64_mte_raw_instr(...) ((intel64_mte_raw_instr)((const u8[15]){__VA_ARGS__}))
+typedef simd_256 intel64_mte_raw_instr; // Unknown length instruction (up to 15 bytes) (For the purpose of optimisation AVX is used for storage)
+#define init_intel64_mte_raw_instr(...) \
+	((intel64_mte_raw_instr)(simd_load_256((const u8[16]){__VA_ARGS__})))
 
 /*	
  	intel64 instruction breakdown
@@ -41,23 +42,31 @@ typedef u8 const* intel64_mte_raw_instr; // Unknown length instruction (up to 15
 #define rex_x(r) 	(bool)(r & (1 << 1))
 #define rex_b(r) 	(bool)(r & 1)
 
-typedef struct _packed _intel64_opcode_info{
-	u8 reserved : 4; // 0000
-	u8 x : 1; // Is extended by 0FH
-	u8 r : 1; // Has rex
-	u8 l : 1; // Has legacy
-	u8 e : 1; // Has legacy as opcode extension (66H, F2H, F3H)
+typedef struct _intel64_opcode_info{ _align(4)
+	bool x; // Is extended by 0FH
+	bool r; // Has rex
+	bool l; // Has legacy
+	bool e; // Has legacy as opcode extension (66H, F2H, F3H)
 } intel64_opcode_info;
 
 // Opcode intermediate
-typedef struct _packed _intel64_opcode{
+typedef struct _intel64_opcode{ _align(4)
 	const u32 			val;
-	const u8 			len;
 	const intel64_opcode_info 	info; // 0000XRLE (is opcode extension (0x0f) | is rex | is legacy | is legacy extension)
 	const u8			legacy; // Legacy prefix value
 	const u8			rex; // Rex prefix value
-} intel64_opcode _align(8);
+	const u8 			len;
+} intel64_opcode;
 
+typedef struct _intel64_sib { _align(4)
+	u8	index_ext; // Extended by it`s rex X field
+	u8	index; 
+	u8	base_ext; // Extended by it`s rex B field
+	u8	base;
+	u8	val;
+} intel64_sib;
+
+#if 0
 _inline_force bool _intel64_legacy_ext(
 	_in intel64_mte_raw_instr	instr
 ){
@@ -211,16 +220,6 @@ _inline_force u8 _intel64_get_modrm(
 #define sib_scale(m) ((u8)(m) >> 6)
 #define sib_index(m) (((u8)(m) >> 3) & 0x7)
 #define sib_base(m) ((u8)(m) & 0x7)
-
-typedef struct _packed _intel64_sib{
-	// Second byte
-	u8	index_ext : 1; // Extended by it`s rex X field
-	u8	index : 3; 
-	u8	base_ext : 1; // Extended by it`s rex B field
-	u8	base : 3;
-	// First byte
-	u8	val;
-} intel64_sib _align(8);
 
 _inline_force const bool _intel64_sib_ext(
 	_in u8				modrm
@@ -404,6 +403,7 @@ _inline_force u64 _intel64_get_immd(
 	}
 	return *(u64*)buf;
 }
+#endif
 
 #endif // !defined(MTE_INTEL64_INSTR_INT)
 

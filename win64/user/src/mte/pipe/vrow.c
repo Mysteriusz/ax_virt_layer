@@ -75,7 +75,7 @@ bool vrow_bank_load(
 	u8 *base_off = vrow_bank_off(vrow, bank_i);
 
 	// Copy payload from stack to vrow
-	simd_imax_store_512(base_off, &payload);
+	simd_store_512(base_off, &payload);
 
 	// Set thread to loaded
 	vrow_fill_switch(vrow, bank_i);
@@ -101,7 +101,7 @@ bool vrow_bank_swap(
 	u8 *to_off = vrow_bank_off(vrow, to_i);
 
 	// Move payload from [from_i] bank to [to_i] bank
-	simd_imax_store_512(to_off, (simd_imax*)from_off);
+	simd_store_512(to_off, (simd_imax*)from_off);
 
 	// Set (to_i) bank to empty
 	vrow_fill_switch(vrow, from_i);

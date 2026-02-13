@@ -141,10 +141,10 @@ inline void _vrow_force_flush(
 		return;
 	}
 
-	simd_imax_zero_512(vrow->base);
-	simd_imax_zero_512(offp(vrow->base, 64));
-	simd_imax_zero_512(offp(vrow->base, 128));
-	simd_imax_zero_512(offp(vrow->base, 192));
+	simd_zero_512(vrow->base);
+	simd_zero_512(offp(vrow->base, 64));
+	simd_zero_512(offp(vrow->base, 128));
+	simd_zero_512(offp(vrow->base, 192));
 
 	// Force all threads and payload states to default.
 	atomic_store_explicit(&vrow->states, VROW_STATE_EMPTY, memory_order_release);

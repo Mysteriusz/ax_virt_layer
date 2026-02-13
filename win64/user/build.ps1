@@ -1,3 +1,7 @@
+param(
+	[DateTime]$last_date
+)
+
 # User mode not supported
 if ($km){
 	return
@@ -15,25 +19,15 @@ $files_h = @(
 $files_lib = @("C:\msys64\ucrt64\x86_64-w64-mingw32\lib\")
 
 $build_path = "$PSScriptRoot\build\"
-$timestamp_txt = "$build_path\timestamp.txt"
 $output_exe = "$build_path\ax_virt_core.exe"
 
-if (test-path $timestamp_txt -pathtype Leaf){
-	$last_date = $(get-item $timestamp_txt).LastWriteTime
-}else{
-	$last_date = [DateTime]::MinValue
-}
-
-$files_o = @(gci $build_path -file -r -filter "*.obj")
+$files_o = @(gci $build_path -file -r -filter "*.o")
 
 foreach ($src in $files_c){
-	$out = $build_path+$($src.Name -replace "\.[^.]+$")+".obj"
+	$out = $build_path+$($src.Name -replace "\.[^.]+$")+".o"
 	MSG -msg "Compiling file: $($src.FullName)" -color DarkYellow -opt
 
-	$exists = $(test-path $out -pathtype Leaf)
-	$src_date = $src.LastWriteTime
-
-	if ($exists -and $last_date -ge $src_date){
+	if (TIMESTAMP_CHECK -file $src -stamp $last_date -out $out){
 		MSG -msg "Skipping file: $($src.FullName)" -color DarkGray -opt
 		continue
 	}
@@ -54,8 +48,8 @@ foreach ($src in $files_c){
 		return 1
 	}
 
-	if ($exists){
-		$files_o = $files_o | where {"$_.DirectoryName\$_.BaseName" -ne "$out.DirectoryName\$out.BaseName"}
+	if (test-path $out -pathtype Leaf){
+		$files_o = @($files_o | where {"$_.DirectoryName\$_.BaseName" -ne "$out.DirectoryName\$out.BaseName"})
 	}
 	$files_o += $out
 
@@ -80,11 +74,4 @@ if ($lastexitcode -ne 0){
 	return 1
 }
 MSG -msg "Virtualizer core created at: ${output_sys}" -color Blue
-
-new-item `
-	-path $build_path `
-	-name "timestamp.txt" `
-	-itemtype "File" `
-	-value "$(get-date -uformat "%d/%m/%Y:%T")" `
-	-force | out-null
 
