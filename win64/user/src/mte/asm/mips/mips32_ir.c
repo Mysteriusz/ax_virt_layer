@@ -34,7 +34,7 @@ ir_raw_instr mips32_to_ir_call(
 	_in ir_context		*context
 ){
 	ir_raw_instr buf = {0};
-	axres res = mips32_raw_to_ir(instr.mips32, &buf);
+	axres res = mips32_raw_to_ir(instr.payload[0], &buf);
 	axcheck_r(res, (ir_raw_instr){0});
 
 	return buf;

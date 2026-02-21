@@ -31,10 +31,14 @@ extern u64 *L2M_MASK_LOOKUP[8];
 
 // Mask to immediate length table
 extern u8 IMMD_MASK_LEN_TABLE[4];
+// Convert mask from [L2I_MASK_LOOKUP] 
+// to length of an opcode
 #define MASK_TO_LEN(m) 		(IMMD_MASK_LEN_TABLE[(m) & 0x3])
 
 // Submask to immediate length table
 extern u8 IMMD_SUBMASK_LEN_TABLE[4];
+// Convert submaskmask from [L2I_SUBMASK_LOOKUP]
+// to length an opcode
 #define SUBMASK_TO_LEN(sm) 	(((sm) & 1) ? 1 : IMMD_SUBMASK_LEN_TABLE[(((sm) >> 1) & 0x3)])
 
 /*

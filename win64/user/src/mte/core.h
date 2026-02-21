@@ -7,21 +7,16 @@
 
 #include <ax_error.h>
 
-#include "mips/mips32.h"
-#include "intel/intel64.h"
 #include "mte/asm/decode_u64.h"
 
 #include "arch.h"
 
 typedef struct _mte_raw_instr{
-	enum mte_arch			arch;
+	enum mte_arch	arch;
 	/*
 	 	Payload
 	*/
-	union {
-		mips32_mte_raw_instr 	mips32;
-		intel64_mte_raw_instr 	intel64;
-	};
+	u32 		payload[4];
 } mte_raw_instr;
 
 typedef struct _mte_byte_instr{

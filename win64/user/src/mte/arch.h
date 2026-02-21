@@ -1,3 +1,6 @@
+#if !defined(MTE_ARCH_INT)
+#define MTE_ARCH_INT
+
 #include <ax_type.h>
 
 enum mte_arch : u32{
@@ -24,4 +27,6 @@ enum mte_prior : u8{
 	PRIOR_MAX,
 	MTE_PRIOR_MAX
 };
+
+#endif // !defined(MTE_ARCH_INT)
 

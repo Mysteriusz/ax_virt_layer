@@ -8,15 +8,17 @@
 #include "intel/tables/intel64_modrm.h"
 #include "intel/tables/intel64_immd.h"
 
+#include "intel64_operand.h"
+
 /*
  	IMPORTANT!
 
  	Currently all translations are expected to be in IA-32E with 64-bit mode.
 */
 
-typedef simd_256 intel64_mte_raw_instr; // Unknown length instruction (up to 15 bytes) (For the purpose of optimisation AVX is used for storage)
+typedef simd_128 intel64_mte_raw_instr; // Unknown length instruction (up to 15 bytes) (For the purpose of optimisation AVX is used for storage)
 #define init_intel64_mte_raw_instr(...) \
-	((intel64_mte_raw_instr)(simd_load_256((const u8[16]){__VA_ARGS__})))
+	((intel64_mte_raw_instr)(simd_load_128((const u8[16]){__VA_ARGS__})))
 
 /*	
  	intel64 instruction breakdown

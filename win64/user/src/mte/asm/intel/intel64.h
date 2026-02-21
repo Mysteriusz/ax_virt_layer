@@ -4,7 +4,7 @@
 #include "mte/asm/decode_u64.h"
 #include "mte/cpu.h"
 
-#include "intel64_instr.h"
+#include "intel/instr/intel64_instr.h"
 
 #endif
 

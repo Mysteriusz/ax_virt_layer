@@ -12,12 +12,10 @@ axres mips32_byte_to_raw(
 	if (buf == nullptr){
 		return AX_INV_BUF;
 	}
-	mips32_mte_raw_instr *raw = &buf->mips32;
 	_mm_prefetch(instr, _MM_HINT_T0);
-	_mm_prefetch(raw, _MM_HINT_T0);
 
-	_mips32_eval(instr, raw);
-	if (_mips32_opcode(buf->mips32) == MIPS32_OPCODE_INVALID){
+	_mips32_eval(instr, buf->payload);
+	if (_mips32_opcode(buf->payload[0]) == MIPS32_OPCODE_INVALID){
 		return AX_MTE_INV_INSTR;
 	}
 	buf->arch = instr->arch;

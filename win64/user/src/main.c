@@ -98,6 +98,7 @@ _inline_avert void foo(
 #include "mte/pipe/vrow_bank.h"
 #include "mte/pipe/sched.h"
 #include "mte/pipe/bitpool.h"
+
 #include "intel/emitter/intel64_emit.h"
 
 int main(){
@@ -109,7 +110,27 @@ int main(){
 	intel64_load_qtables();
 	mips32_load_qtables();
 
-	init_intel64_mte_raw_instr(0x40);
+	axres res = AX_SUCC;
+
+	simd_128 instr = init_intel64_mte_raw_instr(0);
+	res = intel64_emit_64(
+		ADD_8_R8,
+		(intel64_operand[INTEL64_MAX_OP_COUNT]){
+			[0] = (intel64_operand){
+				.desc.type = INTEL64_REG,
+				.desc.width = W8,
+				.value = 20
+			},
+			[1] = (intel64_operand){
+				.desc.type = INTEL64_REG, 
+				.desc.width = W8,
+				.value = 10
+			},
+		},
+		2,
+		&instr
+	);
+	axcheck(res, ax_log(res));
 
 #if 0
 	_intel64_prefetch_immd();
@@ -153,9 +174,9 @@ int main(){
 	 	Create scheduler context for the IR
 	*/
 
-	/*sched_context *sched = nullptr;
+	sched_context *sched = nullptr;
 	res = sched_create(ir, 2, 0, &sched);
-	axcheck(res, ax_log(res));*/
+	axcheck(res, ax_log(res));
 
 	/*
 	 	Initialize and push the payload
@@ -164,14 +185,8 @@ int main(){
 	vrow_payload b0 =
 		*(vrow_payload*)&init_vrow_b0_payload(ir, instr);
 
-	while(1){
-	if (!sched_push(sched, b0, nullptr)){
-		ax_log(AX_UNK_ERR);
-		return 1;
-	}
-	_mm_pause();
-	}
-	while(1) {_mm_pause();}
+	sched_push(sched, b0, nullptr);
+	//while(1) {_mm_pause();}
 
 	/*sync_map_desc smap = {0};
 	sync_map_init(64, &smap);
