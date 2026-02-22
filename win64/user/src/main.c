@@ -26,9 +26,9 @@ static const c16 *val_to_reg(
 	return u"";
 }
 static void instr_dis(
-	_in intel64_opcode 	opcode,
+	//_in intel64_opcode 	opcode,
 	_in u8 			modrm,
-	_in intel64_sib 	sib,
+	//_in intel64_sib 	sib,
 	_in u32 		disp,
 	_in u64 		immd
 ){
@@ -105,29 +105,30 @@ int main(){
 	SetPriorityClass(GetCurrentProcess(), REALTIME_PRIORITY_CLASS);
 	SetThreadAffinityMask(GetCurrentThread(), 1);
 
-	_intel64_prefetch_immd();
-	_intel64_prefetch_modrm();
-	intel64_load_qtables();
-	mips32_load_qtables();
+	//intel64_load_qtables();
+	
+	for (u32 i = 0; i < 0xff; i += (64 / sizeof(struct intel64_opcode_meta))){
+		_mm_prefetch(&L1_OPCODE_META_TABLE[i], _MM_HINT_T0);
+	}
+	//printf("%p\n", L1_OPCODE_META_TABLE);
 
 	axres res = AX_SUCC;
 
 	simd_128 instr = init_intel64_mte_raw_instr(0);
 	res = intel64_emit_64(
 		ADD_8_R8,
-		(intel64_operand[INTEL64_MAX_OP_COUNT]){
+		(intel64_operand[INTEL64_RED_OP_COUNT]){
 			[0] = (intel64_operand){
 				.desc.type = INTEL64_REG,
 				.desc.width = W8,
 				.value = 20
 			},
 			[1] = (intel64_operand){
-				.desc.type = INTEL64_REG, 
+				.desc.type = INTEL64_REG,
 				.desc.width = W8,
-				.value = 10
+				.value = 60
 			},
 		},
-		2,
 		&instr
 	);
 	axcheck(res, ax_log(res));

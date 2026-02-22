@@ -21,20 +21,20 @@ struct modrm_tables_root{
 	const u64 l2_f2_mask[4];
 	const u64 l2_f3_mask[4];
 };
-extern const struct modrm_tables_root *const modrm_tables _align(64);
-#define INTEL64_MODRM_VTB(m, v) ((m[(v) >> 6] >> ((v) & 63)) & 1)
+extern const struct modrm_tables_root MODRM_TABLES _align(64);
+
+// Access modrm table (t) to opcode leading byte (v)
+// The modrm table may be any of the tables from [MODRM_TABLES]
+#define INTEL64_MODRM_VTB(t, v) \
+	((t[(v) >> 6 /* Divide by 64 */] >> ((v) & 63)) & 1 /* Shift to index and read present bit */)
 
 /*
  	Prefetch modrm tables
 */
 
-static void _intel64_prefetch_modrm(
+_inline_avert void intel64_prefetch_modrm(
 	void
-){
-	_mm_prefetch(modrm_tables, _MM_HINT_T0);
-	_mm_prefetch(offp(modrm_tables, 64), _MM_HINT_T0);
-	_mm_prefetch(offp(modrm_tables, 128), _MM_HINT_T0);
-};
+);
 
 #endif // !defined(MTE_INTEL64_MODRM_INT)
 

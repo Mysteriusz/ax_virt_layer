@@ -1,5 +1,8 @@
 #include "intel64_qtables.h"
 
+#include "intel/intel64_immd.h"
+#include "intel/intel64_modrm.h"
+
 /*
  	For INTEL64_IMMD_INT interface.
 */
@@ -26,20 +29,20 @@ bool LEG_PREF_EXT_LOOKUP[0xff] = {[0 ... 0xfe] = 0};
 void intel64_load_qtables(
 	void
 ){
-	L2I_MASK_LOOKUP[0b111] = (u64*)immd_tables->l2_0f_mask; // 0fH & 7H = 111B
-	L2I_MASK_LOOKUP[0b110] = (u64*)immd_tables->l2_66_mask; // 66H & 7H = 110B
-	L2I_MASK_LOOKUP[0b001] = (u64*)immd_tables->l2_0f_mask; // f3H & 7H = 001B
-	L2I_MASK_LOOKUP[0b010] = (u64*)immd_tables->l2_0f_mask; // f2H & 7H = 010B
+	L2I_MASK_LOOKUP[0b111] = (u64*)IMMD_TABLES.l2_0f_mask; // 0fH & 7H = 111B
+	L2I_MASK_LOOKUP[0b110] = (u64*)IMMD_TABLES.l2_66_mask; // 66H & 7H = 110B
+	L2I_MASK_LOOKUP[0b001] = (u64*)IMMD_TABLES.l2_0f_mask; // f3H & 7H = 001B
+	L2I_MASK_LOOKUP[0b010] = (u64*)IMMD_TABLES.l2_0f_mask; // f2H & 7H = 010B
 
-	L2I_SUBMASK_LOOKUP[0b111] = (u8*)immd_tables->l2_0f_submask; // 0fH & 7H = 111B
-	L2I_SUBMASK_LOOKUP[0b110] = (u8*)immd_tables->l2_66_submask; // 66H & 7H = 110B
-	L2I_SUBMASK_LOOKUP[0b001] = (u8*)immd_tables->l2_0f_submask; // f3H & 7H = 001B
-	L2I_SUBMASK_LOOKUP[0b010] = (u8*)immd_tables->l2_0f_submask; // f2H & 7H = 010B
+	L2I_SUBMASK_LOOKUP[0b111] = (u8*)IMMD_TABLES.l2_0f_submask; // 0fH & 7H = 111B
+	L2I_SUBMASK_LOOKUP[0b110] = (u8*)IMMD_TABLES.l2_66_submask; // 66H & 7H = 110B
+	L2I_SUBMASK_LOOKUP[0b001] = (u8*)IMMD_TABLES.l2_0f_submask; // f3H & 7H = 001B
+	L2I_SUBMASK_LOOKUP[0b010] = (u8*)IMMD_TABLES.l2_0f_submask; // f2H & 7H = 010B
 
-	L2M_MASK_LOOKUP[0b111] = (u64*)modrm_tables->l2_0f_mask; // 0fH & 7H = 111B
-	L2M_MASK_LOOKUP[0b110] = (u64*)modrm_tables->l2_66_mask; // 66H & 7H = 110B
-	L2M_MASK_LOOKUP[0b001] = (u64*)modrm_tables->l2_0f_mask; // f3H & 7H = 001B
-	L2M_MASK_LOOKUP[0b010] = (u64*)modrm_tables->l2_0f_mask; // f2H & 7H = 010B
+	L2M_MASK_LOOKUP[0b111] = (u64*)MODRM_TABLES.l2_0f_mask; // 0fH & 7H = 111B
+	L2M_MASK_LOOKUP[0b110] = (u64*)MODRM_TABLES.l2_66_mask; // 66H & 7H = 110B
+	L2M_MASK_LOOKUP[0b001] = (u64*)MODRM_TABLES.l2_0f_mask; // f3H & 7H = 001B
+	L2M_MASK_LOOKUP[0b010] = (u64*)MODRM_TABLES.l2_0f_mask; // f2H & 7H = 010B
 
 	IMMD_MASK_LEN_TABLE[0b00] = 0; // No immediate
 	IMMD_MASK_LEN_TABLE[0b01] = 1;

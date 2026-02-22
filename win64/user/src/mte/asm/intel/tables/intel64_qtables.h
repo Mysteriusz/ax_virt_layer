@@ -7,9 +7,6 @@
 
 #include <ax_type.h>
 
-#include "intel64_modrm.h"
-#include "intel64_immd.h"
-
 /*
  	For MTE_INTEL64_IMMD_INT interface.
 */
@@ -52,7 +49,7 @@ extern bool LEG_PREF_EXT_LOOKUP[0xff];
  	-----------------------------------IMPORTANT!-----------------------------------
 		Load tables with their data before instruction decoding.
 */
-void intel64_load_qtables(
+_inline_avert void intel64_load_qtables(
 	void
 );
 

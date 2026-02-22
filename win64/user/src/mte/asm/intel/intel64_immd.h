@@ -3,6 +3,9 @@
 
 #include <ax_type.h>
 
+/*
+ 	Immediate table definitions
+*/
 #define SUBMASK_IMMD_8 		0b0001
 #define SUBMASK_IMMD_16 	0b0010
 #define SUBMASK_IMMD_32 	0b0100	
@@ -18,7 +21,7 @@
 #define SUBMASK_IMMD_MOD_6 	0b01000000
 #define SUBMASK_IMMD_MOD_7 	0b10000000
 
-// Universla submask creator
+// Universal submask creator
 #define SUBMASK_IMMD_AUTO(mask, immd) ( \
 	(mask) << ((immd == SUBMASK_IMMD_8) ? 0 : 3) | immd)
 
@@ -58,31 +61,16 @@ struct immd_tables_root{
 	const u64 	l2_0f_mask[8];
 	const u8 	l2_0f_submask[192]; // 0x00 - 0x3f opcodes don`t user the submask
 };
-extern const struct immd_tables_root *const immd_tables _align(64);
+extern const struct immd_tables_root IMMD_TABLES _align(64);
 #define INTEL64_IMMD_VTB(m, v) ((m[(v) >> 5] >> (((v) * 2) & 63)) & 0x3)
 
 /*
  	Prefetch immd tables
 */
 
-static void _intel64_prefetch_immd(
+_inline_avert void intel64_prefetch_immd(
 	void
-){
-	// L0 
-	_mm_prefetch(immd_tables, _MM_HINT_T0);
-	_mm_prefetch(offp(immd_tables, 64), _MM_HINT_T0);
-	_mm_prefetch(offp(immd_tables, 64 * 2), _MM_HINT_T0);
-	// L2_66
-	_mm_prefetch(offp(immd_tables, 64 * 3), _MM_HINT_T0);
-	_mm_prefetch(offp(immd_tables, 64 * 4), _MM_HINT_T0);
-	_mm_prefetch(offp(immd_tables, 64 * 5), _MM_HINT_T0);
-	_mm_prefetch(offp(immd_tables, 64 * 6), _MM_HINT_T0);
-	// L2_0f
-	_mm_prefetch(offp(immd_tables, 64 * 7), _MM_HINT_T0);
-	_mm_prefetch(offp(immd_tables, 64 * 8), _MM_HINT_T0);
-	_mm_prefetch(offp(immd_tables, 64 * 9), _MM_HINT_T0);
-	_mm_prefetch(offp(immd_tables, 64 * 10), _MM_HINT_T0);
-};
+);
 
 #endif // !defined(MTE_INTEL64_IMMD_INT)
 

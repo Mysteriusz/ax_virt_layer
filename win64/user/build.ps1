@@ -19,12 +19,13 @@ $files_lib = @("C:\msys64\ucrt64\x86_64-w64-mingw32\lib\")
 
 $build_path = "$PSScriptRoot\build\"
 $output_exe = "$build_path\ax_virt_core.exe"
+$output_pdb = "$build_path\ax_virt_core.pdb"
 
-$files_o = @(gci $build_path -file -r -filter "*.o")
+$files_o = [IO.FileInfo[]]@()
 
 $files_h_update = @()
 foreach ($hdr in $(gci $dirs_h -r -file -filter "*.h" | sort Name -unique)){
-	$out = [IO.FileInfo]$($build_path+"headers\$($hdr.BaseName)$($hdr.Extension)")
+	$out = [IO.FileInfo]$($build_path+"headers\$($hdr.Name)")
 
 	if ($last_date -gt $hdr.LastWriteTime -and $(test-path $out.FullName -pathtype Leaf)){
 		MSG -msg "Skipping header: $($hdr.FullName)" -color DarkGray -opt
@@ -36,6 +37,8 @@ foreach ($hdr in $(gci $dirs_h -r -file -filter "*.h" | sort Name -unique)){
 
 foreach ($src in $files_c){
 	$out = $build_path+$($src.Name -replace "\.[^.]+$")+".o"
+	$files_o += $([IO.FileInfo]$out)
+
 	MSG -msg "Compiling file: $($src.FullName)" -color DarkYellow -opt
 
 	if ($files_h_update.Count -gt 0){
@@ -55,9 +58,7 @@ foreach ($src in $files_c){
 	}
 
 	if ($src_h_deps.Count -gt 0){
-		#echo $src_h_update
 		MSG -msg "Headers updated: $($src_h_deps | select -expandproperty Name)" -color Yellow -opt
-		#MSG -msg "Headers updated: $($src_h_update.Count)" -color Yellow -opt
 	}
 	elseif (TIMESTAMP_CHECK -file $src -stamp $last_date -out $out){
 		MSG -msg "Skipping file: $($src.FullName)" -color DarkGray -opt
@@ -72,7 +73,7 @@ foreach ($src in $files_c){
 		($GLOB_DEF | foreach {$PREF_DEF+$_}) `
 		($GLOB_FLAG | foreach {$PREF_BASE+$_}) `
 		($PREF_INC+$LIB_HEADERS) `
-		-save-temps `
+		--save-temps `
 		-O3 `
 		$PREF_OUT $out
 
@@ -80,11 +81,6 @@ foreach ($src in $files_c){
 		MSG -msg "Compilation failed with code: $lastexitcode" -color Red
 		return 1
 	}
-
-	if (test-path $out -pathtype Leaf){
-		$files_o = @($files_o | where {"$_.DirectoryName\$_.BaseName" -ne "$out.DirectoryName\$out.BaseName"})
-	}
-	$files_o += $out
 
 	MSG -msg "Successfully compiled to: $out" -color Green -opt
 }
@@ -99,7 +95,7 @@ foreach ($src in $files_c){
 	$PREF_LIB $files_lib `
 	"-lax_utility_lib" `
 	"-lpthread" `
-	"-Wl,-pdb=$output_exe.pdb" `
+	"-Wl,-pdb=$output_pdb" `
 	$PREF_OUT $output_exe
 
 if ($lastexitcode -ne 0){
@@ -109,6 +105,6 @@ if ($lastexitcode -ne 0){
 MSG -msg "Virtualizer core created at: ${output_sys}" -color Blue
 
 if ($files_h_update.Count -gt 0){
-	cpi -path $files_h_update -destination "${build_path}headers"
+	cpi -path $files_h_update -destination "${build_path}headers" -force
 }
 
