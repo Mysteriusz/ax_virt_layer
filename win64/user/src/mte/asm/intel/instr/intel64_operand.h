@@ -11,25 +11,25 @@
 
 enum intel64_operand_type : u8{
 	INTEL64_MEM 		= 1,
-	INTEL64_REG 		= 2,
+	INTEL64_REG 		= 2, // MODRM Present
 	INTEL64_REG_MEM 	= INTEL64_REG | INTEL64_MEM,
 	INTEL64_IMM 		= 8,
 	INTEL64_REG_MEM_IMM 	= INTEL64_IMM | INTEL64_REG_MEM,
 };
 enum intel64_operand_width : u8{
+	W8 	= 3,
+	W16 	= 4,
+	W32 	= 5,
+	W64 	= 6,
 	/*
 	   	Each enum value is the power of 2 to get bitwidth
 		(2^3 = 8, 2^4 = 16, etc...)
 	 	
 	 	Reserved for later (SIMD support)
-	W512 	= 9,
 	W256 	= 8,
 	W128 	= 7,
+	W512 	= 9,
 	*/
-	W64 	= 6,
-	W32 	= 5,
-	W16 	= 4,
-	W8 	= 3,
 };
 _inline_force bool _intel64_width_check(
 	enum intel64_operand_width a,
@@ -49,7 +49,7 @@ _inline_force bool _intel64_width_check(
 	}
 }
 
-struct intel64_operand_desc{ _align(2)
+struct intel64_operand_desc{
 	enum intel64_operand_type  	type;
 	enum intel64_operand_width 	width;
 };

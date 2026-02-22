@@ -5,8 +5,8 @@
 #include <ax_io.h>
 
 #include "intel/tables/intel64_qtables.h"
-#include "intel/tables/intel64_modrm.h"
-#include "intel/tables/intel64_immd.h"
+#include "intel/intel64_modrm.h"
+#include "intel/intel64_immd.h"
 
 #include "intel64_operand.h"
 
@@ -31,6 +31,7 @@ typedef simd_128 intel64_mte_raw_instr; // Unknown length instruction (up to 15 
 
 #define REX_LABEL 0b0100
 
+#if 0
 /*
  	Any figure labels refer to Intels intel64 instruction set manual:
 
@@ -68,7 +69,6 @@ typedef struct _intel64_sib { _align(4)
 	u8	val;
 } intel64_sib;
 
-#if 0
 _inline_force bool _intel64_legacy_ext(
 	_in intel64_mte_raw_instr	instr
 ){

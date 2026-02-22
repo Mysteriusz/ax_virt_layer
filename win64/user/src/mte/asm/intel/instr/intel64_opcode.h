@@ -1,11 +1,16 @@
+#if !defined(MTE_INTEL64_OPCODE_INT)
+#define MTE_INTEL64_OPCODE_INT
+
 #include <ax_type.h>
 
 #include "intel64_operand.h"
 
+// Maximum byte length of an opcode
 #define INTEL64_MAX_OPCODE_LEN 	4
 
-// Opcode from value initializer (shouldn`t be used externaly)
-#define intel64_oi(l, v) ((l##ULL << 56) | (v))
+// Initialize opcode length (l) and value (v) (shouldn`t be used externaly)
+#define I64_OI(l, v) \
+	((l##ULL << 56) | (v))
 
 /*
    	Reference used:
@@ -36,74 +41,32 @@
 	Each opcode`s MSB is it`s length in bytes
 */
 enum intel64_opcode : u64{
-	ADD_8_R8 	= intel64_oi(1, 0x00), 	// ADD	r/m8		r8
-	ADD_64_R64 	= intel64_oi(1, 0x01), 	// ADD	r/m16/32/64	r16/32/64
-	ADD_R8_8 	= intel64_oi(1, 0x02), 	// ADD	r8		r/m8
-	ADD_R64_64 	= intel64_oi(1, 0x03),	// ADD	r16/32/64	r/m16/32/64
-	ADD_AL_IMM8 	= intel64_oi(1, 0x04), 	// ADD	AL		imm8
-	ADD_AX_IMM32 	= intel64_oi(1, 0x05), 	// ADD	rAX		imm16/32
+	ADD_8_R8 	= I64_OI(1, 0x00), 	// ADD	r/m8		r8
+	ADD_64_R64 	= I64_OI(1, 0x01), 	// ADD	r/m16/32/64	r16/32/64
+	ADD_R8_8 	= I64_OI(1, 0x02), 	// ADD	r8		r/m8
+	ADD_R64_64 	= I64_OI(1, 0x03),	// ADD	r16/32/64	r/m16/32/64
+	ADD_AL_IMM8 	= I64_OI(1, 0x04), 	// ADD	AL		imm8
+	ADD_AX_IMM32 	= I64_OI(1, 0x05), 	// ADD	rAX		imm16/32
 };
 
 /*
 	FOR SIMD THERE SHOULD BE A SEPARATE META
-*/
-struct intel64_opcode_meta{
+*/ 
+struct intel64_opcode_meta{ _align(2)
 	struct intel64_operand_desc 	desc[INTEL64_RED_OP_COUNT];
 	u8 				op_count;
+	enum : u8{
+		REX 	= 1,
+		SIB 	= 2,
+		MODRM 	= 4,
+		LEGACY 	= 8,
+	} flags;
 };
 
 /*
  	Table of metadata structs of only 1 byte length opcode
 */
-static struct intel64_opcode_meta L1_OPCODE_META_TABLE[0xff] = {
-	[ADD_8_R8 & 0xff] = {
-		.op_count = 2,
-		.desc[0].type = INTEL64_REG_MEM,
-		.desc[0].width = W8,
-		.desc[1].type = INTEL64_REG,
-		.desc[1].width = W8
-	},
-	[ADD_64_R64 & 0xff] = {
-		.op_count = 2,
-		.desc[0].type = INTEL64_REG_MEM,
-		.desc[0].width = W64,
-		.desc[1].type = INTEL64_REG,
-		.desc[1].width = W64
-	},
-	[ADD_R8_8 & 0xff] = {
-		.op_count = 2,
-		.desc[0].type = INTEL64_REG,
-		.desc[0].width = W8,
-		.desc[1].type = INTEL64_REG_MEM,
-		.desc[1].width = W8
-	},
-	[ADD_R64_64 & 0xff] = {
-		.op_count = 2,
-		.desc[0].type = INTEL64_REG,
-		.desc[0].width = W64,
-		.desc[1].type = INTEL64_REG_MEM,
-		.desc[1].width = W64
-	},
-	[ADD_AL_IMM8 & 0xff] = {
-		.op_count = 2,
-		.desc[0].type = INTEL64_REG,
-		.desc[0].width = W8,
-		.desc[1].type = INTEL64_IMM,
-		.desc[1].width = W8
-	},
-	[ADD_AX_IMM32 & 0xff] = {
-		.op_count = 2,
-		.desc[0].type = INTEL64_REG,
-		.desc[0].width = W16,
-		.desc[1].type = INTEL64_IMM,
-		.desc[1].width = W32
-	},
-};
+extern struct intel64_opcode_meta L1_OPCODE_META_TABLE[0xff];
 
-/*
-	Opcode length to opcode metadata array table
-*/
-static struct intel64_opcode_meta *LN_OPCODE_META_TABLE[INTEL64_MAX_OPCODE_LEN] = {
-	[0] = L1_OPCODE_META_TABLE,
-};
+#endif // !defined(MTE_INTEL64_OPCODE_INT)
 
