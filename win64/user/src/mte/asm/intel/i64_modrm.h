@@ -1,5 +1,5 @@
-#if !defined(MTE_INTEL64_MODRM_INT)
-#define MTE_INTEL64_MODRM_INT
+#if !defined(MTE_I64_MODRM_INT)
+#define MTE_I64_MODRM_INT
 
 #include <ax_type.h>
 
@@ -25,16 +25,16 @@ extern const struct modrm_tables_root MODRM_TABLES _align(64);
 
 // Access modrm table (t) to opcode leading byte (v)
 // The modrm table may be any of the tables from [MODRM_TABLES]
-#define INTEL64_MODRM_VTB(t, v) \
+#define I64_MODRM_VTB(t, v) \
 	((t[(v) >> 6 /* Divide by 64 */] >> ((v) & 63)) & 1 /* Shift to index and read present bit */)
 
 /*
  	Prefetch modrm tables
 */
 
-_inline_avert void intel64_prefetch_modrm(
+_inline_avert void i64_prefetch_modrm(
 	void
 );
 
-#endif // !defined(MTE_INTEL64_MODRM_INT)
+#endif // !defined(MTE_I64_MODRM_INT)
 

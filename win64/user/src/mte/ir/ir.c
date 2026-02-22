@@ -1,7 +1,7 @@
 #include "mte/cpu.h"
 
 #include "mips/mips32_ir.h"
-#include "intel/intel64_ir.h"
+#include "intel/i64_ir.h"
 
 org_to_ir_call arch_org_to_ir(
 	_in enum mte_arch 	arch

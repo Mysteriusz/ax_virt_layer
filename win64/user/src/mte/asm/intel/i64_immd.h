@@ -1,5 +1,5 @@
-#if !defined(MTE_INTEL64_IMMD_INT)
-#define MTE_INTEL64_IMMD_INT
+#if !defined(MTE_I64_IMMD_INT)
+#define MTE_I64_IMMD_INT
 
 #include <ax_type.h>
 
@@ -62,15 +62,15 @@ struct immd_tables_root{
 	const u8 	l2_0f_submask[192]; // 0x00 - 0x3f opcodes don`t user the submask
 };
 extern const struct immd_tables_root IMMD_TABLES _align(64);
-#define INTEL64_IMMD_VTB(m, v) ((m[(v) >> 5] >> (((v) * 2) & 63)) & 0x3)
+#define I64_IMMD_VTB(m, v) ((m[(v) >> 5] >> (((v) * 2) & 63)) & 0x3)
 
 /*
  	Prefetch immd tables
 */
 
-_inline_avert void intel64_prefetch_immd(
+_inline_avert void i64_prefetch_immd(
 	void
 );
 
-#endif // !defined(MTE_INTEL64_IMMD_INT)
+#endif // !defined(MTE_I64_IMMD_INT)
 

@@ -1,10 +1,10 @@
-#include "intel64_qtables.h"
+#include "i64_qtables.h"
 
-#include "intel/intel64_immd.h"
-#include "intel/intel64_modrm.h"
+#include "intel/i64_immd.h"
+#include "intel/i64_modrm.h"
 
 /*
- 	For INTEL64_IMMD_INT interface.
+ 	For I64_IMMD_INT interface.
 */
 
 u64 *L2I_MASK_LOOKUP[8] = {[0 ... 7] = L2I_MASK_DEFAULT};
@@ -16,7 +16,7 @@ u8 IMMD_MASK_LEN_TABLE[4] = {0};
 u8 IMMD_SUBMASK_LEN_TABLE[4] = {0};
 
 /*
- 	For INTEL64_INSTR interface.
+ 	For I64_INSTR interface.
 */
 u8 MOD_DLEN_LOOKUP[4] = {[0 ... 3] = 0};
 u8 LEG_PREF_LOOKUP[0xff] = {[0 ... 0xfe] = 0};
@@ -26,7 +26,7 @@ bool LEG_PREF_EXT_LOOKUP[0xff] = {[0 ... 0xfe] = 0};
  	Quick table loaders
 */
 
-void intel64_load_qtables(
+void i64_load_qtables(
 	void
 ){
 	L2I_MASK_LOOKUP[0b111] = (u64*)IMMD_TABLES.l2_0f_mask; // 0fH & 7H = 111B

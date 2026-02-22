@@ -24,7 +24,7 @@ const static struct cpu_reg_map _mips32_cpu_reg_map = {
 	.root = (reg64[32]){}
 };
 _unused
-const static struct cpu_reg_map _intel64_cpu_reg_map = {
+const static struct cpu_reg_map _i64_cpu_reg_map = {
 	.gpr_count = 16, // 16 gprs registers rax-r15
 	.reg_width = 64, // 64-Bit architecture
 	.root = (reg64[16]){}
@@ -37,7 +37,7 @@ static const struct cpu_reg_map *const _arch_to_map(
 	case MIPS32:
 		return &_mips32_cpu_reg_map;
 	case INTEL64:
-		return &_intel64_cpu_reg_map;
+		return &_i64_cpu_reg_map;
 	default:
 		return &empty;
 	}

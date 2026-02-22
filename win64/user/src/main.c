@@ -3,7 +3,7 @@
 #include "mte/perf.h"
 
 #include "mte/asm/mips/mips32.h"
-#include "mte/asm/intel/intel64.h"
+#include "mte/asm/intel/i64.h"
 
 #include "mte/asm/mips/mips32_asm.h"
 
@@ -26,9 +26,9 @@ static const c16 *val_to_reg(
 	return u"";
 }
 static void instr_dis(
-	//_in intel64_opcode 	opcode,
+	//_in i64_opcode 	opcode,
 	_in u8 			modrm,
-	//_in intel64_sib 	sib,
+	//_in i64_sib 	sib,
 	_in u32 		disp,
 	_in u64 		immd
 ){
@@ -71,15 +71,15 @@ _inline_avert void foo(
 	u8 b[15]
 ){
 	__INL_PERF_INIT
-	//intel64_mte_raw_instr instr = b;
+	//i64_mte_raw_instr instr = b;
 
 	__INL_PERF_START
 
-	/*volatile const intel64_opcode opcode = _intel64_get_opcode(instr);
-	volatile u8 modrm = _intel64_get_modrm(opcode, instr);
-	volatile const intel64_sib sib = _intel64_get_sib(opcode, modrm, instr);
-	volatile u32 disp = _intel64_get_disp(opcode, modrm, instr);
-	volatile u64 immd = _intel64_get_immd(opcode, modrm, instr);*/
+	/*volatile const i64_opcode opcode = _i64_get_opcode(instr);
+	volatile u8 modrm = _i64_get_modrm(opcode, instr);
+	volatile const i64_sib sib = _i64_get_sib(opcode, modrm, instr);
+	volatile u32 disp = _i64_get_disp(opcode, modrm, instr);
+	volatile u64 immd = _i64_get_immd(opcode, modrm, instr);*/
 
 	__INL_PERF_END
 	__INL_PERF_LOG
@@ -99,32 +99,32 @@ _inline_avert void foo(
 #include "mte/pipe/sched.h"
 #include "mte/pipe/bitpool.h"
 
-#include "intel/emitter/intel64_emit.h"
+#include "intel/emitter/i64_emit.h"
 
 int main(){
 	SetPriorityClass(GetCurrentProcess(), REALTIME_PRIORITY_CLASS);
 	SetThreadAffinityMask(GetCurrentThread(), 1);
 
-	//intel64_load_qtables();
+	//i64_load_qtables();
 	
-	for (u32 i = 0; i < 0xff; i += (64 / sizeof(struct intel64_opcode_meta))){
+	for (u32 i = 0; i < 0xff; i += (64 / sizeof(struct i64_opcode_meta))){
 		_mm_prefetch(&L1_OPCODE_META_TABLE[i], _MM_HINT_T0);
 	}
 	//printf("%p\n", L1_OPCODE_META_TABLE);
 
 	axres res = AX_SUCC;
 
-	simd_128 instr = init_intel64_mte_raw_instr(0);
-	res = intel64_emit_64(
+	simd_128 instr = init_i64_mte_raw_instr(0);
+	res = i64_emit_64(
 		ADD_8_R8,
-		(intel64_operand[INTEL64_RED_OP_COUNT]){
-			[0] = (intel64_operand){
-				.desc.type = INTEL64_REG,
+		(i64_operand[I64_RED_OP_COUNT]){
+			[0] = (i64_operand){
+				.desc.type = I64_REG,
 				.desc.width = W8,
 				.value = 20
 			},
-			[1] = (intel64_operand){
-				.desc.type = INTEL64_REG,
+			[1] = (i64_operand){
+				.desc.type = I64_REG,
 				.desc.width = W8,
 				.value = 60
 			},
@@ -134,10 +134,10 @@ int main(){
 	axcheck(res, ax_log(res));
 
 #if 0
-	_intel64_prefetch_immd();
-	_intel64_prefetch_modrm();
+	_i64_prefetch_immd();
+	_i64_prefetch_modrm();
 
-	intel64_load_qtables();
+	i64_load_qtables();
 	mips32_load_qtables();
 	__asm__ __volatile__("mfence");
 

@@ -1,6 +1,6 @@
-#include "intel/intel64_modrm.h"
+#include "intel/i64_modrm.h"
 
-_inline_avert void intel64_prefetch_modrm(
+_inline_avert void i64_prefetch_modrm(
 	void
 ){
 	_mm_prefetch(&MODRM_TABLES, _MM_HINT_T0);

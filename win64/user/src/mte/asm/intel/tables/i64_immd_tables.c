@@ -1,4 +1,4 @@
-#include "intel/intel64_immd.h"
+#include "intel/i64_immd.h"
 
 _align(64) const struct immd_tables_root IMMD_TABLES = (struct immd_tables_root){
 	.l0_mask = {
@@ -53,7 +53,7 @@ _align(64) const struct immd_tables_root IMMD_TABLES = (struct immd_tables_root)
 	},
 };
 
-_inline_avert void intel64_prefetch_immd(
+_inline_avert void i64_prefetch_immd(
 	void
 ){
 	// L0 

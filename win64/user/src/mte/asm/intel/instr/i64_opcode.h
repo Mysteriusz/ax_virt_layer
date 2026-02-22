@@ -1,12 +1,12 @@
-#if !defined(MTE_INTEL64_OPCODE_INT)
-#define MTE_INTEL64_OPCODE_INT
+#if !defined(MTE_I64_OPCODE_INT)
+#define MTE_I64_OPCODE_INT
 
 #include <ax_type.h>
 
-#include "intel64_operand.h"
+#include "i64_operand.h"
 
 // Maximum byte length of an opcode
-#define INTEL64_MAX_OPCODE_LEN 	4
+#define I64_MAX_OPCODE_LEN 	4
 
 // Initialize opcode length (l) and value (v) (shouldn`t be used externaly)
 #define I64_OI(l, v) \
@@ -40,7 +40,7 @@
 
 	Each opcode`s MSB is it`s length in bytes
 */
-enum intel64_opcode : u64{
+enum i64_opcode : u64{
 	ADD_8_R8 	= I64_OI(1, 0x00), 	// ADD	r/m8		r8
 	ADD_64_R64 	= I64_OI(1, 0x01), 	// ADD	r/m16/32/64	r16/32/64
 	ADD_R8_8 	= I64_OI(1, 0x02), 	// ADD	r8		r/m8
@@ -52,8 +52,8 @@ enum intel64_opcode : u64{
 /*
 	FOR SIMD THERE SHOULD BE A SEPARATE META
 */ 
-struct intel64_opcode_meta{ _align(2)
-	struct intel64_operand_desc 	desc[INTEL64_RED_OP_COUNT];
+struct i64_opcode_meta{ _align(2)
+	struct i64_operand_desc 	desc[I64_RED_OP_COUNT];
 	u8 				op_count;
 	enum : u8{
 		REX 	= 1,
@@ -66,7 +66,7 @@ struct intel64_opcode_meta{ _align(2)
 /*
  	Table of metadata structs of only 1 byte length opcode
 */
-extern struct intel64_opcode_meta L1_OPCODE_META_TABLE[0xff];
+extern struct i64_opcode_meta L1_OPCODE_META_TABLE[0xff];
 
-#endif // !defined(MTE_INTEL64_OPCODE_INT)
+#endif // !defined(MTE_I64_OPCODE_INT)
 
