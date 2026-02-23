@@ -1,46 +1,58 @@
 #include "i64_opcode.h"
 
-struct i64_opcode_meta L1_OPCODE_META_TABLE[0xff] = {
+i64_opcode_desc L1_OPCODE_META_TABLE[0xff] = {
 	[ADD_8_R8 & 0xff] = {
 		.op_count = 2,
 		.desc[0].type = I64_REG_MEM,
 		.desc[0].width = W8,
 		.desc[1].type = I64_REG,
-		.desc[1].width = W8
+		.desc[1].width = W8,
+		.flags = MODRM | LEGACY,
+		.prefix = I64_LOCK_PREF,
 	},
 	[ADD_64_R64 & 0xff] = {
 		.op_count = 2,
 		.desc[0].type = I64_REG_MEM,
 		.desc[0].width = W64,
 		.desc[1].type = I64_REG,
-		.desc[1].width = W64
+		.desc[1].width = W64,
+		.flags = REX | MODRM | LEGACY,
+		.prefix = I64_LOCK_PREF,
 	},
 	[ADD_R8_8 & 0xff] = {
 		.op_count = 2,
 		.desc[0].type = I64_REG,
 		.desc[0].width = W8,
 		.desc[1].type = I64_REG_MEM,
-		.desc[1].width = W8
+		.desc[1].width = W8,
+		.flags = MODRM,
+		.prefix = I64_NO_PREF,
 	},
 	[ADD_R64_64 & 0xff] = {
 		.op_count = 2,
 		.desc[0].type = I64_REG,
 		.desc[0].width = W64,
 		.desc[1].type = I64_REG_MEM,
-		.desc[1].width = W64
+		.desc[1].width = W64,
+		.flags = REX | MODRM,
+		.prefix = I64_NO_PREF,
 	},
 	[ADD_AL_IMM8 & 0xff] = {
 		.op_count = 2,
 		.desc[0].type = I64_REG,
 		.desc[0].width = W8,
 		.desc[1].type = I64_IMM,
-		.desc[1].width = W8
+		.desc[1].width = W8,
+		.flags = 0,
+		.prefix = I64_NO_PREF,
 	},
 	[ADD_AX_IMM32 & 0xff] = {
 		.op_count = 2,
 		.desc[0].type = I64_REG,
-		.desc[0].width = W16,
+		.desc[0].width = W32,
 		.desc[1].type = I64_IMM,
-		.desc[1].width = W32
+		.desc[1].width = W32,
+		.flags = 0,
+		.prefix = I64_NO_PREF,
 	},
 };

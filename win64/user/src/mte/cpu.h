@@ -44,6 +44,7 @@ static const struct cpu_reg_map *const _arch_to_map(
 }
 
 typedef struct _cpu_state{
+	struct cpu_reg_map gprs;
 } cpu_state;
 
 #endif // !defined(MTE_CPU_INT)

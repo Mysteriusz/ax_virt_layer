@@ -49,18 +49,18 @@ _inline_force bool _i64_width_check(
 	}
 }
 
-struct i64_operand_desc{
+typedef struct _i64_operand_desc{
 	enum i64_operand_type  	type;
 	enum i64_operand_width 	width;
-};
+} i64_operand_desc;
 typedef struct _i64_operand{
-	struct i64_operand_desc	desc;
-	u64				value;
+	i64_operand_desc	desc;
+	u64			value;
 } i64_operand;
 
 _inline_force bool _i64_operand_cmp(
-	struct i64_operand_desc a,
-	struct i64_operand_desc b
+	i64_operand_desc a,
+	i64_operand_desc b
 ){
 	// Check type and width
 	return (a.type & b.type) && _i64_width_check(a.width, b.width);

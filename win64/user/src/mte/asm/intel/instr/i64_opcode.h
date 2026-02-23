@@ -49,24 +49,45 @@ enum i64_opcode : u64{
 	ADD_AX_IMM32 	= I64_OI(1, 0x05), 	// ADD	rAX		imm16/32
 };
 
+enum i64_opcode_flags : u8{
+	REX 	= 0x01,
+	MODRM 	= 0x02,
+	LEGACY 	= 0x04,
+	/*	
+	LOCK 	= 0x08 | LEGACY,
+	PUSH 	= 0x08 | LEGACY,
+	POP 	= 0x08 | LEGACY,
+	DPUSH 	= 0x08 | LEGACY,*/
+};
+
+/*
+	Mandatory prefix for opcodes
+*/
+enum i64_opcode_prefix : u8{
+	I64_NO_PREF 	= 0x00,
+	I64_LOCK_PREF 	= 0xf0,
+	/*
+		87x FPU Specific
+	*/
+	I64_PUSH_PREF 	= 0xd9,
+	I64_POP_PREF 	= 0xd9,
+	I64_DPUSH_PREF 	= 0xda,
+};
+
 /*
 	FOR SIMD THERE SHOULD BE A SEPARATE META
 */ 
-struct i64_opcode_meta{ _align(2)
-	struct i64_operand_desc 	desc[I64_RED_OP_COUNT];
-	u8 				op_count;
-	enum : u8{
-		REX 	= 1,
-		SIB 	= 2,
-		MODRM 	= 4,
-		LEGACY 	= 8,
-	} flags;
-};
+typedef struct _i64_opcode_desc{ _align(2)
+	i64_operand_desc 		desc[I64_RED_OP_COUNT];
+	u8 				op_count : 4;
+	enum i64_opcode_flags 		flags : 4;
+	enum i64_opcode_prefix 		prefix;
+} i64_opcode_desc;
 
 /*
  	Table of metadata structs of only 1 byte length opcode
 */
-extern struct i64_opcode_meta L1_OPCODE_META_TABLE[0xff];
+extern i64_opcode_desc L1_OPCODE_META_TABLE[0xff];
 
 #endif // !defined(MTE_I64_OPCODE_INT)
 

@@ -107,7 +107,7 @@ int main(){
 
 	//i64_load_qtables();
 	
-	for (u32 i = 0; i < 0xff; i += (64 / sizeof(struct i64_opcode_meta))){
+	for (u32 i = 0; i < 0xff; i += (64 / sizeof(i64_opcode_desc))){
 		_mm_prefetch(&L1_OPCODE_META_TABLE[i], _MM_HINT_T0);
 	}
 	//printf("%p\n", L1_OPCODE_META_TABLE);
@@ -117,6 +117,7 @@ int main(){
 	simd_128 instr = init_i64_mte_raw_instr(0);
 	res = i64_emit_64(
 		ADD_8_R8,
+		I64_NO_PREF,
 		(i64_operand[I64_RED_OP_COUNT]){
 			[0] = (i64_operand){
 				.desc.type = I64_REG,
@@ -129,6 +130,7 @@ int main(){
 				.value = 60
 			},
 		},
+		nullptr,
 		&instr
 	);
 	axcheck(res, ax_log(res));
