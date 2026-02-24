@@ -25,7 +25,7 @@ struct i64_operand_sum i64_sum_calc(
 		sum.is_64bit 
 			&= (ops[i].desc.width == W64);
 		sum.is_sib_ext
-			|= ((ops[i].desc.type & I64_MEM) && (ops[i].desc.type & I64_EXT) && (ops[i].desc.type & I64_SIB));
+			|= ((ops[i].desc.type & I64_MEM) && (ops[i].desc.type & I64_SIB_EXT));
 	}
 
 	sum.is_r0_ext 

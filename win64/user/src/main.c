@@ -129,7 +129,7 @@ int main(){
 				.value = (u64)rax,
 			},
 			[1] = (i64_operand){
-				.desc.type = I64_MEM,
+				.desc.type = I64_MEM | I64_SIB_EXT,
 				.desc.width = W64,
 				.value = (u64)rbx,
 			},

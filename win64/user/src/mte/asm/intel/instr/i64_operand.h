@@ -10,19 +10,66 @@
 #define I64_MAX_OP_COUNT 4
 
 enum i64_operand_type : u8{
+	/*
+	 	Memory operand flag (Should not be used with I64_REG or I64_IMM)
+
+		Example:
+			[rax]
+			[eax]
+
+		IMPORTANT:
+			For it to be used with extended registers I64_EXT or I64_SIB_EXT should be used
+	*/
 	I64_MEM 		= 0x01,
+	/*
+	 	Register operand flag (Should not be used with I64_MEM or I64_IMM)
+
+		Example:
+			rax
+			eax
+			al
+
+		IMPORTANT:
+			For it to be used with extended registers I64_EXT or I64_SIB_EXT should be used
+	*/
 	I64_REG 		= 0x02,
+	/*
+	 	Immediate operand flag (Should not be used with I64_MEM or I64_REG)
+
+		Example:
+			rax
+			eax
+			al
+
+		IMPORTANT:
+			For it to be used with extended registers I64_EXT or I64_SIB_EXT should be used
+	*/
 	I64_IMM 		= 0x04,
  	/*
-		For extended registers
-		Ex: (r8 -> 0b1000, r14 -> 0b1110, xmm0 -> 0b1000)
+	 	Extended operand flag
+
+		I64_MEM | I64_EXT Examples:
+			[r8]
+			[r8+rax*2]
+
+		I64_REG | I64_EXT Examples:
+			r8
+			r14
 	*/
 	I64_EXT 		= 0x08,
  	/*
-		For memory scale and index (SIB) (DOES NOT INCLUDE: [r8])
-		Ex: ([rax + rbx * 2], [r8 + rbx * 2])
+		For memory scale index base (SIB) [base + index * scale]
+		For cases without [index] as an extended register this should be false
+
+		Example:
+			- [rax+r9*2]
+			- [rbx+r10*8]
+
+		IMPORTANT:
+			This flag DOES NOT extend [base]
+			To extend the base use I64_EXT
 	*/
-	I64_SIB 		= 0x10,
+	I64_SIB_EXT 		= 0x10,
 };
 enum i64_operand_width : u8{
 	W8 	= 3,
