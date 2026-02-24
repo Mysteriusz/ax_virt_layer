@@ -10,11 +10,19 @@
 #define I64_MAX_OP_COUNT 4
 
 enum i64_operand_type : u8{
-	I64_MEM 		= 1,
-	I64_REG 		= 2, // MODRM Present
-	I64_REG_MEM 	= I64_REG | I64_MEM,
-	I64_IMM 		= 8,
-	I64_REG_MEM_IMM 	= I64_IMM | I64_REG_MEM,
+	I64_MEM 		= 0x01,
+	I64_REG 		= 0x02,
+	I64_IMM 		= 0x04,
+ 	/*
+		For extended registers
+		Ex: (r8 -> 0b1000, r14 -> 0b1110, xmm0 -> 0b1000)
+	*/
+	I64_EXT 		= 0x08,
+ 	/*
+		For memory scale and index (SIB) (DOES NOT INCLUDE: [r8])
+		Ex: ([rax + rbx * 2], [r8 + rbx * 2])
+	*/
+	I64_SIB 		= 0x10,
 };
 enum i64_operand_width : u8{
 	W8 	= 3,
@@ -31,6 +39,16 @@ enum i64_operand_width : u8{
 	W512 	= 9,
 	*/
 };
+
+typedef struct _i64_operand_desc{
+	enum i64_operand_type  	type;
+	enum i64_operand_width 	width;
+} i64_operand_desc;
+typedef struct _i64_operand{
+	i64_operand_desc	desc;
+	u64			value;
+} i64_operand;
+
 _inline_force bool _i64_width_check(
 	enum i64_operand_width a,
 	enum i64_operand_width b
@@ -48,15 +66,6 @@ _inline_force bool _i64_width_check(
 		return false;
 	}
 }
-
-typedef struct _i64_operand_desc{
-	enum i64_operand_type  	type;
-	enum i64_operand_width 	width;
-} i64_operand_desc;
-typedef struct _i64_operand{
-	i64_operand_desc	desc;
-	u64			value;
-} i64_operand;
 
 _inline_force bool _i64_operand_cmp(
 	i64_operand_desc a,

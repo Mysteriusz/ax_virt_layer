@@ -46,7 +46,7 @@ enum i64_opcode : u64{
 	ADD_R8_8 	= I64_OI(1, 0x02), 	// ADD	r8		r/m8
 	ADD_R64_64 	= I64_OI(1, 0x03),	// ADD	r16/32/64	r/m16/32/64
 	ADD_AL_IMM8 	= I64_OI(1, 0x04), 	// ADD	AL		imm8
-	ADD_AX_IMM32 	= I64_OI(1, 0x05), 	// ADD	rAX		imm16/32
+	ADD_rAX_IMM32 	= I64_OI(1, 0x05), 	// ADD	rAX		imm16/32
 };
 
 enum i64_opcode_flags : u8{
@@ -78,7 +78,7 @@ enum i64_opcode_prefix : u8{
 	FOR SIMD THERE SHOULD BE A SEPARATE META
 */ 
 typedef struct _i64_opcode_desc{ _align(2)
-	i64_operand_desc 		desc[I64_RED_OP_COUNT];
+	i64_operand_desc 		ops[I64_RED_OP_COUNT];
 	u8 				op_count : 4;
 	enum i64_opcode_flags 		flags : 4;
 	enum i64_opcode_prefix 		prefix;

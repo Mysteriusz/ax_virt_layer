@@ -100,6 +100,7 @@ _inline_avert void foo(
 #include "mte/pipe/bitpool.h"
 
 #include "intel/emitter/i64_emit.h"
+#include "intel/i64_reg.h"
 
 int main(){
 	SetPriorityClass(GetCurrentProcess(), REALTIME_PRIORITY_CLASS);
@@ -114,23 +115,25 @@ int main(){
 
 	axres res = AX_SUCC;
 
+	reg64 *rax = axmalloc(8);
+	reg64 *rbx = axmalloc(8);
+
 	simd_128 instr = init_i64_mte_raw_instr(0);
 	res = i64_emit_64(
-		ADD_8_R8,
+		ADD_R64_64,
 		I64_NO_PREF,
 		(i64_operand[I64_RED_OP_COUNT]){
 			[0] = (i64_operand){
 				.desc.type = I64_REG,
-				.desc.width = W8,
-				.value = 20
+				.desc.width = W64,
+				.value = (u64)rax,
 			},
 			[1] = (i64_operand){
-				.desc.type = I64_REG,
-				.desc.width = W8,
-				.value = 60
+				.desc.type = I64_MEM,
+				.desc.width = W64,
+				.value = (u64)rbx,
 			},
 		},
-		nullptr,
 		&instr
 	);
 	axcheck(res, ax_log(res));

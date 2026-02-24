@@ -1,7 +1,45 @@
 #include "mte/perf.h"
-#include "mte/cpu.h"
 
-#include "intel/i64_rex.h"
+#include "i64_emit_info.h"
+#include <ax_io.h>
+
+struct i64_operand_sum i64_sum_calc(
+	_in i64_opcode_desc	desc,
+	_in i64_operand		ops[I64_RED_OP_COUNT]
+){
+	if (ops == nullptr){
+		return (struct i64_operand_sum){0};
+	}
+
+	struct i64_operand_sum sum = {0};
+
+	// Preset as true since it`s more efficient to AND on every operand
+	sum.is_64bit = true;
+
+	for (u32 i = 0; i < desc.op_count; i++){
+		// Check operand compatiblity with desc
+		if (!_i64_operand_cmp(desc.ops[i], ops[i].desc)){
+			return (struct i64_operand_sum){0};
+		}
+
+		sum.is_64bit 
+			&= (ops[i].desc.width == W64);
+		sum.is_sib_ext
+			|= ((ops[i].desc.type & I64_MEM) && (ops[i].desc.type & I64_EXT) && (ops[i].desc.type & I64_SIB));
+	}
+
+	sum.is_r0_ext 
+		|= (ops[0].desc.type & I64_EXT) && !(ops[0].desc.type & I64_MEM);
+	sum.is_r0_ext_mem 
+		|= (ops[0].desc.type & I64_EXT) && (ops[0].desc.type & I64_MEM);
+
+	sum.is_r1_ext 
+		|= (ops[1].desc.type & I64_EXT) && !(ops[1].desc.type & I64_MEM);
+	sum.is_r1_ext_mem 
+		|= (ops[1].desc.type & I64_EXT) && (ops[1].desc.type & I64_MEM);
+
+	return sum;
+}
 
 #include "i64_emit.h"
 
@@ -9,7 +47,6 @@ axres i64_emit_64(
 	_in enum i64_opcode 		opcode,
 	_in enum i64_opcode_prefix	prefix,
 	_in i64_operand 		ops[I64_RED_OP_COUNT],
-	_in_opt cpu_state 		*cpu,
 	_out i64_mte_raw_instr		*buf
 ){
 	__INL_PERF_INIT
@@ -37,33 +74,30 @@ axres i64_emit_64(
 		return AX_INV_DATA;
 	}
 
+	struct i64_operand_sum sum =
+		i64_sum_calc(opcode_desc, ops);
+		
 	/*
-	 	Intialize dummy opcode with provided [opcode_desc]
-	*/
-	i64_opcode_desc opcode_match = (i64_opcode_desc){
-		.op_count = opcode_desc.op_count,
-		.flags = opcode_desc.flags
-	};
-
-	/*
+	   	TODO: ADD CASE WHERE 2 OPERAND REGISTERS ARE NOT THE SAME WIDTH
+	 	
 	 	Check opcode operands and fill [opcode_match] descriptors
 	*/
-	for (u32 i = 0; i < opcode_desc.op_count; i++){
-		// Check operand compatiblity with desc
-		if (!_i64_operand_cmp(opcode_desc.desc[i], ops[i].desc)){
-			return AX_UNK_ERR;
-		}
-		// Copy descriptor to the dummy
-		opcode_match.desc[i] = ops[i].desc;
-	}
 
 	i64_mte_raw_instr instr = {0};
 
 	/*
-	 	Construct the dummy opcode
+		Resolve Legacy prefix for the dummy
 	*/
 
-	u8 rex = _i64_rex_resolve(opcode_match, cpu);
+
+
+
+	/*
+		Resolve REX for the dummy
+	*/
+
+	u8 rex = _i64_rex_resolve(sum);
+
 	unref(prefix);
 
 	*buf = instr;
@@ -71,7 +105,8 @@ axres i64_emit_64(
 	__INL_PERF_END
 	__INL_PERF_LOG
 
-	ax_log(rex);
+	io_str(u"REX VALUE:");
+	printf("%x\n", rex);
 
 	return AX_SUCC;
 }

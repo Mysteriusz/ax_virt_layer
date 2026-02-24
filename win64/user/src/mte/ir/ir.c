@@ -44,8 +44,9 @@ _inline_avert axres ir_create(
 
 	// Create temporary IR context descriptor
 	struct ir_context_desc temp_desc = (struct ir_context_desc){
-		.org_map = _arch_to_map(org_arch),
-		.tar_map = _arch_to_map(tar_arch),
+		// TODO: CPU State instead of org_map
+		/*.org_map = _arch_to_map(org_arch),
+		.tar_map = _arch_to_map(tar_arch),*/
 		.org_arch = org_arch,
 		.tar_arch = tar_arch,
 		.call = {
