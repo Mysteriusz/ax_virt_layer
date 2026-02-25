@@ -4,6 +4,10 @@
 #include <ax_type.h>
 
 /*
+ 	For MTE_I64_QTABLES_INT
+*/
+
+/*
  	Immediate table definitions
 */
 #define SUBMASK_IMMD_8 		0b0001

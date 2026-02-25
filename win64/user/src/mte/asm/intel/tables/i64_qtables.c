@@ -1,7 +1,7 @@
 #include "i64_qtables.h"
 
-#include "intel/i64_immd.h"
-#include "intel/i64_modrm.h"
+#include "intel/emitter/i64_immd.h"
+#include "intel/emitter/i64_modrm.h"
 
 /*
  	For I64_IMMD_INT interface.

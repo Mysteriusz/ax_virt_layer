@@ -5,9 +5,6 @@
 #include <ax_io.h>
 
 #include "intel/tables/i64_qtables.h"
-#include "intel/i64_modrm.h"
-#include "intel/i64_immd.h"
-
 #include "i64_operand.h"
 
 typedef simd_128 i64_mte_raw_instr; // Unknown length instruction (up to 15 bytes) (For the purpose of optimisation AVX is used for storage)

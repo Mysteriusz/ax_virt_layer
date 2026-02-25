@@ -1,7 +1,10 @@
+#include <ax_io.h>
+
 #include "mte/perf.h"
 
 #include "i64_emit_info.h"
-#include <ax_io.h>
+#include "i64_emit.h"
+
 
 struct i64_operand_sum i64_sum_calc(
 	_in i64_opcode_desc	desc,
@@ -12,36 +15,53 @@ struct i64_operand_sum i64_sum_calc(
 	}
 
 	struct i64_operand_sum sum = {0};
+	u8 w0 = (1 << 3); // D
+	u8 w1 = 0; // A
+	u8 w2 = 0; // E
 
-	// Preset as true since it`s more efficient to AND on every operand
-	sum.is_64bit = true;
+	u8 o0 = 0;
+	u8 o1 = 0;
+	u8 o2 = 0;
+
+	enum i64_operand_type ti = 0;
+	u8 wi = 0;
+
+	enum i64_operand_type t0 = ops[0].desc.type;
+	enum i64_operand_type t1 = ops[1].desc.type;
+	bool t0_ext = (t0 & I64_EXT);
+	bool t0_mem = (t0 & I64_MEM);
+
+	bool t1_ext = (t1 & I64_EXT);
+	bool t1_mem = (t1 & I64_MEM);
 
 	for (u32 i = 0; i < desc.op_count; i++){
-		// Check operand compatiblity with desc
-		/*if (!_i64_operand_cmp(desc.ops[i], ops[i].desc)){
-			return (struct i64_operand_sum){0};
-		}*/
+		ti = ops[i].desc.type;
+		wi = ops[i].desc.width;
 
-		sum.is_64bit 
-			&= ((ops[i].desc.width == W64) || (ops[i].desc.type & I64_MEM));
-		sum.is_16bit 
-			|= (ops[i].desc.width == W16);
+		// If operand width is 64-bit OR a memory operand
+		w0 &= ~BIT(3) | (((wi == W64) | !!(ti & I64_MEM)) << 3);
 
-		sum.is_sib_ext
-			|= ((ops[i].desc.type & I64_MEM) && (ops[i].desc.type & I64_SIB_EXT));
-		sum.is_trunc_mem 
-			|= ((desc.ops[i].width != ops[i].desc.width) && (ops[i].desc.type & I64_MEM));
+		// If operand width is 16-bit
+		w1 |= (wi == W16);
+
+		// If is a memory operand and width is 32-bit
+		u64 w2m0 = -((ti & I64_MEM) != 0);
+		u64 w2m1 = -(wi == W32);
+		w2 |= (w2m0 & w2m1 & (1 << 4));
+
+		// If is a memory operand and [index] of the memory is extended
+		u64 o0m0 = -((ti & I64_MEM) != 0);
+		u64 o0m1 = -((ti & I64_SIB_EXT) != 0);
+		o0 |= (o0m0 & o0m1 & (1 << 4));
 	}
 
-	sum.is_r0_ext 
-		|= (ops[0].desc.type & I64_EXT) && !(ops[0].desc.type & I64_MEM);
-	sum.is_r0_ext_mem 
-		|= (ops[0].desc.type & I64_EXT) && (ops[0].desc.type & I64_MEM);
+	o1 = (t0_ext && !t0_mem) << 3;
+	o1 = (t0_ext && t0_mem) << 2;
+	o2 = (t1_ext && !t1_mem) << 1;
+	o2 = (t1_ext && t1_mem);
 
-	sum.is_r1_ext 
-		|= (ops[1].desc.type & I64_EXT) && !(ops[1].desc.type & I64_MEM);
-	sum.is_r1_ext_mem 
-		|= (ops[1].desc.type & I64_EXT) && (ops[1].desc.type & I64_MEM);
+	sum.width = w0 | w1 | w2;
+	sum.operand = o0 | o1 | o2;
 
 	return sum;
 }
@@ -50,12 +70,10 @@ struct i64_operand_sum i64_sum_calc(
 
 axres i64_emit_64(
 	_in enum i64_opcode 		opcode,
-	_in enum i64_opcode_prefix	prefix,
 	_in i64_operand 		ops[I64_RED_OP_COUNT],
 	_out i64_mte_raw_instr		*buf
 ){
 	__INL_PERF_INIT
-	__INL_PERF_START
 	if (ops == nullptr){
 		return AX_INV_ARG;
 	}
@@ -79,8 +97,10 @@ axres i64_emit_64(
 		return AX_INV_DATA;
 	}
 
+	__INL_PERF_START
 	struct i64_operand_sum sum =
 		i64_sum_calc(opcode_desc, ops);
+	__INL_PERF_END
 		
 	/*
 	   	TODO: ADD CASE WHERE 2 OPERAND REGISTERS ARE NOT THE SAME WIDTH
@@ -91,30 +111,45 @@ axres i64_emit_64(
 	i64_mte_raw_instr instr = {0};
 
 	/*
-		Resolve Legacy prefix for the dummy
+		Resolve Legacy prefix
+
+		TODO: Opcodes may have mandatory prefix
+		that is a part of it (access by opocde_desc.prefix)
+
+		Both legacy prefixes should then be used.
+		
+		Example:
+			adcx rax, [ebx]	(ADX instruction set)
 	*/
 
 	u8 leg = _i64_leg_resolve(sum);
 
 	/*
-		Resolve REX for the dummy
+		Resolve REX
 	*/
 
 	u8 rex = _i64_rex_resolve(sum);
 
-	unref(prefix);
+	/*
+		Resolve MODRM
+	*/
+
+	u8 modrm = _i64_modrm_resolve(rex, sum);
 
 	*buf = instr;
 
-	__INL_PERF_END
+	//__INL_PERF_END
 	__INL_PERF_LOG
 
-	//io_str(u"==============");
-	//printf("%x\n", sum.is_16bit);
+	io_str(u"LEGACY VALUE:");
+	printf("%x\n", sum.width);
+	printf("%x\n", sum.operand);
 	io_str(u"LEGACY VALUE:");
 	printf("%x\n", leg);
 	io_str(u"REX VALUE:");
 	printf("%x\n", rex);
+	io_str(u"MODRM VALUE:");
+	printf("%x\n", modrm);
 
 	return AX_SUCC;
 }

@@ -4,6 +4,26 @@
 #include <ax_type.h>
 
 /*
+ 	For MTE_I64_EMIT_INFO_INF
+*/
+
+#include "i64_emit_info.h"
+#include "i64_rex.h"
+
+static u8 _i64_modrm_resolve(
+	_in u8				rex,
+	_in struct i64_operand_sum	sum
+){
+	//switch(sum.is_r0_ext_mem)
+
+	return 0;
+}
+
+/*
+ 	For MTE_I64_QTABLES_INT
+*/
+
+/*
  	Each table consists of ranges at specific byte index in the opcode,
 	which indicates if opcode has modrm byte 
 
@@ -35,6 +55,7 @@ extern const struct modrm_tables_root MODRM_TABLES _align(64);
 _inline_avert void i64_prefetch_modrm(
 	void
 );
+
 
 #endif // !defined(MTE_I64_MODRM_INT)
 

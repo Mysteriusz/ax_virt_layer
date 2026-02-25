@@ -1,4 +1,4 @@
-#include "intel/i64_immd.h"
+#include "intel/emitter/i64_immd.h"
 
 _align(64) const struct immd_tables_root IMMD_TABLES = (struct immd_tables_root){
 	.l0_mask = {

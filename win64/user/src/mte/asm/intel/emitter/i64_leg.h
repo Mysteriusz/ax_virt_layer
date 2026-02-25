@@ -11,7 +11,7 @@
 static u8 _i64_leg_resolve(
 	_in struct i64_operand_sum 	sum
 ){
-	u8 mask = (sum.is_trunc_mem << 1) | (sum.is_16bit);
+	u8 mask = (!!(sum.width & BIT(4)) << 1) | (sum.width & BIT(0));
 	switch(mask){
 	case 0b10: // add rax, [ebx]
 		return 0x67;

@@ -120,16 +120,15 @@ int main(){
 
 	simd_128 instr = init_i64_mte_raw_instr(0);
 	res = i64_emit_64(
-		ADD_64_R64,
-		I64_NO_PREF,
+		ADD_R64_64,
 		(i64_operand[I64_RED_OP_COUNT]){
 			[0] = (i64_operand){
 				.desc.type = I64_REG,
-				.desc.width = W16,
+				.desc.width = W64,
 				.value = (u64)rax,
 			},
 			[1] = (i64_operand){
-				.desc.type = I64_MEM,
+				.desc.type = I64_MEM | I64_SIB | I64_EXT | I64_SIB_EXT,
 				.desc.width = W64,
 				.value = (u64)rbx,
 			},
@@ -208,7 +207,7 @@ s
 	ir_delete(ir);
 #endif
 
-	io_i64(_MEM_ACTIVE);
+	//io_i64(_MEM_ACTIVE);
 
 	/*
 		Initialize bank 0 handling thread
