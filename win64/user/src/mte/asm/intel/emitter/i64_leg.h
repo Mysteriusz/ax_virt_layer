@@ -1,15 +1,26 @@
+#if !defined(MTE_I64_LEG_INT)
+#define MTE_I64_LEG_INT
+
 #include <ax_type.h>
 
 #include <ax_type.h>
 #include <ax_io.h>
 
-#include "intel/instr/i64_opcode.h"
-#include "intel/instr/i64_operand.h"
-#include "intel/i64_reg.h"
+#include "i64_emit_info.h"
 
-u8 i64_leg_resolve(
-	_in enum i64_opcode_flags	flags,
-	_in u8				op_count,
-	_in i64_operand			ops[I64_RED_OP_COUNT]
-);
+static u8 _i64_leg_resolve(
+	_in struct i64_operand_sum 	sum
+){
+	u8 mask = (sum.is_trunc_mem << 1) | (sum.is_16bit);
+	switch(mask){
+	case 0b10: // add rax, [ebx]
+		return 0x67;
+	case 0b01: // add ax, bx
+		return 0x66;
+	default:
+		return 0;
+	}
+}
+
+#endif // !defined(MTE_I64_LEG_INT)
 

@@ -18,14 +18,19 @@ struct i64_operand_sum i64_sum_calc(
 
 	for (u32 i = 0; i < desc.op_count; i++){
 		// Check operand compatiblity with desc
-		if (!_i64_operand_cmp(desc.ops[i], ops[i].desc)){
+		/*if (!_i64_operand_cmp(desc.ops[i], ops[i].desc)){
 			return (struct i64_operand_sum){0};
-		}
+		}*/
 
 		sum.is_64bit 
-			&= (ops[i].desc.width == W64);
+			&= ((ops[i].desc.width == W64) || (ops[i].desc.type & I64_MEM));
+		sum.is_16bit 
+			|= (ops[i].desc.width == W16);
+
 		sum.is_sib_ext
 			|= ((ops[i].desc.type & I64_MEM) && (ops[i].desc.type & I64_SIB_EXT));
+		sum.is_trunc_mem 
+			|= ((desc.ops[i].width != ops[i].desc.width) && (ops[i].desc.type & I64_MEM));
 	}
 
 	sum.is_r0_ext 
@@ -89,8 +94,7 @@ axres i64_emit_64(
 		Resolve Legacy prefix for the dummy
 	*/
 
-
-
+	u8 leg = _i64_leg_resolve(sum);
 
 	/*
 		Resolve REX for the dummy
@@ -105,6 +109,10 @@ axres i64_emit_64(
 	__INL_PERF_END
 	__INL_PERF_LOG
 
+	//io_str(u"==============");
+	//printf("%x\n", sum.is_16bit);
+	io_str(u"LEGACY VALUE:");
+	printf("%x\n", leg);
 	io_str(u"REX VALUE:");
 	printf("%x\n", rex);
 

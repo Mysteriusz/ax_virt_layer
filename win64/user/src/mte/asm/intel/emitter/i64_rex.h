@@ -11,11 +11,18 @@
 static u8 _i64_rex_resolve(
 	_in struct i64_operand_sum	sum
 ){
-	return (I64_REX_LABEL << 4)
+	u8 rex = (I64_REX_LABEL << 4)
 		| (sum.is_64bit << 3) 
 		| ((sum.is_r1_ext || sum.is_r0_ext_mem) << 2)
 		| (sum.is_sib_ext << 1)
 		| (sum.is_r0_ext || sum.is_r1_ext_mem);
+
+	switch(rex){
+	case 0x40: // Empty REX byte (Only the label present)
+		return 0;
+	default:
+		return rex;
+	}
 }
 
 #endif // !defined(MTE_I64_REX_INT)

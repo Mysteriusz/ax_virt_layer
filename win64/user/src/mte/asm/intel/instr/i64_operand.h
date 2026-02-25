@@ -58,8 +58,20 @@ enum i64_operand_type : u8{
 	*/
 	I64_EXT 		= 0x08,
  	/*
-		For memory scale index base (SIB) [base + index * scale]
-		For cases without [index] as an extended register this should be false
+		Memory scale index base (SIB) [base + index * scale]
+
+		Example:
+			- [rax+rbx]
+			- [rax+rbx*2]
+			- [rbx+rdx*8]
+
+		IMPORTANT:
+			This flag DOES NOT extend [base]
+			To extend the base use I64_EXT
+	*/
+	I64_SIB 		= 0x10,
+ 	/*
+		Memory scale index base (SIB) [base + index * scale] with extended register
 
 		Example:
 			- [rax+r9*2]
@@ -69,7 +81,7 @@ enum i64_operand_type : u8{
 			This flag DOES NOT extend [base]
 			To extend the base use I64_EXT
 	*/
-	I64_SIB_EXT 		= 0x10,
+	I64_SIB_EXT 		= 0x20,
 };
 enum i64_operand_width : u8{
 	W8 	= 3,

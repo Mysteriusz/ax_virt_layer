@@ -74,6 +74,7 @@ foreach ($src in $files_c){
 		($GLOB_FLAG | foreach {$PREF_BASE+$_}) `
 		($PREF_INC+$LIB_HEADERS) `
 		--save-temps `
+		--verbose-asm `
 		-O3 `
 		$PREF_OUT $out
 

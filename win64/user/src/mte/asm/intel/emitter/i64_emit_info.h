@@ -11,11 +11,13 @@
 */
 struct i64_operand_sum{
 	bool 	is_64bit; // All operands are 64-bit
+	bool 	is_16bit; // Any operand is 16-bit
 	bool 	is_sib_ext; // Extended scale base index
 	bool 	is_r0_ext; // Register 0 operand extended register
 	bool 	is_r0_ext_mem; // Memory 0 operand extended register
 	bool 	is_r1_ext; // Register 1 operand extended register
 	bool 	is_r1_ext_mem; // Memory 1 operand extended register
+	bool 	is_trunc_mem; // Memory addressing with 32-bit register
 };
 
 struct i64_operand_sum i64_sum_calc(
