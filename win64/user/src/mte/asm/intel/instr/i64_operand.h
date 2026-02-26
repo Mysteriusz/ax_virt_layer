@@ -132,12 +132,32 @@ enum i64_operand_width : u8{
 	*/
 };
 
+enum i64_operand_id : u8{
+	I64_rAX = 0b000,
+	I64_rCX = 0b001,
+	I64_rDX = 0b010,
+	I64_rBX = 0b011,
+	I64_rSP = 0b100,
+	I64_rBP = 0b101,
+	I64_rSI = 0b110,
+	I64_rDI = 0b111,
+	I64_R8  = 0b1000,
+	I64_R9  = 0b1001,
+	I64_R10 = 0b1010,
+	I64_R11 = 0b1011,
+	I64_R12 = 0b1100,
+	I64_R13 = 0b1101,
+	I64_R14 = 0b1110,
+	I64_R15 = 0b1111,
+};
+
 typedef struct _i64_operand_desc{
 	enum i64_operand_type  	type;
 	enum i64_operand_width 	width;
 } i64_operand_desc;
 typedef struct _i64_operand{
 	i64_operand_desc	desc;
+	enum i64_operand_id	id;
 	u64			value;
 } i64_operand;
 

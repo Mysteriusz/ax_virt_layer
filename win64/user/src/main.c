@@ -100,7 +100,6 @@ _inline_avert void foo(
 #include "mte/pipe/bitpool.h"
 
 #include "intel/emitter/i64_emit.h"
-#include "intel/i64_reg.h"
 
 int main(){
 	SetPriorityClass(GetCurrentProcess(), REALTIME_PRIORITY_CLASS);
@@ -120,81 +119,19 @@ int main(){
 
 	simd_128 instr = init_i64_mte_raw_instr(0);
 	//for (u32 i = 0; i < 200; i++){
-	/*res = i64_emit_64(
-		ADD_R64_64,
-		(i64_operand[I64_RED_OP_COUNT]){
-			[0] = (i64_operand){
-				.desc.type = I64_REG,
-				.desc.width = W64,
-				.value = (u64)rax,
-			},
-			[1] = (i64_operand){
-				.desc.type = I64_SIB_EXT | I64_EXT,
-				.desc.width = W64,
-				.value = (u64)rbx,
-			},
-		},
-		&instr
-	);
 	res = i64_emit_64(
 		ADD_R64_64,
 		(i64_operand[I64_RED_OP_COUNT]){
 			[0] = (i64_operand){
 				.desc.type = I64_REG,
 				.desc.width = W64,
+				.id = I64_rAX,
 				.value = (u64)rax,
 			},
 			[1] = (i64_operand){
-				.desc.type = I64_MEM,
-				.desc.width = W32,
-				.value = (u64)rbx,
-			},
-		},
-		&instr
-	);
-	res = i64_emit_64(
-		ADD_R64_64,
-		(i64_operand[I64_RED_OP_COUNT]){
-			[0] = (i64_operand){
-				.desc.type = I64_REG,
+				.desc.type = I64_DISP32,
 				.desc.width = W64,
-				.value = (u64)rax,
-			},
-			[1] = (i64_operand){
-				.desc.type = I64_SIB,
-				.desc.width = W32,
-				.value = (u64)rbx,
-			},
-		},
-		&instr
-	);
-	res = i64_emit_64(
-		ADD_R64_64,
-		(i64_operand[I64_RED_OP_COUNT]){
-			[0] = (i64_operand){
-				.desc.type = I64_REG,
-				.desc.width = W64,
-				.value = (u64)rax,
-			},
-			[1] = (i64_operand){
-				.desc.type = I64_SIB | I64_EXT,
-				.desc.width = W64,
-				.value = (u64)rbx,
-			},
-		},
-		&instr
-	);*/
-	res = i64_emit_64(
-		ADD_R64_64,
-		(i64_operand[I64_RED_OP_COUNT]){
-			[0] = (i64_operand){
-				.desc.type = I64_REG,
-				.desc.width = W64,
-				.value = (u64)rax,
-			},
-			[1] = (i64_operand){
-				.desc.type = I64_SIB | I64_DISP8,
-				.desc.width = W64,
+				.id = I64_rAX,
 				.value = (u64)rbx,
 			},
 		},

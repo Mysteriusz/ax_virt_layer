@@ -29,7 +29,7 @@ struct i64_operand_sum{
 	/*
 	 	Operand summary
 		
-	 	0GFEDCBA;
+	 	HGFEDCBA;
 		G -> Memory operand used;
 		F -> SIB [index] field extends a register;
 		E -> SIB addressing enabled;

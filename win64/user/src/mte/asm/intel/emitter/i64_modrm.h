@@ -7,7 +7,8 @@
 #include "i64_rex.h"
 
 static u8 _i64_modrm_resolve(
-	_in u8				rex,
+	_in enum i64_operand_id		dest,
+	_in enum i64_operand_id		src,
 	_in struct i64_operand_sum	sum
 ){
 	/*
@@ -28,24 +29,31 @@ static u8 _i64_modrm_resolve(
 		[14] -> 0b00
 		[13] -> 0b00
 		[12] -> 0b00
-		[11] -> 0b10  // 32-bit displacement
+		[0b1011] -> 0b10  // 32-bit displacement
 		[10] -> 0b00
-		[09] -> 0b10  // 32-bit displacement
+		[0b1001] -> 0b10  // 32-bit displacement
 		[08] -> 0b00
-		[07] -> 0b01  // 8-bit displacement
+		[0b0111] -> 0b01  // 8-bit displacement
 		[06] -> 0b00
-		[05] -> 0b01  // 8-bit displacement
+		[0b0101] -> 0b01  // 8-bit displacement
 		[04] -> 0b00
 		[03] -> 0b00
 		[02] -> 0b00
 		[01] -> 0b00 
-    		[00] -> 0b11  // Register to register
+    		[0b0000] -> 0b11  // Register to register
 
 	*/
 	u32 mod_magic = 0x00884403; 
+	u8 calc = (mod_magic >> (mod_i << 1)) & 0b11;
+	u8 rm = 0;
 
-	// Access group from magic
-	u8 modrm = ((mod_magic >> (mod_i << 1)) & 3) << 6;
+	if (!!(mod_i & BIT(1))){ // B
+		rm = 0b100;
+	}else{
+		rm = src & 0b111;
+	}
+
+	u8 modrm = calc << 6 | (dest & 0b111) << 3 | rm;
 
 	return modrm;
 }

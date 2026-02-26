@@ -149,16 +149,21 @@ axres i64_emit_64(
 	u8 leg = _i64_leg_resolve(sum);
 
 	/*
-		Resolve MODRM
+		Resolve MODRM (Only if applicable to the opcode)
 	*/
 
-	u8 modrm = _i64_modrm_resolve(rex, sum);
+	u8 modrm = 0;
+	if (opcode_desc.flags & MODRM){
+		modrm = _i64_modrm_resolve(ops[0].id, ops[1].id, sum);
+	}
 
 	*buf = instr;
 
 	__INL_PERF_END
 	__INL_PERF_LOG
 
+	io_str(u"MODMR VALUE:");
+	printf("%x\n", sum.operand);
 	io_str(u"LEGACY VALUE:");
 	printf("%x\n", leg);
 	io_str(u"REX VALUE:");
