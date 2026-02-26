@@ -37,51 +37,84 @@ enum i64_operand_type : u8{
 	 	Immediate operand flag (Should not be used with I64_MEM or I64_REG)
 
 		Example:
-			rax
-			eax
-			al
-
-		IMPORTANT:
-			For it to be used with extended registers I64_EXT or I64_SIB_EXT should be used
+			0x7fffffff
+			2340
 	*/
 	I64_IMM 		= 0x04,
  	/*
 	 	Extended operand flag
 
-		I64_MEM | I64_EXT Examples:
-			[r8]
-			[r8+rax*2]
-
-		I64_REG | I64_EXT Examples:
+		I64_REG | I64_EXT Example:
 			r8
 			r14
+
+		I64_MEM | I64_EXT Example:
+			[r8]
+
+		I64_MEM | I64_SIB | I64_EXT Example:
+			[r8+rax*2]
+
 	*/
 	I64_EXT 		= 0x08,
  	/*
 		Memory scale index base (SIB) [base + index * scale]
 
 		Example:
-			- [rax+rbx]
-			- [rax+rbx*2]
-			- [rbx+rdx*8]
+			[rax+rbx*1]
+			[rax+rbx*2]
+			[rbx+rdx*8]
 
 		IMPORTANT:
-			This flag DOES NOT extend [base]
-			To extend the base use I64_EXT
+			This flag DOES NOT extend [base] nor [index]
+			To extend the [base] use I64_EXT
+			To extend the [index] use I64_SIB_EXT
 	*/
-	I64_SIB 		= 0x10,
+	I64_SIB 		= I64_MEM | 0x10,
  	/*
-		Memory scale index base (SIB) [base + index * scale] with extended register
+		Memory scale index base (SIB) [base + index * scale] with extended [index] register
 
 		Example:
-			- [rax+r9*2]
-			- [rbx+r10*8]
+			[rax+r9*2]
+			[rbx+r10*8]
 
 		IMPORTANT:
 			This flag DOES NOT extend [base]
 			To extend the base use I64_EXT
 	*/
-	I64_SIB_EXT 		= 0x20,
+	I64_SIB_EXT 		= I64_SIB | 0x20,
+ 	/*
+	 	Memory displacement, can either be displacement for just memory operand
+		or
+		can displace SIB [index] field
+
+		Either way displacement is exclusive to memory addressing operands.
+
+		I64_DISP8 Example:
+			[0x10]
+			[0x80]
+
+		I64_SIB | I64_DISP8 Example:
+			[rbx+0x10*8]
+			[rax+rbx*2+0x20]
+	*/
+	I64_DISP8 		= I64_MEM | 0x40,
+ 	/*
+	 	Memory displacement, can either be displacement for just memory operand
+		or
+		can displace SIB [index] field
+
+		Either way displacement is exclusive to memory addressing operands.
+
+		I64_DISP32 Example:
+			[0xffff]
+			[0x80000000]
+
+		I64_SIB | I64_DISP32 Example:
+			[rbx+0x1000*8]
+			[rax+0x40000000*2]
+			[rdx+rcx*1+0xffffffff]
+	*/
+	I64_DISP32 		= I64_MEM | 0x80,
 };
 enum i64_operand_width : u8{
 	W8 	= 3,

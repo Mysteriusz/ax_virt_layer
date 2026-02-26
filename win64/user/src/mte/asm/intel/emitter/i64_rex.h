@@ -17,10 +17,10 @@ static u8 _i64_rex_resolve(
 	_in struct i64_operand_sum	sum
 ){
 	u8 rex = (I64_REX_LABEL << 4)
-		| (!!(sum.width & BIT(3)) << 3)
-		| (!!((sum.operand & BIT(3)) || (sum.operand & BIT(2))) << 2)
-		| (!!(sum.operand & BIT(4)) << 1)
-		| ((sum.operand & BIT(1)) || (sum.operand & BIT(0)));
+		| (!!(sum.width & BIT(3)) << 3) 				// D
+		| (!!((sum.operand & BIT(3)) || (sum.operand & BIT(2))) << 2) 	// D | C
+		| (!!(sum.operand & BIT(5)) << 1) 				// F
+		| (!!((sum.operand & BIT(1)) || (sum.operand & BIT(0)))); 	// B | A
 
 	switch(rex){
 	case 0x40: // Empty REX byte 9)

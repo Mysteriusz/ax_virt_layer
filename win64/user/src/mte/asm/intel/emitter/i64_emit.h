@@ -9,6 +9,8 @@
 #include "i64_immd.h"
 #include "i64_modrm.h"
 
+extern u64 in_i;
+extern u64 in_n;
 /*
  	Emit IA-32e 64-bit instruction
 */

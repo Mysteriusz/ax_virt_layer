@@ -16,23 +16,27 @@ struct i64_operand_sum{
 	/*
 	 	Width summary
 
-	 	000EDCBA
-		E -> Memory addressing with 32-bit register
-		D -> All operands are 64-bit
-		C -> Reserved
-		B -> Reserved
-		A -> Any operand is 16-bit
+	 	0GFEDCBA;
+		G -> 32-bit displacement;
+		F -> 8-bit displacement;
+		E -> Memory addressing with 32-bit register;
+		D -> All operands are 64-bit;
+		C -> Reserved;
+		B -> Reserved;
+		A -> Any operand is 16-bit;
 	*/
 	u8	width;
 	/*
 	 	Operand summary
 		
-	 	000EDCBA
-		E -> SIB`s [index] extends a register
-		D -> Destination register operand extends a register
-		C -> Destination memory operand extends a register
-		B -> Source register operand extends a register
-		A -> Source memory operand extends a register
+	 	0GFEDCBA;
+		G -> Memory operand used;
+		F -> SIB [index] field extends a register;
+		E -> SIB addressing enabled;
+		D -> Destination register operand extends a register;
+		C -> Destination memory operand extends a register;
+		B -> Source register operand extends a register;
+		A -> Source memory operand extends a register;
 	*/
 	u8 	operand;
 };

@@ -119,6 +119,23 @@ int main(){
 	reg64 *rbx = axmalloc(8);
 
 	simd_128 instr = init_i64_mte_raw_instr(0);
+	//for (u32 i = 0; i < 200; i++){
+	/*res = i64_emit_64(
+		ADD_R64_64,
+		(i64_operand[I64_RED_OP_COUNT]){
+			[0] = (i64_operand){
+				.desc.type = I64_REG,
+				.desc.width = W64,
+				.value = (u64)rax,
+			},
+			[1] = (i64_operand){
+				.desc.type = I64_SIB_EXT | I64_EXT,
+				.desc.width = W64,
+				.value = (u64)rbx,
+			},
+		},
+		&instr
+	);
 	res = i64_emit_64(
 		ADD_R64_64,
 		(i64_operand[I64_RED_OP_COUNT]){
@@ -128,14 +145,67 @@ int main(){
 				.value = (u64)rax,
 			},
 			[1] = (i64_operand){
-				.desc.type = I64_MEM | I64_SIB | I64_EXT | I64_SIB_EXT,
+				.desc.type = I64_MEM,
+				.desc.width = W32,
+				.value = (u64)rbx,
+			},
+		},
+		&instr
+	);
+	res = i64_emit_64(
+		ADD_R64_64,
+		(i64_operand[I64_RED_OP_COUNT]){
+			[0] = (i64_operand){
+				.desc.type = I64_REG,
+				.desc.width = W64,
+				.value = (u64)rax,
+			},
+			[1] = (i64_operand){
+				.desc.type = I64_SIB,
+				.desc.width = W32,
+				.value = (u64)rbx,
+			},
+		},
+		&instr
+	);
+	res = i64_emit_64(
+		ADD_R64_64,
+		(i64_operand[I64_RED_OP_COUNT]){
+			[0] = (i64_operand){
+				.desc.type = I64_REG,
+				.desc.width = W64,
+				.value = (u64)rax,
+			},
+			[1] = (i64_operand){
+				.desc.type = I64_SIB | I64_EXT,
+				.desc.width = W64,
+				.value = (u64)rbx,
+			},
+		},
+		&instr
+	);*/
+	res = i64_emit_64(
+		ADD_R64_64,
+		(i64_operand[I64_RED_OP_COUNT]){
+			[0] = (i64_operand){
+				.desc.type = I64_REG,
+				.desc.width = W64,
+				.value = (u64)rax,
+			},
+			[1] = (i64_operand){
+				.desc.type = I64_SIB | I64_DISP8,
 				.desc.width = W64,
 				.value = (u64)rbx,
 			},
 		},
 		&instr
 	);
+	//}
 	axcheck(res, ax_log(res));
+
+	io_u64(in_i);
+	io_u64(in_n);
+	printf("%lf\n", ((double)in_i / in_n) / 4.2);
 
 #if 0
 	_i64_prefetch_immd();

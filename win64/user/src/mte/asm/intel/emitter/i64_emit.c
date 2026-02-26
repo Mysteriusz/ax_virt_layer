@@ -19,12 +19,9 @@ struct i64_operand_sum i64_sum_calc(
 	u8 w1 = 0; // A
 	u8 w2 = 0; // E
 
-	u8 o0 = 0;
-	u8 o1 = 0;
-	u8 o2 = 0;
-
-	enum i64_operand_type ti = 0;
-	u8 wi = 0;
+	u8 o0 = 0; // F and E
+	u8 o1 = 0; // D and C
+	u8 o2 = 0; // B and A
 
 	enum i64_operand_type t0 = ops[0].desc.type;
 	enum i64_operand_type t1 = ops[1].desc.type;
@@ -35,29 +32,48 @@ struct i64_operand_sum i64_sum_calc(
 	bool t1_mem = (t1 & I64_MEM);
 
 	for (u32 i = 0; i < desc.op_count; i++){
-		ti = ops[i].desc.type;
-		wi = ops[i].desc.width;
+		enum i64_operand_type ti = ops[i].desc.type;
+		u8 wi = ops[i].desc.width;
+
+		u8 w0m0 = -((ti & I64_DISP8) == I64_DISP8);
+		u8 w0m1 = -((ti & I64_DISP32) == I64_DISP32);
+
+		u8 w2m0 = -((ti & I64_MEM) == I64_MEM);
+		u8 w2m1 = -(wi == W32);
+
+		u8 o0m0 = -((ti & I64_MEM) == I64_MEM);
+		u8 o0m1 = -((ti & I64_SIB_EXT) == I64_SIB_EXT);
+		u8 o0m2 = -((ti & I64_SIB) == I64_SIB);
+		u8 o0m3 = -((ti & I64_MEM) == I64_MEM);
 
 		// If operand width is 64-bit OR a memory operand
 		w0 &= ~BIT(3) | (((wi == W64) | !!(ti & I64_MEM)) << 3);
 
 		// If operand width is 16-bit
+		o0 |= (o0m2 & BIT(4));
+
+		// If operand width is 16-bit
 		w1 |= (wi == W16);
 
 		// If is a memory operand and width is 32-bit
-		u64 w2m0 = -((ti & I64_MEM) != 0);
-		u64 w2m1 = -(wi == W32);
-		w2 |= (w2m0 & w2m1 & (1 << 4));
+		w2 |= (w2m0 & w2m1 & BIT(4));
 
 		// If is a memory operand and [index] of the memory is extended
-		u64 o0m0 = -((ti & I64_MEM) != 0);
-		u64 o0m1 = -((ti & I64_SIB_EXT) != 0);
-		o0 |= (o0m0 & o0m1 & (1 << 4));
+		o0 |= (o0m0 & o0m1 & BIT(5));
+
+		// If is 32-bit displacement
+		w0 |= (w0m1 & BIT(6));
+
+		// If is 8-bit displacement
+		w0 |= (w0m0 & BIT(5));
+
+		// If is a memory operand
+		o0 |= (o0m3 & BIT(6));
 	}
 
 	o1 = (t0_ext && !t0_mem) << 3;
-	o1 = (t0_ext && t0_mem) << 2;
 	o2 = (t1_ext && !t1_mem) << 1;
+	o1 = (t0_ext && t0_mem) << 2;
 	o2 = (t1_ext && t1_mem);
 
 	sum.width = w0 | w1 | w2;
@@ -67,13 +83,15 @@ struct i64_operand_sum i64_sum_calc(
 }
 
 #include "i64_emit.h"
-
+u64 in_i = 0;
+u64 in_n = 0;
 axres i64_emit_64(
 	_in enum i64_opcode 		opcode,
 	_in i64_operand 		ops[I64_RED_OP_COUNT],
 	_out i64_mte_raw_instr		*buf
 ){
 	__INL_PERF_INIT
+	__INL_PERF_START
 	if (ops == nullptr){
 		return AX_INV_ARG;
 	}
@@ -97,10 +115,10 @@ axres i64_emit_64(
 		return AX_INV_DATA;
 	}
 
-	__INL_PERF_START
+//__INL_PERF_START
 	struct i64_operand_sum sum =
 		i64_sum_calc(opcode_desc, ops);
-	__INL_PERF_END
+//__INL_PERF_END
 		
 	/*
 	   	TODO: ADD CASE WHERE 2 OPERAND REGISTERS ARE NOT THE SAME WIDTH
@@ -109,6 +127,12 @@ axres i64_emit_64(
 	*/
 
 	i64_mte_raw_instr instr = {0};
+
+	/*
+		Resolve REX
+	*/
+
+	u8 rex = _i64_rex_resolve(sum);
 
 	/*
 		Resolve Legacy prefix
@@ -125,12 +149,6 @@ axres i64_emit_64(
 	u8 leg = _i64_leg_resolve(sum);
 
 	/*
-		Resolve REX
-	*/
-
-	u8 rex = _i64_rex_resolve(sum);
-
-	/*
 		Resolve MODRM
 	*/
 
@@ -138,12 +156,9 @@ axres i64_emit_64(
 
 	*buf = instr;
 
-	//__INL_PERF_END
+	__INL_PERF_END
 	__INL_PERF_LOG
 
-	io_str(u"LEGACY VALUE:");
-	printf("%x\n", sum.width);
-	printf("%x\n", sum.operand);
 	io_str(u"LEGACY VALUE:");
 	printf("%x\n", leg);
 	io_str(u"REX VALUE:");
@@ -151,6 +166,8 @@ axres i64_emit_64(
 	io_str(u"MODRM VALUE:");
 	printf("%x\n", modrm);
 
+	in_i += __INL_PERF_SUM;
+	in_n++;
 	return AX_SUCC;
 }
 
