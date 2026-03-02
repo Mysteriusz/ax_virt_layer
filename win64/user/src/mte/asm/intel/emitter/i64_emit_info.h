@@ -14,22 +14,30 @@
 */
 struct i64_operand_sum{
 	/*
+		If [operand.E] == 0 then;
+			- Value is undefined
+
+		Else
+			- Index of the operand using SIB
+	*/
+	u8 	sib_i;
+	/*
 	 	Width summary
 
 	 	0GFEDCBA;
-		G -> 32-bit displacement;
-		F -> 8-bit displacement;
-		E -> Memory addressing with 32-bit register;
-		D -> All operands are 64-bit;
-		C -> Reserved;
-		B -> Reserved;
+		E -> 32-bit displacement;
+		D -> 8-bit displacement;
+		C -> Memory addressing with 32-bit register;
+		B -> All operands are 64-bit;
+		C -> Reserved
+		B -> Reserved
 		A -> Any operand is 16-bit;
 	*/
 	u8	width;
 	/*
 	 	Operand summary
 		
-	 	HGFEDCBA;
+	 	0GFEDCBA;
 		G -> Memory operand used;
 		F -> SIB [index] field extends a register;
 		E -> SIB addressing enabled;

@@ -9,6 +9,10 @@
 // 4 operand count
 #define I64_MAX_OP_COUNT 4
 
+/*
+ 	TODO:
+		- DEPRECATE I64_EXT AND I64_SIB_EXT
+*/
 enum i64_operand_type : u8{
 	/*
 	 	Memory operand flag (Should not be used with I64_REG or I64_IMM)
@@ -92,6 +96,7 @@ enum i64_operand_type : u8{
 		I64_DISP8 Example:
 			[0x10]
 			[0x80]
+			[rax+0x10]
 
 		I64_SIB | I64_DISP8 Example:
 			[rbx+0x10*8]
@@ -133,6 +138,11 @@ enum i64_operand_width : u8{
 };
 
 enum i64_operand_id : u8{
+	/*
+	 	[0 - 7] -> Base registers
+	 	[8 - 15] -> Extended registers
+	 	[16 - x] -> Numerical type
+	*/
 	I64_rAX = 0b000,
 	I64_rCX = 0b001,
 	I64_rDX = 0b010,
@@ -149,6 +159,10 @@ enum i64_operand_id : u8{
 	I64_R13 = 0b1101,
 	I64_R14 = 0b1110,
 	I64_R15 = 0b1111,
+	I64_SIB_1 = BIT(4), 		// Ex: ([rax + rbx * 1])
+	I64_SIB_2 = BIT(4) | 1, 	// Ex: ([rax + rbx * 2])
+	I64_SIB_4 = BIT(4) | 2, 	// Ex: ([rax + rbx * 4])
+	I64_SIB_8 = BIT(4) | 3, 	// Ex: ([rax + rbx * 8])
 };
 
 typedef struct _i64_operand_desc{
@@ -157,9 +171,51 @@ typedef struct _i64_operand_desc{
 } i64_operand_desc;
 typedef struct _i64_operand{
 	i64_operand_desc	desc;
+	/*
+		Identifier of the base register/value.
+
+		Example for SIB addressing:
+			[rax + rbx] -> id = rAX
+			[rdx + rcx * 10] -> id = rDX
+
+		Example for registers:
+			rax -> id = rAX
+
+		Example for immediate 16/32 bits:
+			0xffff -> id = I64_INT_16
+			0xffff -> id = I64_INT_32
+
+		IMPORTANT!!!
+
+		In case of immediates and memory accessing,
+		value and additional information is stored in the [value] field
+
+		If [desc.type] & I64_REG:
+			- [value] == ZERO
+		If [desc.type] & I64_IMM:
+			- [value] == Field width value
+		If [desc.type] & I64_MEM:
+			- [value] == [struct i64_operand_mem]
+
+	*/
 	enum i64_operand_id	id;
 	u64			value;
 } i64_operand;
+
+struct i64_operand_mem{
+	/*
+	 	SIB Exclusive
+
+		IMPORTANT!!!
+			- ID of the operand descriptor is the [SIB.base]
+	*/
+	enum i64_operand_id	scale_id;
+	enum i64_operand_id	index_id;
+	/*
+	 	Displacement Exclusive
+	*/
+	u32			disp;
+};
 
 _inline_force bool _i64_width_check(
 	enum i64_operand_width a,

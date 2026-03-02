@@ -5,7 +5,6 @@
 #include "i64_emit_info.h"
 #include "i64_emit.h"
 
-
 struct i64_operand_sum i64_sum_calc(
 	_in i64_opcode_desc	desc,
 	_in i64_operand		ops[I64_RED_OP_COUNT]
@@ -23,6 +22,7 @@ struct i64_operand_sum i64_sum_calc(
 	u8 o1 = 0; // D and C
 	u8 o2 = 0; // B and A
 
+	u8 sib_i = 0;
 	enum i64_operand_type t0 = ops[0].desc.type;
 	enum i64_operand_type t1 = ops[1].desc.type;
 	bool t0_ext = (t0 & I64_EXT);
@@ -34,6 +34,12 @@ struct i64_operand_sum i64_sum_calc(
 	for (u32 i = 0; i < desc.op_count; i++){
 		enum i64_operand_type ti = ops[i].desc.type;
 		u8 wi = ops[i].desc.width;
+
+		/*
+		 	DONT CHANGE ANY BIT-SHIFTS
+
+			No idea why exactly but it decreases performance
+		*/
 
 		u8 w0m0 = -((ti & I64_DISP8) == I64_DISP8);
 		u8 w0m1 = -((ti & I64_DISP32) == I64_DISP32);
@@ -49,7 +55,7 @@ struct i64_operand_sum i64_sum_calc(
 		// If operand width is 64-bit OR a memory operand
 		w0 &= ~BIT(3) | (((wi == W64) | !!(ti & I64_MEM)) << 3);
 
-		// If operand width is 16-bit
+		// If SIB addressing
 		o0 |= (o0m2 & BIT(4));
 
 		// If operand width is 16-bit
@@ -69,6 +75,8 @@ struct i64_operand_sum i64_sum_calc(
 
 		// If is a memory operand
 		o0 |= (o0m3 & BIT(6));
+
+		sib_i = i * !!(o0 & BIT(4));
 	}
 
 	o1 = (t0_ext && !t0_mem) << 3;
@@ -78,6 +86,7 @@ struct i64_operand_sum i64_sum_calc(
 
 	sum.width = w0 | w1 | w2;
 	sum.operand = o0 | o1 | o2;
+	sum.sib_i = sib_i;
 
 	return sum;
 }
@@ -119,6 +128,15 @@ axres i64_emit_64(
 	struct i64_operand_sum sum =
 		i64_sum_calc(opcode_desc, ops);
 //__INL_PERF_END
+
+	/*
+	 	Evaluate SIB-specific field references
+	*/
+
+	i64_operand *sib_op =
+		&ops[sum.sib_i];
+	struct i64_operand_mem *sib_mem =
+		(struct i64_operand_mem*)&sib_op->value;
 		
 	/*
 	   	TODO: ADD CASE WHERE 2 OPERAND REGISTERS ARE NOT THE SAME WIDTH
@@ -132,7 +150,8 @@ axres i64_emit_64(
 		Resolve REX
 	*/
 
-	u8 rex = _i64_rex_resolve(sum);
+	volatile u8 rex = 
+		_i64_rex_resolve(sum);
 
 	/*
 		Resolve Legacy prefix
@@ -146,30 +165,43 @@ axres i64_emit_64(
 			adcx rax, [ebx]	(ADX instruction set)
 	*/
 
-	u8 leg = _i64_leg_resolve(sum);
+	volatile u8 leg = 
+		_i64_leg_resolve(sum);
 
 	/*
 		Resolve MODRM (Only if applicable to the opcode)
 	*/
 
-	u8 modrm = 0;
+	volatile u8 modrm = 0;
 	if (opcode_desc.flags & MODRM){
 		modrm = _i64_modrm_resolve(ops[0].id, ops[1].id, sum);
 	}
+
+	volatile u8 sib = 
+		_i64_sib_resolve(
+			sib_op->id,
+			*(struct i64_operand_mem*)&sib_op->value,
+			sum);
 
 	*buf = instr;
 
 	__INL_PERF_END
 	__INL_PERF_LOG
 
-	io_str(u"MODMR VALUE:");
+	io_str(u"LEGACY VALUE:");
 	printf("%x\n", sum.operand);
+	printf("%x\n", sum.sib_i);
+	printf("%x\n", sum.width);
 	io_str(u"LEGACY VALUE:");
 	printf("%x\n", leg);
 	io_str(u"REX VALUE:");
 	printf("%x\n", rex);
 	io_str(u"MODRM VALUE:");
 	printf("%x\n", modrm);
+	io_str(u"SIB VALUE:");
+	printf("%x\n", sib);
+	io_str(u"ALT:");
+	printf("%x %x %x %x %x %x\n", leg, rex, (u8)(opcode & 0xff), modrm, sib, sib_mem->disp);
 
 	in_i += __INL_PERF_SUM;
 	in_n++;

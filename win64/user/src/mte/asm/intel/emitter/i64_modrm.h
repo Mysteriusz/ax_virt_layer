@@ -18,13 +18,13 @@ static u8 _i64_modrm_resolve(
 		B -> SIB addressing
 		A -> Memory addressing
 	*/
-	u8 mod_i = !!(sum.width & BIT(6)) << 3 | 	// G
-		!!(sum.width & BIT(5)) << 2 |		// F
-		!!(sum.operand & BIT(4)) << 1 | 	// E
-		!!(sum.operand & BIT(6)); 		// G
+	u8 mod_i = !!(sum.width & BIT(6)) << 3 |
+		!!(sum.width & BIT(5)) << 2 |
+		!!(sum.operand & BIT(4)) << 1 |
+		!!(sum.operand & BIT(6));
 
 	/*
-	 	Groups 32 bits into 16 groups with mod encoding
+	 	Groups 32 bits into 2-bit mod encoding
 		[15] -> 0b00
 		[14] -> 0b00
 		[13] -> 0b00

@@ -126,13 +126,17 @@ int main(){
 				.desc.type = I64_REG,
 				.desc.width = W64,
 				.id = I64_rAX,
-				.value = (u64)rax,
+				.value = 0,
 			},
 			[1] = (i64_operand){
-				.desc.type = I64_DISP32,
+				.desc.type = I64_SIB_EXT | I64_EXT | I64_DISP8,
 				.desc.width = W64,
-				.id = I64_rAX,
-				.value = (u64)rbx,
+				.id = I64_R10,
+				.value = *(u64*)&(struct i64_operand_mem){
+					.index_id = I64_R9,
+					.scale_id = I64_SIB_8,
+					.disp = 0x10
+				},
 			},
 		},
 		&instr

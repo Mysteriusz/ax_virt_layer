@@ -8,6 +8,7 @@
 #include "i64_rex.h"
 #include "i64_immd.h"
 #include "i64_modrm.h"
+#include "i64_sib.h"
 
 extern u64 in_i;
 extern u64 in_n;
