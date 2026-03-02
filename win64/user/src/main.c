@@ -129,11 +129,11 @@ int main(){
 				.value = 0,
 			},
 			[1] = (i64_operand){
-				.desc.type = I64_SIB_EXT | I64_EXT | I64_DISP8,
+				.desc.type = I64_SIB | I64_DISP8,
 				.desc.width = W64,
-				.id = I64_R10,
+				.id = I64_r10,
 				.value = *(u64*)&(struct i64_operand_mem){
-					.index_id = I64_R9,
+					.index_id = I64_r9,
 					.scale_id = I64_SIB_8,
 					.disp = 0x10
 				},

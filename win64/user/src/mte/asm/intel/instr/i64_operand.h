@@ -9,20 +9,13 @@
 // 4 operand count
 #define I64_MAX_OP_COUNT 4
 
-/*
- 	TODO:
-		- DEPRECATE I64_EXT AND I64_SIB_EXT
-*/
 enum i64_operand_type : u8{
 	/*
 	 	Memory operand flag (Should not be used with I64_REG or I64_IMM)
 
 		Example:
 			[rax]
-			[eax]
-
-		IMPORTANT:
-			For it to be used with extended registers I64_EXT or I64_SIB_EXT should be used
+			[r8]
 	*/
 	I64_MEM 		= 0x01,
 	/*
@@ -32,9 +25,7 @@ enum i64_operand_type : u8{
 			rax
 			eax
 			al
-
-		IMPORTANT:
-			For it to be used with extended registers I64_EXT or I64_SIB_EXT should be used
+			r8d
 	*/
 	I64_REG 		= 0x02,
 	/*
@@ -46,46 +37,14 @@ enum i64_operand_type : u8{
 	*/
 	I64_IMM 		= 0x04,
  	/*
-	 	Extended operand flag
-
-		I64_REG | I64_EXT Example:
-			r8
-			r14
-
-		I64_MEM | I64_EXT Example:
-			[r8]
-
-		I64_MEM | I64_SIB | I64_EXT Example:
-			[r8+rax*2]
-
-	*/
-	I64_EXT 		= 0x08,
- 	/*
 		Memory scale index base (SIB) [base + index * scale]
 
 		Example:
-			[rax+rbx*1]
+			[r10+rbx*1]
 			[rax+rbx*2]
-			[rbx+rdx*8]
-
-		IMPORTANT:
-			This flag DOES NOT extend [base] nor [index]
-			To extend the [base] use I64_EXT
-			To extend the [index] use I64_SIB_EXT
+			[rbx+r8*8]
 	*/
 	I64_SIB 		= I64_MEM | 0x10,
- 	/*
-		Memory scale index base (SIB) [base + index * scale] with extended [index] register
-
-		Example:
-			[rax+r9*2]
-			[rbx+r10*8]
-
-		IMPORTANT:
-			This flag DOES NOT extend [base]
-			To extend the base use I64_EXT
-	*/
-	I64_SIB_EXT 		= I64_SIB | 0x20,
  	/*
 	 	Memory displacement, can either be displacement for just memory operand
 		or
@@ -137,32 +96,57 @@ enum i64_operand_width : u8{
 	*/
 };
 
+#define I64_OP_REG 		0b000 << 5
+#define I64_OP_SIB_SCALE 	0b010 << 5
+#define I64_OP_IMM 		0b011 << 5
+
+#define I64_OP_EXT 		0b100 << 5
+
+/*
+	(SHOULD NOT BE USED EXTERNALY)
+ 	Initialize operand with value (v) and type (i) 
+
+	(i) is limited to 3 (shifted left by 5) bits
+	(v) is limited to 5 bits
+*/
+#define _I64_OPR_I(i, v) \
+	(((i) | (v)) & 0xff)
+
+/*
+	[0 - 7] -> Base registers
+	[8 - 15] -> Extended registers
+	[16 - x] -> Numerical type
+*/
 enum i64_operand_id : u8{
-	/*
-	 	[0 - 7] -> Base registers
-	 	[8 - 15] -> Extended registers
-	 	[16 - x] -> Numerical type
-	*/
-	I64_rAX = 0b000,
-	I64_rCX = 0b001,
-	I64_rDX = 0b010,
-	I64_rBX = 0b011,
-	I64_rSP = 0b100,
-	I64_rBP = 0b101,
-	I64_rSI = 0b110,
-	I64_rDI = 0b111,
-	I64_R8  = 0b1000,
-	I64_R9  = 0b1001,
-	I64_R10 = 0b1010,
-	I64_R11 = 0b1011,
-	I64_R12 = 0b1100,
-	I64_R13 = 0b1101,
-	I64_R14 = 0b1110,
-	I64_R15 = 0b1111,
-	I64_SIB_1 = BIT(4), 		// Ex: ([rax + rbx * 1])
-	I64_SIB_2 = BIT(4) | 1, 	// Ex: ([rax + rbx * 2])
-	I64_SIB_4 = BIT(4) | 2, 	// Ex: ([rax + rbx * 4])
-	I64_SIB_8 = BIT(4) | 3, 	// Ex: ([rax + rbx * 8])
+	I64_rAX 	= _I64_OPR_I(I64_OP_REG, 0b0000),
+	I64_rCX 	= _I64_OPR_I(I64_OP_REG, 0b0001),
+	I64_rDX 	= _I64_OPR_I(I64_OP_REG, 0b0010),
+	I64_rBX 	= _I64_OPR_I(I64_OP_REG, 0b0011),
+	I64_rSP 	= _I64_OPR_I(I64_OP_REG, 0b0100),
+	I64_rBP		= _I64_OPR_I(I64_OP_REG, 0b0101),
+	I64_rSI		= _I64_OPR_I(I64_OP_REG, 0b0110),
+	I64_rDI 	= _I64_OPR_I(I64_OP_REG, 0b0111),
+	I64_r8		= _I64_OPR_I(I64_OP_EXT | I64_OP_REG, 0b1000),
+	I64_r9		= _I64_OPR_I(I64_OP_EXT | I64_OP_REG, 0b1001),
+	I64_r10 	= _I64_OPR_I(I64_OP_EXT | I64_OP_REG, 0b1010),
+	I64_r11 	= _I64_OPR_I(I64_OP_EXT | I64_OP_REG, 0b1011),
+	I64_r12 	= _I64_OPR_I(I64_OP_EXT | I64_OP_REG, 0b1100),
+	I64_r13 	= _I64_OPR_I(I64_OP_EXT | I64_OP_REG, 0b1101),
+	I64_r14 	= _I64_OPR_I(I64_OP_EXT | I64_OP_REG, 0b1110),
+	I64_r15 	= _I64_OPR_I(I64_OP_EXT | I64_OP_REG, 0b1111),
+
+	// Ex: [rax + rbx * 1]
+	I64_SIB_1 	= _I64_OPR_I(I64_OP_SIB_SCALE, BIT(4)), 	
+	// Ex: [rax + rbx * 2]
+	I64_SIB_2 	= _I64_OPR_I(I64_OP_SIB_SCALE, BIT(4) | 1),
+	// Ex: [rax + rbx * 4]
+	I64_SIB_4 	= _I64_OPR_I(I64_OP_SIB_SCALE, BIT(4) | 2),
+	// Ex: [rax + rbx * 8]
+	I64_SIB_8 	= _I64_OPR_I(I64_OP_SIB_SCALE, BIT(4) | 3),
+
+	I64_IMM_8 	= _I64_OPR_I(I64_IMM, BIT(4) | 4),
+	I64_IMM_16 	= _I64_OPR_I(I64_IMM, BIT(4) | 5),
+	I64_IMM_32 	= _I64_OPR_I(I64_IMM, BIT(4) | 6),
 };
 
 typedef struct _i64_operand_desc{

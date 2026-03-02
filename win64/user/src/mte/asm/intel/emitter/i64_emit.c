@@ -23,15 +23,16 @@ struct i64_operand_sum i64_sum_calc(
 	u8 o2 = 0; // B and A
 
 	u8 sib_i = 0;
-	enum i64_operand_type t0 = ops[0].desc.type;
-	enum i64_operand_type t1 = ops[1].desc.type;
-	bool t0_ext = (t0 & I64_EXT);
-	bool t0_mem = (t0 & I64_MEM);
+	i64_operand *t0 = &ops[0];
+	i64_operand *t1 = &ops[1];
+	bool t0_ext = (t0->id & I64_OP_EXT);
+	bool t0_mem = (t0->desc.type & I64_MEM);
 
-	bool t1_ext = (t1 & I64_EXT);
-	bool t1_mem = (t1 & I64_MEM);
+	bool t1_ext = (t1->id & I64_OP_EXT);
+	bool t1_mem = (t1->desc.type & I64_MEM);
 
 	for (u32 i = 0; i < desc.op_count; i++){
+		enum i64_operand_id ii = ops[i].id;
 		enum i64_operand_type ti = ops[i].desc.type;
 		u8 wi = ops[i].desc.width;
 
@@ -47,8 +48,8 @@ struct i64_operand_sum i64_sum_calc(
 		u8 w2m0 = -((ti & I64_MEM) == I64_MEM);
 		u8 w2m1 = -(wi == W32);
 
-		u8 o0m0 = -((ti & I64_MEM) == I64_MEM);
-		u8 o0m1 = -((ti & I64_SIB_EXT) == I64_SIB_EXT);
+		u8 o0m0 = -((ti & I64_SIB) == I64_SIB);
+		u8 o0m1 = -((ii & I64_OP_EXT) == I64_OP_EXT);
 		u8 o0m2 = -((ti & I64_SIB) == I64_SIB);
 		u8 o0m3 = -((ti & I64_MEM) == I64_MEM);
 
