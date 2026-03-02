@@ -80,10 +80,17 @@ struct i64_operand_sum i64_sum_calc(
 		sib_i = i * !!(o0 & BIT(4));
 	}
 
+	// Destination register extended
 	o1 = (t0_ext && !t0_mem) << 3;
+
+	// Source register extended
 	o2 = (t1_ext && !t1_mem) << 1;
-	o1 = (t0_ext && t0_mem) << 2;
-	o2 = (t1_ext && t1_mem);
+
+	// Destination memory extended
+	o1 |= (t0_ext && t0_mem) << 2;
+
+	// Source memory extended
+	o2 |= (t1_ext && t1_mem);
 
 	sum.width = w0 | w1 | w2;
 	sum.operand = o0 | o1 | o2;

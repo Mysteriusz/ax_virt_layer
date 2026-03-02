@@ -125,7 +125,7 @@ int main(){
 			[0] = (i64_operand){
 				.desc.type = I64_REG,
 				.desc.width = W64,
-				.id = I64_rAX,
+				.id = I64_r10,
 				.value = 0,
 			},
 			[1] = (i64_operand){

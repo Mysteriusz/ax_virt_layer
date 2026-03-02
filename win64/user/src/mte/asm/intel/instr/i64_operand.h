@@ -86,7 +86,7 @@ enum i64_operand_width : u8{
 	W32 	= 5,
 	W64 	= 6,
 	/*
-	   	Each enum value is the power of 2 to get bitwidth
+	   	Each enum value is the power of 2 to get bit-width
 		(2^3 = 8, 2^4 = 16, etc...)
 	 	
 	 	Reserved for later (SIMD support)
@@ -96,17 +96,23 @@ enum i64_operand_width : u8{
 	*/
 };
 
-#define I64_OP_REG 		0b000 << 5
-#define I64_OP_SIB_SCALE 	0b010 << 5
-#define I64_OP_IMM 		0b011 << 5
-
-#define I64_OP_EXT 		0b100 << 5
+#define I64_OP_REG 		(0b000 << 5)
+#define I64_OP_SIB_SCALE 	(0b001 << 5)
+#define I64_OP_IMM 		(0b010 << 5)
+#define I64_OP_EXT 		(0b100 << 5)
 
 /*
 	(SHOULD NOT BE USED EXTERNALY)
  	Initialize operand with value (v) and type (i) 
 
 	(i) is limited to 3 (shifted left by 5) bits
+	Possible values:
+		- I64_OP_REG
+		- I64_OP_SIB_SCALE
+		- I64_OP_IMM
+	Additional flag:
+		- I64_OP_EXT
+
 	(v) is limited to 5 bits
 */
 #define _I64_OPR_I(i, v) \
