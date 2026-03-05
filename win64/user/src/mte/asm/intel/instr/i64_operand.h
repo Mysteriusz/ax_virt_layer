@@ -51,6 +51,8 @@ enum i64_operand_type : u8{
 		can displace SIB [index] field
 
 		Either way displacement is exclusive to memory addressing operands.
+		Remeber that range of this displacement is:
+			-128 --- 127
 
 		I64_DISP8 Example:
 			[0x10]
@@ -68,6 +70,8 @@ enum i64_operand_type : u8{
 		can displace SIB [index] field
 
 		Either way displacement is exclusive to memory addressing operands.
+		Remeber that range of this displacement is:
+			-2,147,483,648 --- 2,147,483,647
 
 		I64_DISP32 Example:
 			[0xffff]
@@ -76,7 +80,7 @@ enum i64_operand_type : u8{
 		I64_SIB | I64_DISP32 Example:
 			[rbx+0x1000*8]
 			[rax+0x40000000*2]
-			[rdx+rcx*1+0xffffffff]
+			[rdx+rcx*1+0x7fffffff]
 	*/
 	I64_DISP32 		= I64_MEM | 0x80,
 };
@@ -201,6 +205,7 @@ struct i64_operand_mem{
 	*/
 	enum i64_operand_id	scale_id;
 	enum i64_operand_id	index_id;
+	enum i64_operand_width	index_width;
 	/*
 	 	Displacement Exclusive
 	*/

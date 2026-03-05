@@ -12,8 +12,8 @@ static u8 _i64_sib_resolve(
 	_in struct i64_operand_sum	sum
 ){
 	// SIB not present
-	if (__builtin_expect(!(sum.operand & BIT(4)), false)){ // E
-		return 1;
+	if (!!!(sum.operand & BIT(4))){ // E
+		return 0;
 	}
 
 	/*
@@ -47,10 +47,11 @@ static u8 _i64_sib_resolve(
     		[00] -> 0b00  // * 1 scale
 
 	*/
-	u8 sib_magic = 0xe4;
+	const u8 sib_magic = 0xe4;
 
 	// Calculate scale and shift to left
-	u8 sib_scale = (sib_magic >> ((mem.scale_id & 0b11) << 1)) << 6;
+	u8 sib_scale =
+		(sib_magic >> ((mem.scale_id & 0b11) << 1)) << 6;
 
 	sib |= sib_scale;
 

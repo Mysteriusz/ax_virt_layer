@@ -23,6 +23,11 @@ static u8 _i64_modrm_resolve(
 		!!(sum.operand & BIT(4)) << 1 |
 		!!(sum.operand & BIT(6));
 
+	bool flip = !!(sum.operand & BIT(7));
+
+	u8 dest_flip = (flip ? dest : src);
+	u8 src_flip = (flip ? src : dest);
+
 	/*
 	 	Groups 32 bits into 2-bit mod encoding
 		[15] -> 0b00
@@ -50,10 +55,10 @@ static u8 _i64_modrm_resolve(
 	if (!!(mod_i & BIT(1))){ // B
 		rm = 0b100;
 	}else{
-		rm = src & 0b111;
+		rm = dest_flip & 0b111;
 	}
 
-	u8 modrm = calc << 6 | (dest & 0b111) << 3 | rm;
+	u8 modrm = calc << 6 | (src_flip & 0b111) << 3 | rm;
 
 	return modrm;
 }

@@ -8,8 +8,16 @@
 #include "i64_operand.h"
 
 typedef simd_128 i64_mte_raw_instr; // Unknown length instruction (up to 15 bytes) (For the purpose of optimisation AVX is used for storage)
-#define init_i64_mte_raw_instr(...) \
-	((i64_mte_raw_instr)(simd_load_128((const u8[16]){__VA_ARGS__})))
+
+struct i64_instr_temp{
+	u8	leg; 
+	u8	rex;
+	u32	opcode;
+	u8	modrm;
+	u8	sib;
+	u32	disp;
+	u32	imm;
+};
 
 /*	
  	i64 instruction breakdown

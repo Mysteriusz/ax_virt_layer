@@ -25,19 +25,20 @@ struct i64_operand_sum{
 	 	Width summary
 
 	 	0GFEDCBA;
-		E -> 32-bit displacement;
-		D -> 8-bit displacement;
-		C -> Memory addressing with 32-bit register;
-		B -> All operands are 64-bit;
-		C -> Reserved
-		B -> Reserved
+		G -> 32-bit displacement;
+		F -> 8-bit displacement;
+		E -> Memory addressing with 32-bit register;
+		D -> All operands are 64-bit;
+		C -> Reserved;
+		B -> Reserved;
 		A -> Any operand is 16-bit;
 	*/
 	u8	width;
 	/*
 	 	Operand summary
 		
-	 	0GFEDCBA;
+	 	HGFEDCBA;
+		H -> Destination and source are swapped
 		G -> Memory operand used;
 		F -> SIB [index] field extends a register;
 		E -> SIB addressing enabled;
@@ -51,7 +52,7 @@ struct i64_operand_sum{
 
 struct i64_operand_sum i64_sum_calc(
 	_in i64_opcode_desc	desc,
-	_in i64_operand		ops[I64_RED_OP_COUNT]
+	_in i64_operand		ops[I64_MAX_OP_COUNT]
 );
 
 #endif // !defined(MTE_I64_EMIT_INFO_INT)

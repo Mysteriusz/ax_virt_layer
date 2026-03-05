@@ -100,213 +100,48 @@ _inline_avert void foo(
 #include "mte/pipe/bitpool.h"
 
 #include "intel/emitter/i64_emit.h"
+#include "intel/emitter/test_suite.h"
 
 int main(){
 	SetPriorityClass(GetCurrentProcess(), REALTIME_PRIORITY_CLASS);
+	SetThreadPriority(GetCurrentThread(), THREAD_PRIORITY_TIME_CRITICAL);
 	SetThreadAffinityMask(GetCurrentThread(), 1);
 
-	//i64_load_qtables();
-	
 	for (u32 i = 0; i < 0xff; i += (64 / sizeof(i64_opcode_desc))){
 		_mm_prefetch(&L1_OPCODE_META_TABLE[i], _MM_HINT_T0);
 	}
-	//printf("%p\n", L1_OPCODE_META_TABLE);
+	init_suite();
+	_mm_mfence();
 
-	axres res = AX_SUCC;
+	axres res = 0;
+	u8 instr_hold[16] = {0};
+	u64 sum = 0;
+	for (u32 i = 0; i < 1000; i++){
+		enum i64_opcode op = add_opcodes[i % 30];
+		i64_operand *ops = add_cases[i % 30];
+	__INL_PERF_INIT
+	__INL_PERF_START
+		res = i64_emit_64(
+			op,
+			ops,
+			instr_hold
+		);
+	__INL_PERF_END
+	__INL_PERF_LOG
+		sum += __INL_PERF_SUM;
 
-	reg64 *rax = axmalloc(8);
-	reg64 *rbx = axmalloc(8);
+		u64 hi = *(u64*)&instr_hold[8];
+		u64 lo = *(u64*)&instr_hold[0];
+		if (hi){
+    			printf("INDEX: %i | VALUE: %llx%016llx\n", i, hi, lo);
+		}else{
+    			printf("INDEX: %i | VALUE: %llx\n", i, lo);
+		}
 
-	simd_128 instr = init_i64_mte_raw_instr(0);
-	//for (u32 i = 0; i < 200; i++){
-	res = i64_emit_64(
-		ADD_R64_64,
-		(i64_operand[I64_RED_OP_COUNT]){
-			[0] = (i64_operand){
-				.desc.type = I64_REG,
-				.desc.width = W64,
-				.id = I64_r10,
-				.value = 0,
-			},
-			[1] = (i64_operand){
-				.desc.type = I64_SIB | I64_DISP8,
-				.desc.width = W64,
-				.id = I64_r10,
-				.value = *(u64*)&(struct i64_operand_mem){
-					.index_id = I64_r9,
-					.scale_id = I64_SIB_8,
-					.disp = 0x10
-				},
-			},
-		},
-		&instr
-	);
-	//}
-	axcheck(res, ax_log(res));
+		((u64*)instr_hold)[0] = 0;
+		((u64*)instr_hold)[1] = 0;
+	}
 
-	io_u64(in_i);
-	io_u64(in_n);
-	printf("%lf\n", ((double)in_i / in_n) / 4.2);
-
-#if 0
-	_i64_prefetch_immd();
-	_i64_prefetch_modrm();
-
-	i64_load_qtables();
-s
-	mips32_load_qtables();
-	__asm__ __volatile__("mfence");
-
-	axres res = AX_SUCC;
-
-	/*
-		Create IR context
-	*/
-	ir_context *ir = nullptr; 
-	res = ir_create(
-		IR_VER,
-		MIPS32,
-		INTEL64,
-		&ir
-	);
-	axcheck(res, ax_log(res));
-
-	/*
-		Encode instruction
-	*/
-	mte_u64_instr instr_str =  _str_to_u64("add $t0, $t1, $t2", strlen("add $t0, $t1, $t2"));
-	mte_raw_instr instr = {0};
-	volatile axres r = mips32_byte_to_raw(
-		&(mte_byte_instr){
-			.syn = SYN_INTEL,
-			.arch = MIPS32,
-			.val = instr_str,
-		},
-		&instr
-	);
-	unref(r);
-	axfree(instr_str.org);
-
-	/*
-	 	Create scheduler context for the IR
-	*/
-
-	sched_context *sched = nullptr;
-	res = sched_create(ir, 2, 0, &sched);
-	axcheck(res, ax_log(res));
-
-	/*
-	 	Initialize and push the payload
-	*/
-
-	vrow_payload b0 =
-		*(vrow_payload*)&init_vrow_b0_payload(ir, instr);
-
-	sched_push(sched, b0, nullptr);
-	//while(1) {_mm_pause();}
-
-	/*sync_map_desc smap = {0};
-	sync_map_init(64, &smap);
-	sync_map_sigon(smap, 0);
-	//io_i64(sync_map_issig(smap, 1));
-
-	u32 i = 0;
-	sync_map_unsig_first(0, 10, &smap, &i);*/
-	//io_i64(i);
-
-	sched_delete(sched);
-	ir_delete(ir);
-#endif
-
-	//io_i64(_MEM_ACTIVE);
-
-	/*
-		Initialize bank 0 handling thread
-	*/
-	/*struct vrow_b0_payload b0 
-		= init_vrow_b0_payload(ir, instr);
-	vrow_bank_thread b0_thread 
-		= init_vrow_bank_thread(vrow, 0, vrow_b0_entry, ((struct vrow_bank_thread_stack){.vrow = vrow, .bank = 0}));
-
-	vrow_thread_start(&b0_thread);
-
-	volatile bool lock
-		= vrow_bank_load(vrow, 0, *(vrow_payload*)&b0);
-
-	//__INL_PERF_LOG
-
-	unref(lock);
-	while(1){
-		_mm_pause();
-		vrow_bank_load(vrow, 0, *(vrow_payload*)&b0);
-	}*/
-
-	//struct vrow_b0_payload p = *(struct vrow_b0_payload*)vrow.base;
-	//printf("%s", (u8*)&p.control.context->version);
-
-	/*foo((u8[15]){0x66, 0x0f, 0x3a, 0x0e, 0xca, 0x0a});
-	foo((u8[15]){0x0f, 0x3a, 0x0e, 0xca, 0x0a});
-	foo((u8[15]){0x66, 0x0f, 0x3a, 0x0e, 0xca, 0x0a});
-	foo((u8[15]){0x0f, 0x3a, 0x0e, 0xca, 0x0a});
-	foo((u8[15]){0x66, 0x0f, 0x3a, 0x0e, 0xca, 0x0a});
-	foo((u8[15]){0x0f, 0x3a, 0x0e, 0xca, 0x0a});
-	foo((u8[15]){0x66, 0x0f, 0x3a, 0x0e, 0xca, 0x0a});
-	foo((u8[15]){0x0f, 0x3a, 0x0e, 0xca, 0x0a});
-	foo((u8[15]){0x66, 0x0f, 0x3a, 0x0e, 0xca, 0x0a});
-	foo((u8[15]){0x0f, 0x3a, 0x0e, 0xca, 0x0a});
-	foo((u8[15]){0x66, 0x0f, 0x3a, 0x0e, 0xca, 0x0a});
-	foo((u8[15]){0x0f, 0x3a, 0x0e, 0xca, 0x0a});
-	foo((u8[15]){0x66, 0x0f, 0x3a, 0x0e, 0xca, 0x0a});
-	foo((u8[15]){0x0f, 0x3a, 0x0e, 0xca, 0x0a});
-	foo((u8[15]){0x66, 0x0f, 0x3a, 0x0e, 0xca, 0x0a});
-	foo((u8[15]){0x0f, 0x3a, 0x0e, 0xca, 0x0a});
-	foo((u8[15]){0x48, 0xC7, 0xC1, 0xFF, 0x00, 0x00, 0x00});*/
-
-	/*const char str[] = "       add $t1,$t2,$t3";
-	mte_raw_instr enc = {0};
-	const ir_rule *rule = nullptr;
-	mips32_byte_to_raw(
-		&(mte_byte_instr){
-			.syn = intel,
-			.arch = mips32,
-			.val = _str_to_u64(str, strlen(str))
-		},
-		&rule,
-		&enc
-	);
-	mips32_byte_to_raw(
-		&(mte_byte_instr){
-			.syn = intel,
-			.arch = mips32,
-			.val = _str_to_u64(str, strlen(str))
-		},
-		&rule,
-		&enc
-	);
-
-	ir_raw_instr instr = init_ir_raw_instr(nullptr);
-	mips32_raw_to_ir(enc.mips32, rule, &instr);*/
-
-
-	/*for (int i = 0; i < 100; i++){
-		mte_u64_instr v = _str_to_u64(str, strlen(str));
-	mips32_byte_to_raw(
-		&(mte_byte_instr){
-			.syn = intel,
-			.arch = mips32,
-			.val = v
-		},
-		&enc
-	);
-		axfree(v.org);
-	}*/
-	//io_i64(mips32_funct(enc.mips32));
-	//io_i64(_u64_qlen(0x646461));
-	//printf("%s\n", (mips32_op_lookup(0xffULL).mnem));
-
-	/*ir_raw_instr buf = init_ir_raw_instr(0);
-	mips32_raw_to_ir(enc.mips32, &buf);*/
-
-	return 1;
+	printf("Average time in ns: %lf\n", ((double)sum / 1000) / 4.2);
 }
 
