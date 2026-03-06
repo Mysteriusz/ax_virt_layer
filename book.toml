@@ -2,3 +2,5 @@
 title = "ax_virt_layer"
 src = "src"
 
+[output.html]
+site-url = "/ax_virt_layer/"
