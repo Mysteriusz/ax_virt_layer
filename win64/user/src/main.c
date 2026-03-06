@@ -113,12 +113,21 @@ int main(){
 	init_suite();
 	_mm_mfence();
 
+	simd_128 buf = {0};
 	axres res = 0;
 	u8 instr_hold[16] = {0};
 	u64 sum = 0;
-	for (u32 i = 0; i < 1000; i++){
-		enum i64_opcode op = add_opcodes[i % 30];
-		i64_operand *ops = add_cases[i % 30];
+	u64 val = 0;
+	u32 r = 0;
+	srand(time(NULL));
+	u32 indices[100000];
+	for (u32 i = 0; i < 100000; i++){
+        	indices[i] = rand() % 30;
+	}
+
+	for (u32 i = 0; i < 100000; i++){
+		enum i64_opcode op = add_opcodes[indices[i] % 30];
+		i64_operand *ops = add_cases[indices[i] % 30];
 	__INL_PERF_INIT
 	__INL_PERF_START
 		res = i64_emit_64(
@@ -127,21 +136,11 @@ int main(){
 			instr_hold
 		);
 	__INL_PERF_END
-	__INL_PERF_LOG
 		sum += __INL_PERF_SUM;
-
-		u64 hi = *(u64*)&instr_hold[8];
-		u64 lo = *(u64*)&instr_hold[0];
-		if (hi){
-    			printf("INDEX: %i | VALUE: %llx%016llx\n", i, hi, lo);
-		}else{
-    			printf("INDEX: %i | VALUE: %llx\n", i, lo);
-		}
-
-		((u64*)instr_hold)[0] = 0;
-		((u64*)instr_hold)[1] = 0;
+		val += *(u64*)&instr_hold[0] + *(u64*)&instr_hold[8];
 	}
 
-	printf("Average time in ns: %lf\n", ((double)sum / 1000) / 4.2);
+	printf("Average time in ns: %lf\n", ((double)sum / 100000) / 4.2);
+	io_u64(val);
 }
 
