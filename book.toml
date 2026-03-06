@@ -1,6 +1,6 @@
 [book]
 title = "ax_virt_layer"
-src = "src"
+src = "docs"
 
 [output.html]
 site-url = "/ax_virt_layer/"
