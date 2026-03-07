@@ -1,4 +1,2 @@
-<meta name="google-site-verification" content="C_YlFuh-odxQu-vUbeUwALIsI5dyttxRn24iBGTULhU" />
-
 # Introduction
 
