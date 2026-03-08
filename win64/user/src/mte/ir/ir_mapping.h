@@ -19,6 +19,8 @@ struct ir_instr_map{
 		O -> 8-bit [org_map] index
 		T -> 8-bit [tar_map] index
 
+		IMPORTANT
+
 	*/
 	u16 map[4];
 	u8 count; // Count of entries in [map]

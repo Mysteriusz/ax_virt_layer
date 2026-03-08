@@ -6,8 +6,6 @@
 #include "mte/asm/mips/mips32.h"
 #include "mte/asm/intel/i64.h"
 
-#include "mte/asm/mips/mips32_asm.h"
-
 #include <stdarg.h>
 #include <intrin.h>
 
@@ -152,7 +150,6 @@ __INL_PERF_INIT
 	struct ir_context_desc *desc =
 		(struct ir_context_desc*)con->rule.data;
 	org_to_ir_call org_to_ir = desc->call.org_to_ir;
-	org_to_ir((mte_raw_instr){0}, nullptr);
 
 __INL_PERF_START
 	mte_raw_instr instr = {.arch = MIPS32, .payload = {0x014B4820, 0, 0, 0}};
@@ -160,9 +157,10 @@ __INL_PERF_START
 	ir_raw_instr ir = org_to_ir(instr, con);
 
 	struct ir_instr_map ir_map = {0};
-	ir_create_instr_mapping(desc, ir, &ir_map);
+	bool val1 = ir_create_instr_mapping(desc, ir, &ir_map);
 __INL_PERF_END
 __INL_PERF_LOG
+	io_u64(val1);
 	io_u64(ir_map.count);
 
 	return 0;

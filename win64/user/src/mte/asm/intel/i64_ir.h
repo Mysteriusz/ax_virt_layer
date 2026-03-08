@@ -13,3 +13,7 @@ axres i64_ir_to_raw(
 	_in_out i64_mte_raw_instr	*buf // Initialize before use by init_ir_raw_instr
 );
 
+u8 i64_role_to_reg(
+	_in enum cpu_reg_role 	role
+);
+

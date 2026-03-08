@@ -18,5 +18,9 @@ ir_raw_instr mips32_to_ir_call(
 	_in ir_context			*context
 );
 
+u8 mips32_reg_to_role(
+	_in u8 				reg
+);
+
 #endif // !defined(MTE_MIPS32_IR_INT)
 

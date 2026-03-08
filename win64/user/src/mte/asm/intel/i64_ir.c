@@ -25,3 +25,9 @@ axres i64_ir_to_raw(
 	return AX_SUCC;
 }
 
+u8 i64_role_to_reg(
+	_in enum cpu_reg_role 	role
+){
+	return 0;
+}
+

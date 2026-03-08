@@ -13,18 +13,18 @@ axres mips32_raw_to_ir(
 
 	switch(_mips32_get_instr_type(instr)){
 	case R:
-		buf->opcode = MIPS32_IR_TABLE[_mips32_funct(instr)];
+		buf->opcode = MIPS32_TO_IR_TABLE[_mips32_funct(instr)];
 		buf->regs[0] = (ir_operand){
 			.id = IR_OP_REG,
-			.val = _mips32_rd(instr)
+			.value = _mips32_rd(instr)
 		};
 		buf->regs[1] = (ir_operand){
 			.id = IR_OP_REG,
-			.val = _mips32_rs(instr)
+			.value = _mips32_rs(instr)
 		};
 		buf->regs[2] = (ir_operand){
 			.id = IR_OP_REG,
-			.val = _mips32_rt(instr)
+			.value = _mips32_rt(instr)
 		};
 		buf->reg_used = 3;
 		break;
@@ -48,5 +48,11 @@ ir_raw_instr mips32_to_ir_call(
 	axcheck_r(res, (ir_raw_instr){0});
 
 	return buf;
+}
+
+u8 mips32_reg_to_role(
+	_in u8 				reg
+){
+	return MIPS32_REG_TO_ROLE_TABLE[reg];
 }
 

@@ -10,15 +10,25 @@ typedef u16 	reg16;
 typedef u32 	reg32;
 typedef u64 	reg64;
 
-struct cpu_reg_id{
-	u16		width;
-	u8		id; // Architecture specific register identifier
-	void		*mem; // Memory location of the register
+enum cpu_reg_role : u8{
+	REG_RETURN 		= 0x01, // Ex: i64.rax
+	REG_TEMP 		= 0x02, // Ex: i64.rcx
+	REG_PRESERVE 		= REG_TEMP | 0x04, // Ex: i64.r11
+	REG_STACK		= 0x08, // Ex: mips32.a0
+	REG_STACK_PTR		= 0x10, // Ex: i64.rsi
+	REG_MEM_PTR		= 0x20, // Ex: i64.rsi
 };
+struct cpu_reg_desc{
+	u16			width;
+	enum cpu_reg_role 	role;
+	u8			id; // Architecture specific register identifier
+	void			*mem; // Memory location of the register
+};
+
 struct cpu_reg_map{
 	u16			reg_count; // Register count
 	u8			reg_width; // Max register width
-	struct cpu_reg_id	*root; // Register array
+	struct cpu_reg_desc	*root; // Register array
 };
 
 const static struct cpu_reg_map empty = (struct cpu_reg_map){0};
