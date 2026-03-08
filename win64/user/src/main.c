@@ -1,5 +1,6 @@
 #include "mte/core.h"
 #include "mte/ir/ir.h"
+#include "mte/ir/ir_mapping.h"
 #include "mte/perf.h"
 
 #include "mte/asm/mips/mips32.h"
@@ -103,44 +104,67 @@ _inline_avert void foo(
 #include "intel/emitter/test_suite.h"
 
 int main(){
-	SetPriorityClass(GetCurrentProcess(), REALTIME_PRIORITY_CLASS);
+	//SetPriorityClass(GetCurrentProcess(), REALTIME_PRIORITY_CLASS);
 	SetThreadPriority(GetCurrentThread(), THREAD_PRIORITY_TIME_CRITICAL);
 	SetThreadAffinityMask(GetCurrentThread(), 1);
 
-	for (u32 i = 0; i < 0xff; i += (64 / sizeof(i64_opcode_desc))){
+	/*for (u32 i = 0; i < 0xff; i += (64 / sizeof(i64_opcode_desc))){
 		_mm_prefetch(&L1_OPCODE_META_TABLE[i], _MM_HINT_T0);
 	}
-	init_suite();
+	init_suite();*/
 	_mm_mfence();
 
-	simd_128 buf = {0};
 	axres res = 0;
+
+#if 0
 	u8 instr_hold[16] = {0};
-	u64 sum = 0;
 	u64 val = 0;
-	u32 r = 0;
 	srand(time(NULL));
 	u32 indices[100000];
 	for (u32 i = 0; i < 100000; i++){
         	indices[i] = rand() % 30;
 	}
 
-	for (u32 i = 0; i < 100000; i++){
-		enum i64_opcode op = add_opcodes[indices[i] % 30];
-		i64_operand *ops = add_cases[indices[i] % 30];
 	__INL_PERF_INIT
 	__INL_PERF_START
+	for (u32 i = 0; i < 100000; i++){
+		enum i64_opcode op = add_opcodes[indices[i]];
+		i64_operand *ops = add_cases[indices[i]];
 		res = i64_emit_64(
 			op,
 			ops,
 			instr_hold
 		);
-	__INL_PERF_END
-		sum += __INL_PERF_SUM;
 		val += *(u64*)&instr_hold[0] + *(u64*)&instr_hold[8];
 	}
+	__INL_PERF_END
 
-	printf("Average time in ns: %lf\n", ((double)sum / 100000) / 4.2);
+	printf("Average time in ns: %lf\n", ((double)__INL_PERF_SUM / 100000) / 4.2);
 	io_u64(val);
+#endif
+__INL_PERF_INIT
+	mips32_load_qtables();
+
+	ir_context *con;
+	res = ir_create(IR_VER, MIPS32, INTEL64, &con);
+	axcheck(res, ax_log(res));
+
+	struct ir_context_desc *desc =
+		(struct ir_context_desc*)con->rule.data;
+	org_to_ir_call org_to_ir = desc->call.org_to_ir;
+	org_to_ir((mte_raw_instr){0}, nullptr);
+
+__INL_PERF_START
+	mte_raw_instr instr = {.arch = MIPS32, .payload = {0x014B4820, 0, 0, 0}};
+
+	ir_raw_instr ir = org_to_ir(instr, con);
+
+	struct ir_instr_map ir_map = {0};
+	ir_create_instr_mapping(desc, ir, &ir_map);
+__INL_PERF_END
+__INL_PERF_LOG
+	io_u64(ir_map.count);
+
+	return 0;
 }
 

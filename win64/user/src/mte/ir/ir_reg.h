@@ -3,17 +3,12 @@
 
 #include <ax_type.h>
 
-typedef enum _ir_reg_type : u8{
-	IR_REG_KEY, // val == Arch specific key representing this register
-	IR_REG_VAL, // val == Any value
-} ir_reg_type;
-
-typedef struct _ir_reg_desc{
-	u16 			id;
-} ir_reg_desc;
-
-// Initalize IR register on the stack
-#define init_ir_reg(v) 	((ir_reg_desc){.id = (v)})
+enum ir_reg_role : u8{
+	IR_REG_RETURN 		= 0x01, // Ex: rax
+	IR_REG_TEMP 		= 0x02, // Ex: rcx
+	IR_REG_LONG_TEMP 	= 0x04, // Ex: r11
+	IR_REG_STACK		= 0x08, // Ex: rsi
+};
 
 #endif // !defined(MTE_IR_REG_INT)
 

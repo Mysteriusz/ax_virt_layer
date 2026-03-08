@@ -7,7 +7,7 @@
 
 #include <ax_type.h>
 
-#include "mte/ir/ir_op.h"
+#include "mte/ir/ir_instr.h"
 
 #include "mips32_op.h"
 #include "mips32_reg.h"

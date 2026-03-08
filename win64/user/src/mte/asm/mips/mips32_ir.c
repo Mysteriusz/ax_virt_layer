@@ -1,21 +1,31 @@
 #include "mips32_ir.h"
 #include "mips32_instr.h"
-#include "tables/mips32_op.h"
+#include "mte/perf.h"
 
 axres mips32_raw_to_ir(
 	_in mips32_mte_raw_instr	instr,
 	_in_out ir_raw_instr		*buf
 ){
-	if (buf == nullptr){
+
+	if (__builtin_expect(buf == nullptr, false)){
 		return AX_INV_BUF;
 	}
 
 	switch(_mips32_get_instr_type(instr)){
 	case R:
-		buf->reg[0] = init_ir_reg(_mips32_rd(instr));
-		buf->reg[1] = init_ir_reg(_mips32_rs(instr));
-		buf->reg[2] = init_ir_reg(_mips32_rt(instr));
 		buf->opcode = MIPS32_IR_TABLE[_mips32_funct(instr)];
+		buf->regs[0] = (ir_operand){
+			.id = IR_OP_REG,
+			.val = _mips32_rd(instr)
+		};
+		buf->regs[1] = (ir_operand){
+			.id = IR_OP_REG,
+			.val = _mips32_rs(instr)
+		};
+		buf->regs[2] = (ir_operand){
+			.id = IR_OP_REG,
+			.val = _mips32_rt(instr)
+		};
 		buf->reg_used = 3;
 		break;
 	case I:

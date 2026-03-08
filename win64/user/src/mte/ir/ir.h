@@ -9,8 +9,6 @@
 #include "mte/cpu.h"
 #include "mte/core.h"
 
-#include "ir_op.h"
-#include "ir_reg.h"
 #include "ir_instr.h"
 
 #define IR_VER		*(u64*)"0.01"
@@ -33,6 +31,10 @@ typedef mte_raw_instr (*const ir_to_tar_call)(
 	_in ir_raw_instr instr,
 	_in ir_context 	*context
 );
+typedef ir_operand (*const reg_role_map_call)(
+	_in ir_raw_instr instr,
+	_in ir_context 	*context
+);
 
 /*
  	IR_RULE_CONTEXT_DESC
@@ -45,6 +47,7 @@ struct ir_context_desc{
 	const struct{
 		org_to_ir_call org_to_ir;
 		ir_to_tar_call ir_to_tar;
+		reg_role_map_call ir_role_map;
 	} call;
 };
 
@@ -85,6 +88,9 @@ static void _invalid_call(
 	exit(1);
 }
 
+reg_role_map_call reg_role_map(
+	_in enum mte_arch 	arch
+);
 org_to_ir_call arch_org_to_ir(
 	_in enum mte_arch 	arch
 );
