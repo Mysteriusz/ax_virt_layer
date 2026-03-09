@@ -33,34 +33,16 @@ typedef mte_raw_instr (*const ir_to_tar_call)(
 );
 
 /*
- 	Find register identifier from role
-*/
-typedef u8 (*const role_to_reg_call)(
-	_in enum cpu_reg_role 	role
-);
-
-/*
- 	Find role based on the register identifier
-*/
-typedef u8 (*const reg_to_role_call)(
-	_in u8			reg
-);
-
-/*
  	IR_RULE_CONTEXT_DESC
 */
 struct ir_context_desc{
 	enum mte_arch 			org_arch;
 	enum mte_arch 			tar_arch;
-	const struct cpu_reg_map *const org_map;
-	const struct cpu_reg_map *const	tar_map;
+	struct cpu_reg_map *const org_map;
+	struct cpu_reg_map *const	tar_map;
 	const struct{
 		org_to_ir_call org_to_ir;
 		ir_to_tar_call ir_to_tar;
-		role_to_reg_call org_role_to_reg;
-		role_to_reg_call tar_role_to_reg;
-		reg_to_role_call org_reg_to_role;
-		reg_to_role_call tar_reg_to_role;
 	} call;
 };
 
@@ -105,12 +87,6 @@ org_to_ir_call arch_org_to_ir(
 	_in enum mte_arch 	arch
 );
 ir_to_tar_call arch_ir_to_tar(
-	_in enum mte_arch 	arch
-);
-role_to_reg_call arch_role_to_reg(
-	_in enum mte_arch 	arch
-);
-reg_to_role_call arch_reg_to_role(
 	_in enum mte_arch 	arch
 );
 

@@ -149,19 +149,18 @@ __INL_PERF_INIT
 
 	struct ir_context_desc *desc =
 		(struct ir_context_desc*)con->rule.data;
-	org_to_ir_call org_to_ir = desc->call.org_to_ir;
-
-__INL_PERF_START
+	
+//__INL_PERF_START
 	mte_raw_instr instr = {.arch = MIPS32, .payload = {0x014B4820, 0, 0, 0}};
+	ir_raw_instr ir = desc->call.org_to_ir(instr, con);
 
-	ir_raw_instr ir = org_to_ir(instr, con);
-
-	struct ir_instr_map ir_map = {0};
-	bool val1 = ir_create_instr_mapping(desc, ir, &ir_map);
-__INL_PERF_END
-__INL_PERF_LOG
-	io_u64(val1);
-	io_u64(ir_map.count);
+	u8 id = cpu_alloc_reg(desc->tar_map, REG_RETURN);
+//__INL_PERF_END
+//__INL_PERF_LOG
+	io_u64((u64)&_I64_CPU_REG_MAP);
+	io_u64((u64)desc->tar_map);
+	printf("%i", ir.opcode);
+	printf("%i", id);
 
 	return 0;
 }

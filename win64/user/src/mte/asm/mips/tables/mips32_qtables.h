@@ -8,9 +8,8 @@
 #include <ax_type.h>
 
 #include "mips/mips32_op.h"
-#include "mips/mips32_reg.h"
 
-void mips32_load_qtables(
+_inline_avert void mips32_load_qtables(
 	void
 );
 

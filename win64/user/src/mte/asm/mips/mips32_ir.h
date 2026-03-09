@@ -2,7 +2,6 @@
 #define MTE_MIPS32_IR_INT
 
 #include "mte/ir/ir.h"
-
 #include "mips32.h"
 
 axres mips32_raw_to_ir(
@@ -16,10 +15,6 @@ axres mips32_raw_to_ir(
 ir_raw_instr mips32_to_ir_call(
 	_in mte_raw_instr		instr,	
 	_in ir_context			*context
-);
-
-u8 mips32_reg_to_role(
-	_in u8 				reg
 );
 
 #endif // !defined(MTE_MIPS32_IR_INT)

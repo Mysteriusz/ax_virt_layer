@@ -5,7 +5,7 @@
 
 typedef enum _ir_opcode : u16{
 	IR_INVALID_OPCODE = 0,
-	IR_ADD_I32 = 1,
+	IR_ADD_I32 = 1, // reg0 = add i32 reg1, reg2
 } ir_opcode;
 
 // Initialize IR instruction on the stack with context
