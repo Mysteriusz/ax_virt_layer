@@ -57,9 +57,9 @@ void *vrow_thread_main(
 
 	// Prefetch conversion data
 	org_to_ir_call b0_func = 
-		ir_rule_to_context(&stack->ir->rule)->call.org_to_ir;
+		stack->ir->desc.call.org_to_ir;
 	ir_to_tar_call b2_func = 
-		ir_rule_to_context(&stack->ir->rule)->call.ir_to_tar;
+		stack->ir->desc.call.ir_to_tar;
 
 	// Main thread loop
 	while(!vrow_is_closed(vrow)){

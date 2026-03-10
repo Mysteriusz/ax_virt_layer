@@ -1,6 +1,5 @@
 #include "mte/core.h"
 #include "mte/ir/ir.h"
-#include "mte/ir/ir_mapping.h"
 #include "mte/perf.h"
 
 #include "mte/asm/mips/mips32.h"
@@ -100,6 +99,7 @@ _inline_avert void foo(
 
 #include "intel/emitter/i64_emit.h"
 #include "intel/emitter/test_suite.h"
+#include "mte/ir/tblock.h"
 
 int main(){
 	//SetPriorityClass(GetCurrentProcess(), REALTIME_PRIORITY_CLASS);
@@ -143,24 +143,33 @@ int main(){
 __INL_PERF_INIT
 	mips32_load_qtables();
 
-	ir_context *con;
-	res = ir_create(IR_VER, MIPS32, INTEL64, &con);
+	ir_context *ir;
+	res = ir_create(IR_VER, MIPS32, INTEL64, &ir);
 	axcheck(res, ax_log(res));
-
-	struct ir_context_desc *desc =
-		(struct ir_context_desc*)con->rule.data;
 	
-//__INL_PERF_START
-	mte_raw_instr instr = {.arch = MIPS32, .payload = {0x014B4820, 0, 0, 0}};
-	ir_raw_instr ir = desc->call.org_to_ir(instr, con);
+	ir->desc.code_base = axmalloc(GIB(1));
+	ir->desc.gen_base = axmalloc(GIB(1));
+	for (u32 i = 0; i < 256; i++){
+		ir->desc.code_base[i] = 0x014B4820;
+	}
 
-	u8 id = cpu_alloc_reg(desc->tar_map, REG_RETURN);
-//__INL_PERF_END
-//__INL_PERF_LOG
-	io_u64((u64)&_I64_CPU_REG_MAP);
-	io_u64((u64)desc->tar_map);
-	printf("%i", ir.opcode);
-	printf("%i", id);
+	ir->desc.gen_ptr = ir->desc.gen_base;
+	ir->desc.code_ptr = ir->desc.code_base;
+
+	tblock tblock = {0};
+
+	tblock_alloc(ir, TBLOCK_BIG, &tblock);
+__INL_PERF_START
+
+	bool emit = tblock_emit(&tblock);
+
+__INL_PERF_END
+__INL_PERF_LOG
+	printf("Time in ns per instruction: %lf\n", (__INL_PERF_SUM / 4.2) / 256);
+	
+	printf("%i\n", emit);
+	printf("%i\n", ir->desc.gen_ptr[-1]);
+	printf("%i\n", ir->desc.gen_base[0]);
 
 	return 0;
 }

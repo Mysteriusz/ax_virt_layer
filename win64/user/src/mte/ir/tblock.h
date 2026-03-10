@@ -2,16 +2,27 @@
 
 #include "mte/cpu.h"
 
-typedef struct _tblock_context{
-	struct cpu_reg_map 	*map;
-} tblock_context;
+#include "ir.h"
+
+#define TBLOCK_SIZE 128
 
 typedef struct _tblock{
 	enum tblock_type : u8{
-		TBLOCK_BIG,
-		TBLOCK_SMALL,
+		TBLOCK_BIG = 3, // Shift multiplier TBLOCK_SIZE*8
+		TBLOCK_SMALL = 1, // Shift multiplier TBLOCK_SIZE*2
 	} type;
-	void		*base;
-	tblock_context	ctx;
+	u32		*start;
+	u32		*end;
+	ir_context	*ir;
 } tblock;
+
+bool tblock_alloc(
+	_in ir_context		*ir,
+	_in enum tblock_type 	type,
+	_out tblock		*buf
+);
+
+bool tblock_emit(
+	_in tblock 	*block
+);
 

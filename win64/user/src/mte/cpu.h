@@ -42,7 +42,9 @@ struct cpu_reg_map{
 	*/
 	u32			spill_map;
 	cpu_spill_buffer 	spill; // Used for storage when out of registers
-	struct cpu_reg_desc	*root; // Register array
+
+	u16			(*role_map)[0xff]; // Mask map or root roles
+	struct cpu_reg_desc	*const root; // Register array
 };
 
 typedef struct _cpu_state{
@@ -50,7 +52,9 @@ typedef struct _cpu_state{
 } cpu_state;
 
 extern struct cpu_reg_map _MIPS32_CPU_REG_MAP;
+
 extern struct cpu_reg_map _I64_CPU_REG_MAP;
+extern u16 _I64_CPU_REG_ROLE_MAP[0xff];
 
 /*
  	Automatically allocate register with spill management
