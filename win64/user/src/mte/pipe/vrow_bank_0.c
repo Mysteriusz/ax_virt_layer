@@ -13,9 +13,10 @@ bool vrow_bank_0_proc(
 	struct vrow_b0_payload *b0 =
 		(struct vrow_b0_payload*)offp(vrow->base, VROW_B0_OFFSET);
 
+	u8 len = 0;
 	// Execute bank processing function
 	b0->payload.result = 
-		func(b0->payload.instr, vrow->thread.stack.ir);
+		func(b0->payload.instr, vrow->thread.stack.ir, &len);
 
 	// Check if execution failed
 	if (b0->payload.result.opcode == IR_INVALID_OPCODE){

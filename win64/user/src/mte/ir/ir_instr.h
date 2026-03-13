@@ -13,8 +13,7 @@ typedef enum _ir_opcode : u16{
 
 typedef struct _ir_raw_instr{
 	ir_opcode 		opcode;
-	u8			reg_used;
-	ir_operand		regs[4];
+	ir_operand_set		set;
 } ir_raw_instr;
 
 #endif // !defined(MTE_IR_INSTR_INT)

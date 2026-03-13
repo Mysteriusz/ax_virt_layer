@@ -15,21 +15,30 @@
 
 typedef struct _ir_context ir_context;
 
-typedef u64 ir_unk_data;
 /*
- 	ir_unk_data overloads
+
+ 	Ir context call interface
+
 */
 
-/*
- 	Ir context call interface
-*/
+// Translate org (guest) asm to IR
 typedef ir_raw_instr (*const org_to_ir_call)(
 	_in mte_raw_instr 	instr,
-	_in ir_context 		*context
+	_in ir_context 		*ctx,
+	_out u8			*len // Original instruction length (in bytes)
 );
+// Translate IR to tar (host) asm
 typedef mte_raw_instr (*const ir_to_tar_call)(
 	_in ir_raw_instr 	instr,
-	_in ir_context 		*context
+	_in ir_context 		*ctx,
+	_out u8			*len // Target instruction length (in bytes)
+);
+
+// Fetch all register id`s from guest instruction 
+typedef ir_operand_set (*const org_reg_fetch_call)(
+	_in mte_raw_instr 	instr,
+	_in ir_context 		*ctx,
+	_out u8			*len
 );
 
 /*
@@ -41,8 +50,15 @@ struct ir_context_desc{
 	struct cpu_reg_map *const 	org_map;
 	struct cpu_reg_map *const	tar_map;
 	const struct{
-		org_to_ir_call org_to_ir;
-		ir_to_tar_call ir_to_tar;
+		/*
+		 	TODO:
+				tar_reg_fetch_call 	; Translate registers from tar (host) to IR representation
+				org_len_resolve_call	; Resolve length of org (guest) raw instruction 
+				tar_len_resolve_call 	; Resolve length of tar (host) raw instruction 
+		*/
+		org_to_ir_call 		org_to_ir;
+		ir_to_tar_call 		ir_to_tar;
+		org_reg_fetch_call 	org_reg_fetch;
 	} call;
 	u32				*code_base;
 	u32				*gen_base;
@@ -68,7 +84,7 @@ _inline_avert void ir_delete(
 );
 
 static void _invalid_call(
-	ir_context 	*context
+	u8 stack[0xffff]
 ){
 	exit(1);
 }

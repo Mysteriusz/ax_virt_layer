@@ -65,9 +65,9 @@
 	);
 
 #define __INL_PERF_START \
-	__asm__ __volatile__("lfence\n\t" ::: "memory"); \
+	__asm__ __volatile__("mfence\n\t" ::: "memory"); \
 	mm_perf_l1 = __rdtsc(); \
-	__asm__ __volatile__("lfence\n\t" ::: "memory");
+	__asm__ __volatile__("mfence\n\t" ::: "memory");
 
 #define __INL_PERF_END \
 	__asm__ __volatile__("mfence\n\t" ::: "memory"); \

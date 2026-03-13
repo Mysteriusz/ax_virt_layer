@@ -140,7 +140,6 @@ int main(){
 	printf("Average time in ns: %lf\n", ((double)__INL_PERF_SUM / 100000) / 4.2);
 	io_u64(val);
 #endif
-__INL_PERF_INIT
 	mips32_load_qtables();
 
 	ir_context *ir;
@@ -149,7 +148,7 @@ __INL_PERF_INIT
 	
 	ir->desc.code_base = axmalloc(GIB(1));
 	ir->desc.gen_base = axmalloc(GIB(1));
-	for (u32 i = 0; i < 256; i++){
+	for (u32 i = 0; i < 512; i++){
 		ir->desc.code_base[i] = 0x014B4820;
 	}
 
@@ -159,17 +158,14 @@ __INL_PERF_INIT
 	tblock tblock = {0};
 
 	tblock_alloc(ir, TBLOCK_BIG, &tblock);
-__INL_PERF_START
 
 	bool emit = tblock_emit(&tblock);
 
-__INL_PERF_END
-__INL_PERF_LOG
-	printf("Time in ns per instruction: %lf\n", (__INL_PERF_SUM / 4.2) / 256);
+	//printf("Time in ns per instruction: %lf\n", (__INL_PERF_SUM / 4.2) / 128);
 	
-	printf("%i\n", emit);
+	/*printf("%i\n", emit);
 	printf("%i\n", ir->desc.gen_ptr[-1]);
-	printf("%i\n", ir->desc.gen_base[0]);
+	printf("%i\n", ir->desc.gen_base[0]);*/
 
 	return 0;
 }

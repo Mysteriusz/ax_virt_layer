@@ -9,10 +9,17 @@ typedef enum _ir_operand_id : u8{
 	IR_OP_IMM, // [value] == index in cpu immediate buffer
 } ir_operand_id;
 
-typedef struct _ir_operand{
+typedef struct _ir_operand{ _align(2)
 	ir_operand_id 		id;
 	u8 			value;
 } ir_operand;
+
+typedef struct _ir_operand_set{
+	ir_operand 	ret; 		// Receiving operand
+	u8 		op_count; 	// Used [ops] count
+	ir_operand 	ops[5];
+} ir_operand_set;
+
 
 #endif // !defined(MTE_IR_OPERAND_INT)
 

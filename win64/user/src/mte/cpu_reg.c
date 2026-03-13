@@ -4,8 +4,8 @@
 #include "mte/perf.h"
 
 u8 cpu_alloc_reg(
-	_in struct cpu_reg_map 		*map,
-	_in enum cpu_reg_role 		role
+	_in struct cpu_reg_map 	*map,
+	_in enum cpu_reg_role 	role
 ){
 	/*__INL_PERF_INIT
 	__INL_PERF_START*/
@@ -41,5 +41,15 @@ u8 cpu_alloc_reg(
 	/*__INL_PERF_END
 	__INL_PERF_LOG*/
 	return alloc->id;
+}
+
+void cpu_free_reg(
+	_in struct cpu_reg_map 	*map,
+	_in u8 			reg
+){
+	if (__builtin_expect(map == nullptr, false)){
+		return;
+	}
+	map->root[reg].state = REG_FREE;
 }
 

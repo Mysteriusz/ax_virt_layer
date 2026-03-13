@@ -33,18 +33,17 @@ struct cpu_reg_desc{
 	u8			id; // Architecture specific register identifier
 };
 
-typedef u64 cpu_spill_buffer[32];
+struct cpu_spill_desc{
+	u32			size; // Map size in bytes
+	void			*base;
+	u16			(*map)[0xff]; // Register id to spill offset
+};
 struct cpu_reg_map{
 	u16			reg_count; // Register count
 	u8			reg_width; // Max register width
-	/*
-	 	Spill buffer allocation map
-	*/
-	u32			spill_map;
-	cpu_spill_buffer 	spill; // Used for storage when out of registers
-
-	u16			(*role_map)[0xff]; // Mask map or root roles
+	u16			(*role_map)[0xff]; // Register id to role map
 	struct cpu_reg_desc	*const root; // Register array
+	struct cpu_spill_desc	spill;
 };
 
 typedef struct _cpu_state{
@@ -64,6 +63,10 @@ u8 cpu_alloc_reg(
 	_in enum cpu_reg_role 		role
 );
 
+void cpu_free_reg(
+	_in struct cpu_reg_map 	*map,
+	_in u8 			reg
+);
 
 #endif // !defined(MTE_CPU_INT)
 

@@ -40,6 +40,18 @@ ir_to_tar_call arch_ir_to_tar(
 		return (ir_to_tar_call)_invalid_call;
 	}
 }
+org_reg_fetch_call arch_org_reg_fetch(
+	_in enum mte_arch 	arch
+){
+	switch(arch){
+	case MIPS32:
+		return (org_reg_fetch_call)mips32_reg_fetch_call;
+	case INTEL64:
+		return (org_reg_fetch_call)_invalid_call;
+	default:
+		return (org_reg_fetch_call)_invalid_call;
+	}
+}
 
 _inline_avert axres ir_create(
 	_in const u64 		version,
@@ -65,6 +77,7 @@ _inline_avert axres ir_create(
 			.call = {
 				.org_to_ir = arch_org_to_ir(org_arch),
 				.ir_to_tar = arch_ir_to_tar(tar_arch),
+				.org_reg_fetch = arch_org_reg_fetch(org_arch),
 			},
 		},
 		.blocked = false,
@@ -76,12 +89,15 @@ _inline_avert axres ir_create(
 
 	// Prefetch by calling each function
 	if ((u64)ir->desc.call.org_to_ir != (u64)_invalid_call){
-		ir->desc.call.org_to_ir((mte_raw_instr){0}, nullptr);
+		ir->desc.call.org_to_ir((mte_raw_instr){0}, nullptr, nullptr);
 	}
 	if ((u64)ir->desc.call.ir_to_tar != (u64)_invalid_call){
-		ir->desc.call.ir_to_tar((ir_raw_instr){0}, nullptr);
+		ir->desc.call.ir_to_tar((ir_raw_instr){0}, nullptr, nullptr);
 	}
 
+	if ((u64)ir->desc.call.org_reg_fetch != (u64)_invalid_call){
+		ir->desc.call.org_reg_fetch((mte_raw_instr){0}, nullptr, nullptr);
+	}
 	*buf = ir;
 
 	return AX_SUCC;
