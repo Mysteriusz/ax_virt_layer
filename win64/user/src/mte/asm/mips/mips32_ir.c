@@ -74,19 +74,19 @@ ir_operand_set mips32_reg_fetch_call(
 	 	rd = rs + rt
 	*/
 	case R:
-		buf.ret = (ir_operand){
+		buf.ops[0] = (ir_operand){
 			.id = IR_OP_REG,
 			.value = _mips32_rd(mips32)
 		};
-		buf.ops[0] = (ir_operand){
+		buf.ops[1] = (ir_operand){
 			.id = IR_OP_REG,
 			.value = _mips32_rs(mips32)
 		};
-		buf.ops[1] = (ir_operand){
+		buf.ops[2] = (ir_operand){
 			.id = IR_OP_REG,
 			.value = _mips32_rt(mips32)
 		};
-		buf.op_count = 2;
+		buf.op_count = 3;
 		break;
 	case I:
 		break;

@@ -15,9 +15,8 @@ typedef struct _ir_operand{ _align(2)
 } ir_operand;
 
 typedef struct _ir_operand_set{
-	ir_operand 	ret; 		// Receiving operand
 	u8 		op_count; 	// Used [ops] count
-	ir_operand 	ops[5];
+	ir_operand 	ops[7];
 } ir_operand_set;
 
 

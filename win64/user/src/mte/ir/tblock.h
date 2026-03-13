@@ -47,7 +47,8 @@ bool tblock_liveness_scan(
 	_in_out	u16	liveness[0xff]
 );
 bool tblock_raw_to_ir(
-	_in tblock	*block
+	_in tblock	*block,
+	_in_out	u16	liveness[0xff]
 );
 bool tblock_emit(
 	_in tblock 	*block
