@@ -3,7 +3,7 @@
 #include "mte/cpu.h"
 #include "mte/perf.h"
 
-u8 cpu_alloc_reg(
+u8 cpu_alloc_role_reg(
 	_in struct cpu_reg_map 	*map,
 	_in enum cpu_reg_role 	role
 ){

@@ -56,11 +56,12 @@ extern struct cpu_reg_map _I64_CPU_REG_MAP;
 extern u16 _I64_CPU_REG_ROLE_MAP[0xff];
 
 /*
- 	Automatically allocate register with spill management
+ 	Automatically allocate any register with spill management
+	for a specific role
 */
-u8 cpu_alloc_reg(
-	_in struct cpu_reg_map 		*map,
-	_in enum cpu_reg_role 		role
+u8 cpu_alloc_role_reg(
+	_in struct cpu_reg_map 	*map,
+	_in enum cpu_reg_role 	role
 );
 
 void cpu_free_reg(

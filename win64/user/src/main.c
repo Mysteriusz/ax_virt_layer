@@ -67,9 +67,12 @@ int main(){
 	
 	ir->desc.code_base = axmalloc(GIB(1));
 	ir->desc.gen_base = axmalloc(GIB(1));
-	for (u32 i = 0; i < 512; i++){
-		ir->desc.code_base[i] = 0x014B4820;
-	}
+
+	ir->desc.code_base[0] = 0x014b4820;
+	//ir->desc.code_base[1] = 0x01a96020;
+	/*for (u32 i = 0; i < 512; i++){
+		ir->desc.code_base[i] = 0x014b4820;
+	}*/
 
 	ir->desc.gen_ptr = ir->desc.gen_base;
 	ir->desc.code_ptr = ir->desc.code_base;
@@ -77,6 +80,10 @@ int main(){
 	tblock tblock = {0};
 
 	tblock_alloc(ir, TBLOCK_BIG, &tblock);
+	for (u32 i = 0; i < (TBLOCK_SIZE << TBLOCK_BIG) / sizeof(ir_raw_instr); i++){
+		tblock.ir_buf[i].opcode = IR_INVALID_OPCODE;
+		tblock.ir_buf[i].set = (ir_operand_set){0};
+	}
 
 	bool emit = tblock_emit(&tblock);
 

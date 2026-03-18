@@ -1,7 +1,9 @@
 #include "mte/cpu.h"
 
 #include "mips/mips32_ir.h"
+
 #include "intel/i64_ir.h"
+#include "intel/i64_cpu.h"
 
 static struct cpu_reg_map *_arch_to_map(
 	_in enum mte_arch 	arch
@@ -35,7 +37,7 @@ ir_to_tar_call arch_ir_to_tar(
 	case MIPS32:
 		return (ir_to_tar_call)_invalid_call;
 	case INTEL64:
-		return (ir_to_tar_call)_invalid_call;
+		return (ir_to_tar_call)i64_ir_to_raw;
 	default:
 		return (ir_to_tar_call)_invalid_call;
 	}
