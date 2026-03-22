@@ -96,7 +96,6 @@ _inline_avert axres ir_create(
 	if ((u64)ir->desc.call.ir_to_tar != (u64)_invalid_call){
 		ir->desc.call.ir_to_tar((ir_raw_instr){0}, nullptr, nullptr);
 	}
-
 	if ((u64)ir->desc.call.org_reg_fetch != (u64)_invalid_call){
 		ir->desc.call.org_reg_fetch((mte_raw_instr){0}, nullptr, nullptr);
 	}

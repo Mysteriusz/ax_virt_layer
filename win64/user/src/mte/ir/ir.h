@@ -60,10 +60,10 @@ struct ir_context_desc{
 		ir_to_tar_call 		ir_to_tar;
 		org_reg_fetch_call 	org_reg_fetch;
 	} call;
-	u32				*code_base;
-	u32				*gen_base;
-	u32				*code_ptr;
-	u32				*gen_ptr;
+	u8				*code_base;
+	u8				*gen_base;
+	u8				*code_ptr;
+	u8				*gen_ptr;
 };
 
 typedef struct _ir_context{

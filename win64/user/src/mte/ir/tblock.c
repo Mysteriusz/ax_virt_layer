@@ -139,10 +139,10 @@ bool tblock_raw_to_ir(
 		mte_raw_instr raw_instr = {
 			.arch = desc->org_arch,
 			.payload = {
-				*code_p0, 
-				*code_p1, 
-				*code_p2, 
-				*code_p3, 
+				*(u32*)code_p0, 
+				*(u32*)code_p1, 
+				*(u32*)code_p2, 
+				*(u32*)code_p3, 
 			},
 		};
 
@@ -224,7 +224,7 @@ bool tblock_ir_to_raw(
 	u8 tar_len = 0;
 	u32 ir_i = 0;
 
-	while(ir_i < block->ir_count){
+	while(ir_i < 2){
 		mte_raw_instr tar_instr = 
 			desc->call.ir_to_tar(
 				block->ir_buf[ir_i],
@@ -271,7 +271,7 @@ __INL_PERF_START
 __INL_PERF_END
 __INL_PERF_LOG
 
-	printf("Pass in: %lf\n", (__INL_PERF_SUM / 4.2) / (TBLOCK_SIZE << block->type));
+	printf("Pass in: %lf\n", (__INL_PERF_SUM / 4.2) / 128);
 
 	return true;
 }

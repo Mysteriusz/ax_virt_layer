@@ -13,7 +13,7 @@ typedef struct _tblock{
 		TBLOCK_SMALL = 1, // Shift multiplier TBLOCK_SIZE*2
 	} type;
 	u16		ir_count;
-	u32		*base;
+	u8		*base;
 	ir_context	*ir;
 	ir_raw_instr	*ir_buf; // Heap buffer for translated instructions
 } tblock;
@@ -28,21 +28,21 @@ bool tblock_alloc(
 	struct ir_context_desc *const desc = &block->ir->desc; \
 	u16 pass_i = 0; \
 	tblock *pass_block = block; \
-	u32 *code_p0 = block->base; \
-	u32 *code_p1 = (u32*)offp(block->base, 4); \
-	u32 *code_p2 = (u32*)offp(block->base, 8); \
-	u32 *code_p3 = (u32*)offp(block->base, 12);
+	u8 *code_p0 = block->base; \
+	u8 *code_p1 = block->base + 4; \
+	u8 *code_p2 = block->base + 8; \
+	u8 *code_p3 = block->base + 12;
 
 #define __TBLOCK_PASS_LOOP(pass_len, ...) ({ \
-	while(code_p0 < (u32*)offp(pass_block->base, TBLOCK_SIZE << pass_block->type)){ \
+	while(code_p0 < offp(pass_block->base, TBLOCK_SIZE << pass_block->type)){ \
 		__VA_ARGS__ \
 		/* \
 		 	Calculate new offsets \
 		*/ \
-		++code_p0; \
-		code_p1++; \
-		code_p2++; \
-		code_p3++; \
+		code_p0 += 4; \
+		code_p1 += 8; \
+		code_p2 += 12; \
+		code_p3 += 16; \
 		pass_i++; \
 	} \
 })

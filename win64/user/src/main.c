@@ -64,28 +64,62 @@ int main(){
 	ir_context *ir;
 	res = ir_create(IR_VER, MIPS32, INTEL64, &ir);
 	axcheck(res, ax_log(res));
-	
-	ir->desc.code_base = axmalloc(GIB(1));
+
+	__INL_PERF_INIT
+	__INL_PERF_START
+	u8 len1 = 0;
+	ir->desc.call.ir_to_tar(
+		(ir_raw_instr){
+			.opcode = IR_ADD_I32,
+			.set = {
+				.op_count = 3,
+				.ops = {
+					(ir_operand){.id = IR_OP_REG,.value = I64_rAX},
+					(ir_operand){.id = IR_OP_REG,.value = I64_rAX},
+					(ir_operand){.id = IR_OP_REG,.value = I64_rBX},
+				}
+			}
+		},
+		ir,
+		&len1
+	);
+	u8 len2 = 0;
+	ir->desc.call.ir_to_tar(
+		(ir_raw_instr){
+			.opcode = IR_ADD_I8,
+			.set = {
+				.op_count = 3,
+				.ops = {
+					(ir_operand){.id = IR_OP_REG,.value = I64_rAX},
+					(ir_operand){.id = IR_OP_REG,.value = I64_rAX},
+					(ir_operand){.id = IR_OP_REG,.value = I64_rCX},
+				}
+			}
+		},
+		ir,
+		&len2
+	);
+	__INL_PERF_END
+	__INL_PERF_LOG
+	io_i64(len1);
+	io_i64(len2);
+
+	/*ir->desc.code_base = axmalloc(GIB(1));
 	ir->desc.gen_base = axmalloc(GIB(1));
 
-	ir->desc.code_base[0] = 0x014b4820;
-	//ir->desc.code_base[1] = 0x01a96020;
-	/*for (u32 i = 0; i < 512; i++){
-		ir->desc.code_base[i] = 0x014b4820;
-	}*/
+	*(u32*)(&ir->desc.code_base[0]) = 0x01a96020;
+	for (u32 i = 4; i < 512; i += 4){
+		*(u32*)(&ir->desc.code_base[i]) = 0x014b4820;
+	}
 
 	ir->desc.gen_ptr = ir->desc.gen_base;
 	ir->desc.code_ptr = ir->desc.code_base;
 
 	tblock tblock = {0};
 
-	tblock_alloc(ir, TBLOCK_BIG, &tblock);
-	for (u32 i = 0; i < (TBLOCK_SIZE << TBLOCK_BIG) / sizeof(ir_raw_instr); i++){
-		tblock.ir_buf[i].opcode = IR_INVALID_OPCODE;
-		tblock.ir_buf[i].set = (ir_operand_set){0};
-	}
+	tblock_alloc(ir, TBLOCK_SMALL, &tblock);
 
-	bool emit = tblock_emit(&tblock);
+	bool emit = tblock_emit(&tblock);*/
 
 	//printf("Time in ns per instruction: %lf\n", (__INL_PERF_SUM / 4.2) / 128);
 	
