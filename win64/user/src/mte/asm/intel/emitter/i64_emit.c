@@ -35,13 +35,13 @@ struct i64_operand_sum i64_sum_calc(
 	u8 t0_em = (!!(t0->id & I64_OP_EXT)) << 1 | (t0->desc.type & I64_MEM);
 	u8 t1_em = (!!(t1->id & I64_OP_EXT)) << 1 | (t1->desc.type & I64_MEM);
 
-	o0 = (t0_em & BIT(0)) << 7;
+	o0 = (desc.form & 8) << 4;
 
-	// Comply with canonical addressing (src == register, dest == memory)
-	u8 dest = (t1_em & BIT(0)) ? t1_em : t0_em;
-	u8 src = (t1_em & BIT(0)) ? t0_em : t1_em;
+	// Comply with form operand flip
+	u8 dest = (desc.form & 8) ? t1_em : t0_em;
+	u8 src = (desc.form & 8) ? t0_em : t1_em;
 
-	for (u32 i = 0; i < (const u8)desc.op_count; i++){
+	for (u32 i = 0; i < (const u8)desc.ops_count; i++){
 		enum i64_operand_id ii = ops[i].id;
 		enum i64_operand_type ti = ops[i].desc.type;
 		// Processed operand width
@@ -124,28 +124,15 @@ axres i64_emit_64(
 	_in i64_operand 		ops[I64_MAX_OP_COUNT],
 	_in_out u8			buf[16]
 ){
-	// Read most significant byte of the opcode (length) based on [MTE_I64_OPCODE_INT.I64_OI]
-	u8 opcode_len = ((opcode >> 56) & 0xff);
-
 	if (__builtin_expect(ops == nullptr, false)){
 		return AX_INV_ARG;
 	}
 	if (__builtin_expect(buf == nullptr, false)){
 		return AX_INV_BUF;
 	}
-	if (__builtin_expect(opcode_len > I64_MAX_OPCODE_LEN, false)){
-		return AX_INV_CODE;
-	}
 
-	i64_opcode_desc opcode_desc = {0};
-	switch(opcode_len){
-	case 1:
-		// Map [opcode] to opcode desc table for 1 byte opcodes
-		opcode_desc = L1_OPCODE_META_TABLE[opcode & 0xff];
-		break;
-	default:
-		return AX_INV_DATA;
-	}
+	i64_opcode_desc opcode_desc =
+		_lookup_opcode_meta(opcode); 
 
 	struct i64_operand_sum sum =
 		i64_sum_calc(opcode_desc, ops);
@@ -167,7 +154,6 @@ axres i64_emit_64(
 	/*
 		Resolve REX
 	*/
-
 	u8 rex = _i64_rex_resolve(sum);
 
 	i64_operand *sib_op =

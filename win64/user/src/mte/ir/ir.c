@@ -55,6 +55,7 @@ org_reg_fetch_call arch_org_reg_fetch(
 	}
 }
 
+#include <ax_utility.h>
 _inline_avert axres ir_create(
 	_in const u64 		version,
 	_in enum mte_arch 	org_arch,
@@ -69,6 +70,8 @@ _inline_avert axres ir_create(
 	 	Controlled undefined behaviour (const overwrite)
 	*/
 
+	u8 *base = axmalloc(GIB(1));
+
 	// Create temporary IR context
 	ir_context temp_ir = (ir_context){
 		.desc = {
@@ -81,6 +84,8 @@ _inline_avert axres ir_create(
 				.ir_to_tar = arch_ir_to_tar(tar_arch),
 				.org_reg_fetch = arch_org_reg_fetch(org_arch),
 			},
+			.gen_base = base,
+			.gen_ptr = base
 		},
 		.blocked = false,
 		.version = version,

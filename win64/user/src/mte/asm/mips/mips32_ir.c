@@ -25,7 +25,7 @@ axres mips32_raw_to_ir(
 			.id = IR_OP_REG,
 			.value = _mips32_rt(instr)
 		};
-		buf->set.op_count = 3;
+		buf->set.ops_count = 3;
 		break;
 	case I:
 		break;
@@ -86,7 +86,7 @@ ir_operand_set mips32_reg_fetch_call(
 			.id = IR_OP_REG,
 			.value = _mips32_rt(mips32)
 		};
-		buf.op_count = 3;
+		buf.ops_count = 3;
 		break;
 	case I:
 		break;

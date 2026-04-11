@@ -15,8 +15,8 @@ typedef struct _ir_operand{ _align(2)
 } ir_operand;
 
 typedef struct _ir_operand_set{
-	u8 		op_count; 	// Used [ops] count
 	ir_operand 	ops[6];
+	u8 		ops_count; 	// Used [ops] count
 } ir_operand_set;
 
 #endif // !defined(MTE_IR_OPERAND_INT)

@@ -16,6 +16,7 @@
 #define IR_64BIT 3
 
 #define IR_GROUP_ADD 1
+#define IR_GROUP_MOV 2
 
 typedef enum _ir_opcode : u16{
 	IR_INVALID_OPCODE = 0,

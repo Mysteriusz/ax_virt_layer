@@ -79,7 +79,7 @@ __INL_PERF_START*/
 		 	Loop over all operands in that set,
 			and write them to buf_map
 		*/
-		for (u8 i = 0; i < set.op_count; i++){
+		for (u8 i = 0; i < set.ops_count; i++){
 			ir_operand op = set.ops[i];
 			if(op.id != IR_OP_REG){
 				continue;
@@ -159,7 +159,7 @@ bool tblock_raw_to_ir(
 		/*
 		 	Select tar (host) registers to use
 		*/
-		for (u8 i = 0; i < ir_instr.set.op_count; i++){
+		for (u8 i = 0; i < ir_instr.set.ops_count; i++){
 			ir_operand op = ir_instr.set.ops[i];
 			enum cpu_reg_role op_role = 
 				desc->org_map->root[op.value].role;

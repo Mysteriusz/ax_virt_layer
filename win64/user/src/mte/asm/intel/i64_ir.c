@@ -25,70 +25,128 @@ mte_raw_instr i64_ir_to_raw(
 		return (mte_raw_instr){0};
 	}
 	// Check operand count
-	if (__builtin_expect(instr.set.op_count > I64_MAX_OP_COUNT, false)){
+	if (__builtin_expect(instr.set.ops_count > I64_MAX_OP_COUNT, false)){
 		return (mte_raw_instr){0};
 	}
 
-	bool has_ret =
-		IR_OPCODE_HAS_RETURN(instr.opcode);
-	unref(has_ret);
+	/*
+		mov instruction required
 
-	// Requires mov instruction before
-	bool coercing = (instr.set.ops[0].value != instr.set.ops[1].value);
+		Destination register has to be the same as first source
+		for instruction to be compliant with IR rules
+		IR:
+			dest = add i32 (src1), (src2)
+		Intel64:
+			dest = add (dest as src2), (src1)
+	*/
+	bool dest_mov =
+		(instr.set.ops[0].value != instr.set.ops[1].value);
 
 	struct ir_context_desc *desc = &ir->desc;
-	enum i64_opcode opcode =
-		i64_ir_opcode_conv(instr);
 
-	/*i64_ir_set_conv(
-		instr.set,
-		ops
-	);
+	enum i64_opcode opcode_buf[2] = {0};
+	i64_operand operand_buf[2][I64_MAX_OP_COUNT] = {0};
+
+	i64_ir_opcode_conv(
+		instr,
+		opcode_buf,
+		dest_mov);
+	i64_ir_operand_conv(
+		instr,
+		opcode_buf[0],
+		operand_buf[0],
+		dest_mov);
 
 	i64_emit_64(
-		ADD_64_R64,
-		ops,
+		opcode_buf[0],
+		operand_buf[0],
 		(u8*)desc->gen_ptr
 	);
-	desc->gen_ptr = offp(desc->gen_ptr, 3);*/
 
 	return (mte_raw_instr){0};
 }
 #include "mte/perf.h"
 
-// Expects I64 compliant register ordering
-enum i64_opcode i64_ir_opcode_conv(
-	_in ir_raw_instr	instr
+bool i64_ir_opcode_conv(
+	_in ir_raw_instr		instr,
+	_in_out enum i64_opcode 	opcodes[2],
+	_in bool			dest_mov
 ){
 	// Decode IR opcode metadata
 	u8 ir_op_width = IR_OPCODE_WIDTH(instr.opcode);
 	u8 ir_op_group = IR_OPCODE_GROUP(instr.opcode);
 
 	if (__builtin_expect(instr.opcode == IR_INVALID_OPCODE, false)){
-		return I64_INVALID_OPCODE;
+		return false;
+	}
+	if (__builtin_expect(opcodes == nullptr, false)){
+		return false;
 	}
 
-	// Resolve generic opcode for the IR opcode
-	enum i64_opcode i64_op_gen = 
-		I64_IR_GROUP_TO_GENERIC[ir_op_group][ir_op_width];
-	u64 i64_op_gen_value = I64_OPCODE_VALUE(i64_op_gen);
+	// Generated opcode buffer index
+	u8 gen_i = 0;
 
-	// Resolve form required by the IR operands
-	enum i64_opcode_form i64_op_form = 
-		_i64_ir_opcode_form_res(instr.set);
+	// Operand 0/1 index
+	u8 op0_i = 0;
+	u8 op1_i = 1;
 
-	// Resolve specific opcode for the generic opcode
-	enum i64_opcode i64_op_spec = 
-		I64_IR_GENERIC_TO_SPECIFIC[i64_op_gen_value][i64_op_form];
+	/*
+	 	Example of case with operand movement:
 
-	return i64_op_spec;
+		IR:
+		r0 = add i32 r1, r2
+
+		Intel64:
+		mov dword r0, r1
+		add r0, r2
+	*/
+	if (dest_mov){
+ 		// Translate mov from r1 to r0
+		opcodes[gen_i] = _i64_ir_opcode_trans(
+			IR_GROUP_MOV,
+			ir_op_width,
+			instr.set.ops[0],
+			instr.set.ops[1]);
+		op1_i = 2;
+		gen_i++;
+	}
+
+	// Translate the actual opcode
+	opcodes[gen_i] = _i64_ir_opcode_trans(
+		ir_op_group,
+		ir_op_width,
+		instr.set.ops[op0_i],
+		instr.set.ops[op1_i]);
+
+	return true;
 }
-bool i64_ir_set_conv(
-	_in ir_operand_set	set,
-	_in_out i64_operand 	ops[4]
+
+bool i64_ir_operand_conv(
+	_in ir_raw_instr	ir_instr,
+	_in enum i64_opcode	opcode,
+	_in_out i64_operand 	ops[I64_MAX_OP_COUNT],
+	_in bool		dest_mov
 ){
+	i64_opcode_desc opcode_desc =
+		_lookup_opcode_meta(opcode); 
+
 	if (__builtin_expect(ops == nullptr, false)){
 		return false;
+	}
+	if (__builtin_expect(opcode == I64_INVALID_OPCODE, false)){
+		return false;
+	}
+	if (__builtin_expect(ir_instr.opcode == IR_INVALID_OPCODE, false)){
+		return false;
+	}
+
+	for (u8 i = 0; i < opcode_desc.ops_count; i++){
+		ops[i].desc = opcode_desc.ops[i];
+
+		bool vid = _i64_vid_from_ir(ir_instr.set.ops[i + !dest_mov], &ops[i]);
+		if (__builtin_expect(!vid, false)){
+			return false;
+		}
 	}
 
 	return true;

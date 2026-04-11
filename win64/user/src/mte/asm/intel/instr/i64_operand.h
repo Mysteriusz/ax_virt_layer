@@ -154,10 +154,13 @@ enum i64_operand_id : u8{
 	// Ex: [rax + rbx * 8]
 	I64_SIB_8 	= _I64_OPR_I(I64_OP_SIB_SCALE, BIT(4) | 3),
 
-	I64_IMM_8 	= _I64_OPR_I(I64_IMM, BIT(4) | 4),
-	I64_IMM_16 	= _I64_OPR_I(I64_IMM, BIT(4) | 5),
-	I64_IMM_32 	= _I64_OPR_I(I64_IMM, BIT(4) | 6),
+	I64_IMM_8 	= _I64_OPR_I(I64_OP_IMM, BIT(4) | 4),
+	I64_IMM_16 	= _I64_OPR_I(I64_OP_IMM, BIT(4) | 5),
+	I64_IMM_32 	= _I64_OPR_I(I64_OP_IMM, BIT(4) | 6),
 };
+
+// 4-bit register encoding to operand id
+extern enum i64_operand_id I64_REG_TO_OPERAND[16];
 
 typedef struct _i64_operand_desc{
 	enum i64_operand_type  	type;
@@ -177,19 +180,19 @@ typedef struct _i64_operand{
 
 		Example for immediate 16/32 bits:
 			0xffff -> id = I64_INT_16
-			0xffff -> id = I64_INT_32
+			0xffffffff -> id = I64_INT_32
 
 		IMPORTANT!!!
 
 		In case of immediates and memory accessing,
-		value and additional information is stored in the [value] field
+		value or additional information is stored in the [value] field.
 
 		If [desc.type] & I64_REG:
-			- [value] == ZERO
+			- [value] = ZERO;
 		If [desc.type] & I64_IMM:
-			- [value] == Field width value
+			- [value] = Register-width value;
 		If [desc.type] & I64_MEM:
-			- [value] == [struct i64_operand_mem]
+			- [value] = [struct i64_operand_mem];
 
 	*/
 	enum i64_operand_id	id;

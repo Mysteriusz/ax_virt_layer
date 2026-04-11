@@ -65,18 +65,19 @@ int main(){
 	res = ir_create(IR_VER, MIPS32, INTEL64, &ir);
 	axcheck(res, ax_log(res));
 
+	u8 len1 = 0;
+	
 	__INL_PERF_INIT
 	__INL_PERF_START
-	u8 len1 = 0;
 	ir->desc.call.ir_to_tar(
 		(ir_raw_instr){
 			.opcode = IR_ADD_I32,
 			.set = {
-				.op_count = 3,
+				.ops_count = 3,
 				.ops = {
-					(ir_operand){.id = IR_OP_REG,.value = I64_rAX},
-					(ir_operand){.id = IR_OP_REG,.value = I64_rAX},
-					(ir_operand){.id = IR_OP_REG,.value = I64_rBX},
+					(ir_operand){.id = IR_OP_REG,.value = I64_rAX & 0xf},
+					(ir_operand){.id = IR_OP_REG,.value = I64_rAX & 0xf},
+					(ir_operand){.id = IR_OP_REG,.value = I64_rBX & 0xf},
 				}
 			}
 		},
@@ -88,11 +89,11 @@ int main(){
 		(ir_raw_instr){
 			.opcode = IR_ADD_I8,
 			.set = {
-				.op_count = 3,
+				.ops_count = 3,
 				.ops = {
 					(ir_operand){.id = IR_OP_REG,.value = I64_rAX},
 					(ir_operand){.id = IR_OP_REG,.value = I64_rAX},
-					(ir_operand){.id = IR_OP_REG,.value = I64_rCX},
+					(ir_operand){.id = IR_OP_REG,.value = I64_rBX},
 				}
 			}
 		},
@@ -102,7 +103,7 @@ int main(){
 	__INL_PERF_END
 	__INL_PERF_LOG
 	io_i64(len1);
-	io_i64(len2);
+	//io_i64(len2);
 
 	/*ir->desc.code_base = axmalloc(GIB(1));
 	ir->desc.gen_base = axmalloc(GIB(1));
