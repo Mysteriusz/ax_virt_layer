@@ -28,7 +28,7 @@ bool tblock_alloc(
 }
 
 bool tblock_liveness_scan(
-	_in tblock	*block,
+	_in_out tblock	*block,
 	_in_out	u16	org_liveness[0xff]
 ){
 	if (__builtin_expect(block == nullptr, false)){
@@ -45,8 +45,6 @@ bool tblock_liveness_scan(
 	// Fragmentation of each block (Example 32-bytes for [block->type == TBLOCK_BIG])
 	const u32 frag = (TBLOCK_SIZE << block->type) / sizeof(ir_raw_instr);
 
-/*__INL_PERF_INIT
-__INL_PERF_START*/
 	__TBLOCK_PASS_INIT(block);
 	__TBLOCK_PASS_LOOP(org_len,
 		u16 blk_shift = BIT(blk_i);
@@ -56,13 +54,8 @@ __INL_PERF_START*/
 		*/
 		mte_raw_instr raw_instr = {
 			.arch = desc->org_arch,
-			.payload = {
-				*code_p0, 
-				*code_p1, 
-				*code_p2, 
-				*code_p3, 
-			},
 		};
+		memcpy(raw_instr.payload, code_ptr, 16);
 	
 		/*
 		 	Determine registers used, 
@@ -96,16 +89,13 @@ __INL_PERF_START*/
 		blk_i = bytes / frag;
 		block->ir_count++;
 	);
-/*__INL_PERF_END
-__INL_PERF_LOG
-	printf("Pass in: %lf\n", (__INL_PERF_SUM / 4.2) / (TBLOCK_SIZE << block->type));*/
 
 	return true;
 }
 bool tblock_raw_to_ir(
-	_in tblock		*block,
-	_in const u16		org_liveness[0xff], // Liveness table of guest registers (Per instruction block)
-	_in tblock_reg_assoc	assoc[0xff] // Guest to host register associations (Per instruction block)
+	_in tblock			*block,
+	_in const u16			org_liveness[0xff], // Liveness table of guest registers (Per instruction block)
+	_in_out tblock_reg_assoc	assoc[0xff] // Guest to host register associations (Per instruction block)
 ){
 	if (__builtin_expect(block == nullptr, false)){
 		return false;
@@ -138,13 +128,8 @@ bool tblock_raw_to_ir(
 		*/
 		mte_raw_instr raw_instr = {
 			.arch = desc->org_arch,
-			.payload = {
-				*(u32*)code_p0, 
-				*(u32*)code_p1, 
-				*(u32*)code_p2, 
-				*(u32*)code_p3, 
-			},
 		};
+		memcpy(&raw_instr.payload, code_ptr, 16);
 
 		/*
 		 	Convert raw instruction to IR
@@ -165,7 +150,7 @@ bool tblock_raw_to_ir(
 				desc->org_map->root[op.value].role;
 				
 			/*
-			 	Check if register doesnt have association
+			 	Check if register doesnt have an association
 			*/
 			if (assoc[op.id].used == false){
 				assoc[op.id].used = true;
@@ -219,7 +204,7 @@ bool tblock_ir_to_raw(
 		return false;
 	}
 
-	const struct ir_context_desc *desc = &block->ir->desc;
+	struct ir_context_desc *desc = &block->ir->desc;
 
 	u8 tar_len = 0;
 	u32 ir_i = 0;
@@ -230,6 +215,16 @@ bool tblock_ir_to_raw(
 				block->ir_buf[ir_i],
 				block->ir,
 				&tar_len);
+
+		/*
+			TODO!!!
+
+			This is only temporary and should be removed due to the overhead
+			Maybe use SIMD?
+		*/
+		memcpy(desc->gen_ptr, tar_instr.payload, tar_len);
+
+		desc->gen_ptr = offp(desc->gen_ptr, tar_len);
 		ir_i++;
 	}
 
@@ -271,7 +266,7 @@ __INL_PERF_START
 __INL_PERF_END
 __INL_PERF_LOG
 
-	printf("Pass in: %lf\n", (__INL_PERF_SUM / 4.2) / 128);
+	printf("Average translation in: %lf\n", (__INL_PERF_SUM / 4.2) / 256);
 
 	return true;
 }

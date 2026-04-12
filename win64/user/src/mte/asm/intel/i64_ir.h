@@ -65,19 +65,24 @@ _inline_force enum i64_opcode _i64_ir_opcode_trans(
 /*	
  	Create I64 operand value and id from an IR operand
 */
-_inline_force bool _i64_vid_from_ir(
+_inline_force bool _i64_op_from_ir(
+	_in i64_operand_desc	desc,
 	_in ir_operand		ir_op,
-	_in_out i64_operand 	*i64_op 
+	_in_out i64_operand 	*op_buf
 ){
-	if (__builtin_expect(i64_op == nullptr, false)){
+	if (__builtin_expect(op_buf == nullptr, false)){
 		return false;
 	}
 
 	switch(ir_op.id){
 	case IR_OP_REG: // i64_op->desc.type & I64_REG
-		i64_op->value = 0;
+		op_buf->value = 0;
 		// [value] field [ir_op] contains the unique register identifier
-		i64_op->id = I64_REG_TO_OPERAND[ir_op.value];
+		op_buf->id = I64_REG_TO_OPERAND[ir_op.value];
+		op_buf->desc = (i64_operand_desc){
+			.type = desc.type & I64_REG,
+			.width = desc.width,
+		};
 		return true;
 	case IR_OP_MEM:
 		return true;
@@ -89,26 +94,18 @@ _inline_force bool _i64_vid_from_ir(
 }
 
 /*
- 	Convert [ir_opcode] to IA-32e opcode.
-	May generate multiple opcodes when needed.
+ 	Convert [instr.opcode] AND [instr.set] to IA-32e counterparts.
+	
+	May generate multiple opcodes and operand-sets when needed.
 
 	TODO:
-	Make [opcodes] buffer bigger (or replace it)
+	Make [opcode_buf] AND [op_buf] bigger (or replace it)
 	to allow custom routines for IR instructions
 */
 bool i64_ir_opcode_conv(
 	_in ir_raw_instr		instr,
-	_in_out enum i64_opcode 	opcodes[2],
+	_in_out enum i64_opcode 	opcode_buf[2],
+	_in_out i64_operand 		op_buf[2][I64_MAX_OP_COUNT],
 	_in bool			dest_mov
-);
-
-/*
- 	Convert [ir_operand_set] to IA-32e operand array
-*/
-bool i64_ir_operand_conv(
-	_in ir_raw_instr	instr,
-	_in enum i64_opcode	opcode,
-	_in_out i64_operand 	ops[I64_MAX_OP_COUNT],
-	_in bool		dest_mov
 );
 

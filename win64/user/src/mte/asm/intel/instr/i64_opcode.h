@@ -115,10 +115,10 @@ enum i64_opcode_prefix : u8{
 	I64_DPUSH_PREF 	= 0xda,
 };
 
-typedef struct _i64_opcode_desc{ _align(2)
+typedef struct _i64_opcode_desc{
 	i64_operand_desc 		ops[I64_MAX_OP_COUNT];
-	u8 				ops_count : 4;
-	enum i64_opcode_flags 		flags : 4;
+	u8 				ops_count;
+	enum i64_opcode_flags 		flags;
 	enum i64_opcode_prefix 		prefix;
 	enum i64_opcode_form 		form;
 } i64_opcode_desc;

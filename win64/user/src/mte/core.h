@@ -16,7 +16,7 @@ typedef struct _mte_raw_instr{
 	/*
 	 	Payload
 	*/
-	u32 		payload[4];
+	u8 		payload[60];
 } mte_raw_instr;
 
 typedef struct _mte_byte_instr{

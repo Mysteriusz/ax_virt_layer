@@ -60,8 +60,8 @@ struct ir_context_desc{
 		ir_to_tar_call 		ir_to_tar;
 		org_reg_fetch_call 	org_reg_fetch;
 	} call;
-	u8				*code_base;
-	u8				*gen_base;
+	u8				const *code_base;
+	u8				const *gen_base;
 	u8				*code_ptr;
 	u8				*gen_ptr;
 };

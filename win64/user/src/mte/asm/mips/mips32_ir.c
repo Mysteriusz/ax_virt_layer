@@ -48,7 +48,7 @@ ir_raw_instr mips32_to_ir_call(
 	}
 
 	ir_raw_instr buf = {0};
-	axres res = mips32_raw_to_ir(instr.payload[0], &buf);
+	axres res = mips32_raw_to_ir(*(u32*)instr.payload, &buf);
 	axcheck_r(res, (ir_raw_instr){0});
 
 	*len = 4; // Always 4 bytes

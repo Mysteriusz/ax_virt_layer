@@ -59,12 +59,41 @@ int main(){
 	printf("Average time in ns: %lf\n", ((double)__INL_PERF_SUM / 100000) / 4.2);
 	io_u64(val);
 #endif
+#if 0 
 	mips32_load_qtables();
+	init_suite();
 
 	ir_context *ir;
 	res = ir_create(IR_VER, MIPS32, INTEL64, &ir);
 	axcheck(res, ax_log(res));
 
+	ir->desc.code_base = axmalloc(GIB(1));
+	ir->desc.gen_base = axmalloc(GIB(1));
+
+	u8 instr_hold[16];
+	__INL_PERF_INIT
+	__INL_PERF_START
+	for (u32 i = 0; i < 1; i++){
+		enum i64_opcode op = add_opcodes[0];
+		i64_operand *ops = add_cases[0];
+		u8 len = 0;
+		res = i64_emit_64(
+			op,
+			ops,
+			instr_hold,
+			&len
+		);
+		for (u8 j = len - 1; j > 0; j--){
+			printf("%02x", instr_hold[j]);
+		}
+		printf("%02x", instr_hold[0]);
+	}
+	__INL_PERF_END
+
+	//printf("Average time in ns: %lf\n", ((double)__INL_PERF_SUM / 100000) / 4.2);
+
+#endif
+#if 0
 	u8 len1 = 0;
 	
 	__INL_PERF_INIT
@@ -76,8 +105,8 @@ int main(){
 				.ops_count = 3,
 				.ops = {
 					(ir_operand){.id = IR_OP_REG,.value = I64_rAX & 0xf},
-					(ir_operand){.id = IR_OP_REG,.value = I64_rAX & 0xf},
 					(ir_operand){.id = IR_OP_REG,.value = I64_rBX & 0xf},
+					(ir_operand){.id = IR_OP_REG,.value = I64_rCX & 0xf},
 				}
 			}
 		},
@@ -102,25 +131,37 @@ int main(){
 	);
 	__INL_PERF_END
 	__INL_PERF_LOG
-	io_i64(len1);
+	//io_i64(len1);
 	//io_i64(len2);
+#endif
+#if 1
+	ir_context *ir;
+	res = ir_create(IR_VER, MIPS32, INTEL64, &ir);
+	axcheck(res, ax_log(res));
 
-	/*ir->desc.code_base = axmalloc(GIB(1));
+	ir->desc.code_base = axmalloc(GIB(1));
 	ir->desc.gen_base = axmalloc(GIB(1));
 
-	*(u32*)(&ir->desc.code_base[0]) = 0x01a96020;
-	for (u32 i = 4; i < 512; i += 4){
-		*(u32*)(&ir->desc.code_base[i]) = 0x014b4820;
-	}
 
-	ir->desc.gen_ptr = ir->desc.gen_base;
-	ir->desc.code_ptr = ir->desc.code_base;
+	//((u32*)ir->desc.code_base)[0] = 0x01896020; // add $t4, $t4, $t1
+	((u32*)ir->desc.code_base)[0] = 0x01896020; // add $t4, $t4, $t1
+	((u32*)ir->desc.code_base)[1] = 0x012A4820; // add $t1, $t1, $t2
+
+	ir->desc.gen_ptr = (u8*)ir->desc.gen_base;
+	ir->desc.code_ptr = (u8*)ir->desc.code_base;
 
 	tblock tblock = {0};
 
 	tblock_alloc(ir, TBLOCK_SMALL, &tblock);
 
-	bool emit = tblock_emit(&tblock);*/
+	bool emit = tblock_emit(&tblock);
+	//emit = tblock_emit(&tblock);
+
+	u8 i = 0;
+	while(i < 20){
+		printf("%02x", ir->desc.gen_base[i++]);
+	}
+#endif
 
 	//printf("Time in ns per instruction: %lf\n", (__INL_PERF_SUM / 4.2) / 128);
 	

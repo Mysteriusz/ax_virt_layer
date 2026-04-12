@@ -120,9 +120,10 @@ struct i64_operand_sum i64_sum_calc(
 
 #include "i64_emit.h"
 axres i64_emit_64(
-	_in enum i64_opcode 		opcode,
-	_in i64_operand 		ops[I64_MAX_OP_COUNT],
-	_in_out u8			buf[16]
+	_in enum i64_opcode 	opcode,
+	_in i64_operand 	ops[I64_MAX_OP_COUNT],
+	_in_out u8		buf[16],
+	_out_opt u8		*buf_len
 ){
 	if (__builtin_expect(ops == nullptr, false)){
 		return AX_INV_ARG;
@@ -193,18 +194,18 @@ axres i64_emit_64(
 	u8 disp_mode = (sum.width >> 5) & 0b11;
 
 	bool present[16] = {0};
-	present[11] = 0;
+	present[11] = false;
 	present[10] = !!leg;
 	present[9] = !!rex;
 	present[8] = !!opcode_p0;
 	present[7] = !!opcode_p1;
-	present[6] = 1;
+	present[6] = true;
 	present[5] = !!modrm;
 	present[4] = !!sib;
-	present[3] = (disp_mode & 3); // disp8 or disp32
-	present[2] = (disp_mode & 2); // disp32
-	present[1] = (disp_mode & 2); // disp32
-	present[0] = (disp_mode & 2); // disp32
+	present[3] = !!(disp_mode & 3); // disp8 or disp32
+	present[2] = !!(disp_mode & 2); // disp32
+	present[1] = !!(disp_mode & 2); // disp32
+	present[0] = !!(disp_mode & 2); // disp32
 
 	u8 hold[16] = {0};
 	hold[11] = 0; // Reserved for additional prefix like 0xf0
@@ -212,7 +213,7 @@ axres i64_emit_64(
 	hold[9] = rex;
 	hold[8] = opcode_p0;
 	hold[7] = opcode_p1;
-	hold[6] = opcode_p2; 
+	hold[6] = opcode_p2;
 	hold[5] = modrm;
 	hold[4] = sib;
 	hold[3] = sib_mem->disp & 0xff;
@@ -220,12 +221,14 @@ axres i64_emit_64(
 	hold[1] = (sib_mem->disp >> 16) & 0xff;
 	hold[0] = (sib_mem->disp >> 24) & 0xff;
 
-	u8 n = 0;
-	u8 i0 = 0, i0n = 0;
-	for (;n < 16; i0++){
+	i8 i0 = 15, i0n = 0;
+	for (;i0 >= 0; i0--){
 		buf[i0n] = hold[i0] * present[i0];
 		i0n += present[i0];
-		n++;
+	}
+
+	if (buf_len != nullptr){
+		*buf_len = i0n;
 	}
 
 	return AX_SUCC;

@@ -28,21 +28,15 @@ bool tblock_alloc(
 	struct ir_context_desc *const desc = &block->ir->desc; \
 	u16 pass_i = 0; \
 	tblock *pass_block = block; \
-	u8 *code_p0 = block->base; \
-	u8 *code_p1 = block->base + 4; \
-	u8 *code_p2 = block->base + 8; \
-	u8 *code_p3 = block->base + 12;
+	u8 *code_ptr = block->base;
 
 #define __TBLOCK_PASS_LOOP(pass_len, ...) ({ \
-	while(code_p0 < offp(pass_block->base, TBLOCK_SIZE << pass_block->type)){ \
+	while(code_ptr < offp(pass_block->base, TBLOCK_SIZE << pass_block->type)){ \
 		__VA_ARGS__ \
 		/* \
 		 	Calculate new offsets \
 		*/ \
-		code_p0 += 4; \
-		code_p1 += 8; \
-		code_p2 += 12; \
-		code_p3 += 16; \
+		code_ptr += pass_len; \
 		pass_i++; \
 	} \
 })
@@ -53,18 +47,34 @@ typedef struct _tblock_reg_assoc{
 	u8	id;
 } tblock_reg_assoc;
 
+/*
+ 	Fills liveness state of each register,
+	Sets the [block->ir_count] field.
+*/
 bool tblock_liveness_scan(
-	_in tblock	*block,
+	_in_out tblock	*block,
 	_in_out	u16	org_liveness[0xff]
 );
+
+/*
+ 	Converts tar (guest) to IR instructions.
+*/
 bool tblock_raw_to_ir(
-	_in tblock		*block,
-	_in const u16		org_liveness[0xff], // Liveness table of guest registers (Per instruction block)
-	_in tblock_reg_assoc	assoc[0xff] // Guest to host register associations (Per instruction block)
+	_in tblock			*block,
+	_in const u16			org_liveness[0xff], // Liveness table of guest registers (Per instruction block)
+	_in_out tblock_reg_assoc 	assoc[0xff] // Guest to host register associations (Per instruction block)
 );
+
+/*
+ 	Converts IR to tar (host) instructions.
+*/
 bool tblock_ir_to_raw(
 	_in tblock	*block
 );
+
+/*
+ 	Exectues end-to-end translation process with emition.
+*/
 bool tblock_emit(
 	_in tblock 	*block
 );

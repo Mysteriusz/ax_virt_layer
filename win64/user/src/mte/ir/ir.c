@@ -10,8 +10,10 @@ static struct cpu_reg_map *_arch_to_map(
 ){
 	switch(arch){
 	case MIPS32:
+		mips32_load_qtables();
 		return &_MIPS32_CPU_REG_MAP;
 	case INTEL64:
+		i64_load_qtables();
 		i64_load_cpu_reg_map();
 		return &_I64_CPU_REG_MAP;
 	default:
@@ -70,8 +72,6 @@ _inline_avert axres ir_create(
 	 	Controlled undefined behaviour (const overwrite)
 	*/
 
-	u8 *base = axmalloc(GIB(1));
-
 	// Create temporary IR context
 	ir_context temp_ir = (ir_context){
 		.desc = {
@@ -84,8 +84,6 @@ _inline_avert axres ir_create(
 				.ir_to_tar = arch_ir_to_tar(tar_arch),
 				.org_reg_fetch = arch_org_reg_fetch(org_arch),
 			},
-			.gen_base = base,
-			.gen_ptr = base
 		},
 		.blocked = false,
 		.version = version,
