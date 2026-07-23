@@ -18,12 +18,12 @@
 
 #include "intel/emitter/i64_emit.h"
 #include "intel/emitter/test_suite.h"
-#include "mte/ir/tblock.h"
+#include "mte/ir/tblock/tblock.h"
 
 int main(){
 	//SetPriorityClass(GetCurrentProcess(), REALTIME_PRIORITY_CLASS);
-	SetThreadPriority(GetCurrentThread(), THREAD_PRIORITY_TIME_CRITICAL);
-	SetThreadAffinityMask(GetCurrentThread(), 1);
+	//SetThreadPriority(GetCurrentThread(), THREAD_PRIORITY_TIME_CRITICAL);
+	//SetThreadAffinityMask(GetCurrentThread(), 1);
 
 	/*for (u32 i = 0; i < 0xff; i += (64 / sizeof(i64_opcode_desc))){
 		_mm_prefetch(&L1_OPCODE_META_TABLE[i], _MM_HINT_T0);
@@ -38,6 +38,7 @@ int main(){
 	u64 val = 0;
 	srand(time(NULL));
 	u32 indices[100000];
+
 	for (u32 i = 0; i < 100000; i++){
         	indices[i] = rand() % 30;
 	}
@@ -155,7 +156,9 @@ int main(){
 	tblock_alloc(ir, TBLOCK_SMALL, &tblock);
 
 	bool emit = tblock_emit(&tblock);
-	//emit = tblock_emit(&tblock);
+	if (!emit){
+		return 0;
+	}
 
 	u8 i = 0;
 	while(i < 20){

@@ -1,3 +1,4 @@
+#include "mte/perf.h"
 #include "tblock.h"
 
 bool tblock_alloc(
@@ -27,6 +28,58 @@ bool tblock_alloc(
 	return true;
 }
 
+/*
+	Fragmentation of each block
+
+	That means that every tblock is
+	fragmented into frag-count 'subblocks'
+
+	Example for TBLOCK_SMALL:
+
+		(TBLOCK_SIZE << TBLOCK_SMALL) / sizeof(ir_raw_instr)
+		which resolves to:
+		(64 << 1) / 16 = 128 / 16 = 8
+
+	Visualisation:
+		block{
+			frag {16 bytes} -> 8 times
+		}
+		
+	Example for TBLOCK_BIG:
+
+		(TBLOCK_SIZE << TBLOCK_BIG) / sizeof(ir_raw_instr)
+		which resolves to:
+		(64 << 3) / 16 = 512 / 16 = 16
+
+	Visualisation:
+		block{
+			frag {16 bytes} -> 16 times
+		}
+*/
+u32 tblock_frag_calc(
+	_in enum tblock_type type
+){
+	return ((TBLOCK_SIZE << type) / sizeof(ir_raw_instr));
+}
+
+void tblock_liveness_log(
+	_in tblock *block,
+	_in u16 liveness[0xff]
+){
+	struct ir_context_desc *const desc = &block->ir->desc;
+
+	for (u16 i = 0; i < desc->org_map->reg_count; i++){
+		u8 id = desc->org_map->root[i].id;
+		io_str(u"liveness for id:");
+		io_i64(id);
+		io_str(u"");
+		for (u16 j = 0; j < tblock_frag_calc(block->type); j++){
+			io_i64((liveness[id] >> j) & 1);
+		}
+		io_str(u"");
+	}
+}
+
 bool tblock_liveness_scan(
 	_in_out tblock	*block,
 	_in_out	u16	org_liveness[0xff]
@@ -42,9 +95,27 @@ bool tblock_liveness_scan(
 	u8 blk_i = 0; // 0-15 index of the block
 	u32 bytes = 0; // Bytes already passed
 
-	// Fragmentation of each block (Example 32-bytes for [block->type == TBLOCK_BIG])
-	const u32 frag = (TBLOCK_SIZE << block->type) / sizeof(ir_raw_instr);
+	const u32 frag = tblock_frag_calc(block->type);
 
+	/*
+	 	Loop through all instructions
+		to determine liveness of each register
+
+		If a register is used, it`s automatically marked
+		as 'living' in this frag-block (blk_i)
+
+		Visualisation:
+			Every instruction will have it`s registers
+			analyzed in this example flow
+
+			liveness[reg_0] & BIT(blk_i) = false
+			liveness[reg_1] & BIT(blk_i) = false
+
+			add 0, 1 -> reg_0, reg_1
+
+			liveness[reg_0] & BIT(blk_i) = true
+			liveness[reg_1] & BIT(blk_i) = true
+	*/
 	__TBLOCK_PASS_INIT(block);
 	__TBLOCK_PASS_LOOP(org_len,
 		u16 blk_shift = BIT(blk_i);
@@ -68,9 +139,12 @@ bool tblock_liveness_scan(
 				&org_len
 			);
 
+			io_u64(*(u32*)code_ptr);
+			io_str(u"");
 		/*
-		 	Loop over all operands in that set,
-			and write them to buf_map
+		 	Loop over all operands in that set
+			and set their liveness for the current
+			tblock fragment
 		*/
 		for (u8 i = 0; i < set.ops_count; i++){
 			ir_operand op = set.ops[i];
@@ -241,7 +315,7 @@ bool tblock_emit(
 __INL_PERF_INIT
 __INL_PERF_START
 	/*
-	 	Each u16 bit represents a 16-aligned byte block,
+	 	Each bit of the u16 represents the 16-byte aligned block,
 		for each register identifier.
 			
 		IR instruction count for each block is:
@@ -252,17 +326,19 @@ __INL_PERF_START
 	/*
 	 	Associations between org and tar registers.
 	*/
-	tblock_reg_assoc assoc[0xff] = {0};
+	//tblock_reg_assoc assoc[0xff] = {0};
 
 	if (__builtin_expect(!tblock_liveness_scan(block, org_liveness), false)){
 		return false;
 	}
-	if (__builtin_expect(!tblock_raw_to_ir(block, org_liveness, assoc), false)){
+	tblock_liveness_log(block, org_liveness);
+
+	/*if (__builtin_expect(!tblock_raw_to_ir(block, org_liveness, assoc), false)){
 		return false;
 	}
 	if (__builtin_expect(!tblock_ir_to_raw(block), false)){
 		return false;
-	}
+	}*/
 __INL_PERF_END
 __INL_PERF_LOG
 

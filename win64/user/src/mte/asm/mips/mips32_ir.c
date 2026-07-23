@@ -67,22 +67,22 @@ ir_operand_set mips32_reg_fetch_call(
 	*len = 4;
 
 	ir_operand_set buf = {0};
-	mips32_mte_raw_instr mips32 = instr.payload[0];
+	mips32_mte_raw_instr mips32 = *(u32*)instr.payload;
 
 	switch(_mips32_get_instr_type(mips32)){
 	/*
 	 	rd = rs + rt
 	*/
 	case R:
-		buf.ops[0] = (ir_operand){
+		buf.ops[0] = (ir_operand){ // rd
 			.id = IR_OP_REG,
 			.value = _mips32_rd(mips32)
 		};
-		buf.ops[1] = (ir_operand){
+		buf.ops[1] = (ir_operand){ // rs
 			.id = IR_OP_REG,
 			.value = _mips32_rs(mips32)
 		};
-		buf.ops[2] = (ir_operand){
+		buf.ops[2] = (ir_operand){ // rt
 			.id = IR_OP_REG,
 			.value = _mips32_rt(mips32)
 		};
