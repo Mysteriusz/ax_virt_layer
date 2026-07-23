@@ -102,7 +102,7 @@ bool tblock_liveness_scan(
 		to determine liveness of each register
 
 		If a register is used, it`s automatically marked
-		as 'living' in this frag-block (blk_i)
+		as 'living'  this frag-block (blk_i)
 
 		Visualisation:
 			Every instruction will have it`s registers
@@ -139,8 +139,6 @@ bool tblock_liveness_scan(
 				&org_len
 			);
 
-			io_u64(*(u32*)code_ptr);
-			io_str(u"");
 		/*
 		 	Loop over all operands in that set
 			and set their liveness for the current
@@ -168,7 +166,7 @@ bool tblock_liveness_scan(
 }
 bool tblock_raw_to_ir(
 	_in tblock			*block,
-	_in const u16			org_liveness[0xff], // Liveness table of guest registers (Per instruction block)
+	_in const u16			org_liveness[0xff], // Calculated liveness table of guest registers (Per instruction block)
 	_in_out tblock_reg_assoc	assoc[0xff] // Guest to host register associations (Per instruction block)
 ){
 	if (__builtin_expect(block == nullptr, false)){
@@ -224,12 +222,19 @@ bool tblock_raw_to_ir(
 				desc->org_map->root[op.value].role;
 				
 			/*
-			 	Check if register doesnt have an association
+			 	Check if the operand register doesn`t have an association
 			*/
-			if (assoc[op.id].used == false){
-				assoc[op.id].used = true;
-				assoc[op.id].id = cpu_alloc_role_reg(desc->tar_map, op_role);
-			}
+			if (assoc[op.value].used == false){
+				assoc[op.value].used = true;
+				assoc[op.value].id = cpu_alloc_role_reg(desc->tar_map, op_role);
+				io_str(u"Allocated register!");
+				io_str(u"Guest id:");
+				io_i64(op.value);
+				io_str(u"");
+				io_str(u"Host id");
+				io_i64(assoc[op.value].id);
+				io_str(u"");
+			}		
 		}
 
 		// Save IR instruction to the buffer
@@ -247,7 +252,11 @@ bool tblock_raw_to_ir(
 		u16 blk_shift = BIT(next_blk_i);
 
 		/*
-		 	Free dead registers after block using association table
+		 	Free dead registers when crossing to
+			the next frag-block (blk_i) using association table
+
+			If blk is still the same then crossed == 0,
+			which means the loop is ignored
 		*/
 		u8 i = 0;
 		u16 bound = (desc->org_map->reg_count * crossed);
@@ -326,23 +335,21 @@ __INL_PERF_START
 	/*
 	 	Associations between org and tar registers.
 	*/
-	//tblock_reg_assoc assoc[0xff] = {0};
+	tblock_reg_assoc assoc[0xff] = {0};
 
 	if (__builtin_expect(!tblock_liveness_scan(block, org_liveness), false)){
 		return false;
 	}
-	tblock_liveness_log(block, org_liveness);
-
-	/*if (__builtin_expect(!tblock_raw_to_ir(block, org_liveness, assoc), false)){
+	if (__builtin_expect(!tblock_raw_to_ir(block, org_liveness, assoc), false)){
 		return false;
 	}
 	if (__builtin_expect(!tblock_ir_to_raw(block), false)){
 		return false;
-	}*/
+	}
 __INL_PERF_END
 __INL_PERF_LOG
 
-	printf("Average translation in: %lf\n", (__INL_PERF_SUM / 4.2) / 256);
+	printf("Average translation in: %lfns\n", (__INL_PERF_SUM / 4.2) / 256);
 
 	return true;
 }

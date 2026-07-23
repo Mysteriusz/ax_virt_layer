@@ -43,7 +43,7 @@ mte_raw_instr i64_ir_to_raw(
 		(instr.set.ops[0].value != instr.set.ops[1].value);
 	// Unsupported
 	if (dest_mov){
-		ax_log(AX_NOT_IMP);
+		ax_log_msg(AX_NOT_IMP, u"Assertion failed!");
 		asrt(!dest_mov);
 	}
 

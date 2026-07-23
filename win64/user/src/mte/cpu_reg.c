@@ -24,15 +24,36 @@ u8 cpu_alloc_role_reg(
 		cnt++;
 
 		struct cpu_reg_desc *reg = &map->root[i];
+		/*
+		 	If register is not free then move
+			mask left to increase the 'i'
+
+			Example:
+				mask = 0x0C00
+
+					0000110000000000
+
+				When we shift by one left it becomes:
+
+					0001100000000000
+
+				Now ctz will return one one index more
+		*/
 		if (reg->state != REG_FREE){
-			mask >>= i + 1;
+			mask <<= 1;
 			continue;
 		}
 		alloc = reg;
 		break;
 	}
 
-	// Manage spill
+	/*
+	 	TODO:
+		Manage spill
+
+		This can either mean changing the role to search for 
+		or just using the map`s heap buffer that holds spill
+	*/
 	if (alloc == nullptr){
 		return 0;
 	}

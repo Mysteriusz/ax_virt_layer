@@ -39,7 +39,7 @@ axres mips32_raw_to_ir(
 }
 
 ir_raw_instr mips32_to_ir_call(
-	_in mte_raw_instr	instr,	
+	_in mte_raw_instr	instr,
 	_in ir_context		*ctx,
 	_out u8			*len
 ){
