@@ -20,7 +20,7 @@ u8 cpu_alloc_role_reg(
 
 	struct cpu_reg_desc *alloc = nullptr;
 	while (cnt < n){
-		i = __builtin_ctz(mask);
+		i = __builtin_ctz(mask) & 0x0f;
 		cnt++;
 
 		struct cpu_reg_desc *reg = &map->root[i];
@@ -35,12 +35,12 @@ u8 cpu_alloc_role_reg(
 
 				When we shift by one left it becomes:
 
-					0001100000000000
+					00001000000000000
 
-				Now ctz will return one one index more
+				Now ctz on the next iteration will return the next index to check
 		*/
 		if (reg->state != REG_FREE){
-			mask <<= 1;
+			mask &= ~BIT(i);
 			continue;
 		}
 		alloc = reg;

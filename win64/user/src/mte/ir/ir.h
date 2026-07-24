@@ -27,12 +27,25 @@ typedef ir_raw_instr (*const org_to_ir_call)(
 	_in ir_context 		*ctx,
 	_out u8			*len // Original instruction length (in bytes)
 );
+static ir_raw_instr _invalid_org_to_ir_call(
+	...
+){
+	io_str(u"Invalid guest to ir call");
+	exit(1);
+}
+
 // Translate IR to tar (host) asm
 typedef mte_raw_instr (*const ir_to_tar_call)(
 	_in ir_raw_instr 	instr,
 	_in ir_context 		*ctx,
 	_out u8			*len // Target instruction length (in bytes)
 );
+static mte_raw_instr _invalid_ir_to_tar_call(
+	...
+){
+	io_str(u"Invalid ir to host call");
+	exit(1);
+}
 
 // Fetch all register id`s from guest instruction 
 typedef ir_operand_set (*const org_reg_fetch_call)(
@@ -40,6 +53,12 @@ typedef ir_operand_set (*const org_reg_fetch_call)(
 	_in ir_context 		*ctx,
 	_out u8			*len
 );
+static ir_operand_set _invalid_org_reg_fetch_call(
+	...
+){
+	io_str(u"Invalid guest register fetch call");
+	exit(1);
+}
 
 /*
  	IR_RULE_CONTEXT_DESC
@@ -60,8 +79,8 @@ struct ir_context_desc{
 		ir_to_tar_call 		ir_to_tar;
 		org_reg_fetch_call 	org_reg_fetch;
 	} call;
-	u8				const *code_base;
-	u8				const *gen_base;
+	u8				*code_base;
+	u8				*gen_base;
 	u8				*code_ptr;
 	u8				*gen_ptr;
 };
@@ -82,12 +101,6 @@ _inline_avert axres ir_create(
 _inline_avert void ir_delete(
 	_in ir_context 		*ir
 );
-
-static void _invalid_call(
-	u8 stack[0xffff]
-){
-	exit(1);
-}
 
 org_to_ir_call arch_org_to_ir(
 	_in enum mte_arch 	arch

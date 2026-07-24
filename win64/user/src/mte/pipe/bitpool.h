@@ -28,17 +28,17 @@ static void _bitpool_bucket_func_16byte(
 	void *from,
 	void *to,
 	u32 size
-){ simd_store_128(to, from); }
+){ unref(size); simd_store_128(to, from); }
 static void _bitpool_bucket_func_32byte(
 	void *from,
 	void *to,
 	u32 size
-){ simd_store_256(to, *(simd_imax*)from); }
+){ unref(size); simd_store_256(to, *(simd_imax*)from); }
 static void _bitpool_bucket_func_64byte(
 	void *from,
 	void *to,
 	u32 size
-){ simd_store_512(to, from); }
+){ unref(size); simd_store_512(to, from); }
 static void _bitpool_bucket_func_anybyte(
 	void *from,
 	void *to,

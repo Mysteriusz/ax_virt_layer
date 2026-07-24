@@ -2,11 +2,10 @@
 #include "tblock.h"
 
 bool tblock_alloc(
-	_in ir_context		*ir,
 	_in enum tblock_type 	type,
 	_out tblock 		*buf
 ){
-	if (__builtin_expect(ir == nullptr, false)){
+	if (__builtin_expect(buf == nullptr, false)){
 		return nullptr;
 	}
 
@@ -16,14 +15,12 @@ bool tblock_alloc(
 	*/
 	*buf = (tblock){
 		.type = type,
-		.ir = ir,
-		.base = ir->desc.code_ptr,
-		.ir_count = 0,
+		.ir_len = 0,
 		/*
 		 	TODO:
 			QUICKLY CHANGE TO STATIC BUFFER WHEN IMPLEMENTING TBLOCK TABLE
 		*/
-		.ir_buf = axmalloc((TBLOCK_SIZE << TBLOCK_BIG) * sizeof(ir_raw_instr)),
+		.ir_buf = axmalloc((TBLOCK_SIZE << type) * sizeof(ir_raw_instr)),
 	};
 	return true;
 }
@@ -56,17 +53,18 @@ bool tblock_alloc(
 			frag {16 bytes} -> 16 times
 		}
 */
-u32 tblock_frag_calc(
+_inline_force u32 tblock_frag_calc(
 	_in enum tblock_type type
 ){
 	return ((TBLOCK_SIZE << type) / sizeof(ir_raw_instr));
 }
 
 void tblock_liveness_log(
+	_in ir_context *ir,
 	_in tblock *block,
 	_in u16 liveness[0xff]
 ){
-	struct ir_context_desc *const desc = &block->ir->desc;
+	struct ir_context_desc *const desc = &ir->desc;
 
 	for (u16 i = 0; i < desc->org_map->reg_count; i++){
 		u8 id = desc->org_map->root[i].id;
@@ -81,13 +79,13 @@ void tblock_liveness_log(
 }
 
 bool tblock_liveness_scan(
-	_in_out tblock	*block,
-	_in_out	u16	org_liveness[0xff]
+	_in ir_context	*ir,
+	_in_out tblock	*block
 ){
-	if (__builtin_expect(block == nullptr, false)){
+	if (__builtin_expect(ir == nullptr, false)){
 		return false;
 	}
-	if (__builtin_expect(org_liveness == nullptr, false)){
+	if (__builtin_expect(block == nullptr, false)){
 		return false;
 	}
 
@@ -95,8 +93,7 @@ bool tblock_liveness_scan(
 	u8 blk_i = 0; // 0-15 index of the block
 	u32 bytes = 0; // Bytes already passed
 
-	const u32 frag = tblock_frag_calc(block->type);
-
+	__TBLOCK_PASS_INIT(ir, block);
 	/*
 	 	Loop through all instructions
 		to determine liveness of each register
@@ -116,7 +113,6 @@ bool tblock_liveness_scan(
 			liveness[reg_0] & BIT(blk_i) = true
 			liveness[reg_1] & BIT(blk_i) = true
 	*/
-	__TBLOCK_PASS_INIT(block);
 	__TBLOCK_PASS_LOOP(org_len,
 		u16 blk_shift = BIT(blk_i);
 
@@ -124,25 +120,24 @@ bool tblock_liveness_scan(
 		 	Load instruction with code data
 		*/
 		mte_raw_instr raw_instr = {
-			.arch = desc->org_arch,
+			.arch = _TBLOCK_DESC->org_arch,
 		};
-		memcpy(raw_instr.payload, code_ptr, 16);
+		memcpy(raw_instr.payload, _TBLOCK_CODE_PTR, 16);
 	
 		/*
 		 	Determine registers used, 
 			and byte length of this instruction
 		*/
 		ir_operand_set set = 
-			desc->call.org_reg_fetch(
+			_TBLOCK_DESC->call.org_reg_fetch(
 				raw_instr,
-				block->ir,
+				ir,
 				&org_len
 			);
 
 		/*
 		 	Loop over all operands in that set
-			and set their liveness for the current
-			tblock fragment
+			and set their liveness for the current frag-block
 		*/
 		for (u8 i = 0; i < set.ops_count; i++){
 			ir_operand op = set.ops[i];
@@ -150,7 +145,7 @@ bool tblock_liveness_scan(
 				continue;
 			}
 
-			org_liveness[op.value] |= blk_shift;
+			_TBLOCK_PASS_BLOCK->liveness[op.value] |= blk_shift;
 		}
 
 		/*
@@ -158,24 +153,21 @@ bool tblock_liveness_scan(
 			and calculate current block
 		*/
 		bytes += org_len;
-		blk_i = bytes / frag;
-		block->ir_count++;
+		blk_i = bytes / _TBLOCK_FRAG;
+
+		_TBLOCK_PASS_BLOCK->ir_len++;
 	);
 
 	return true;
 }
 bool tblock_raw_to_ir(
-	_in tblock			*block,
-	_in const u16			org_liveness[0xff], // Calculated liveness table of guest registers (Per instruction block)
-	_in_out tblock_reg_assoc	assoc[0xff] // Guest to host register associations (Per instruction block)
+	_in ir_context	*ir,
+	_in_out tblock	*block
 ){
+	if (__builtin_expect(ir == nullptr, false)){
+		return false;
+	}
 	if (__builtin_expect(block == nullptr, false)){
-		return false;
-	}
-	if (__builtin_expect(org_liveness == nullptr, false)){
-		return false;
-	}
-	if (__builtin_expect(assoc == nullptr, false)){
 		return false;
 	}
 
@@ -190,26 +182,23 @@ bool tblock_raw_to_ir(
 
 	u32 bytes = 0; // Bytes already passed
 
-	// Fragmentation of each block (Example 32-bytes for [block->type == TBLOCK_BIG])
-	const u32 frag = (TBLOCK_SIZE << block->type) / sizeof(ir_raw_instr);
-
-	__TBLOCK_PASS_INIT(block);
+	__TBLOCK_PASS_INIT(ir, block);
 	__TBLOCK_PASS_LOOP(org_len,
 		/*
 		 	Load instruction with code data
 		*/
 		mte_raw_instr raw_instr = {
-			.arch = desc->org_arch,
+			.arch = _TBLOCK_DESC->org_arch,
 		};
-		memcpy(&raw_instr.payload, code_ptr, 16);
+		memcpy(&raw_instr.payload, _TBLOCK_CODE_PTR, 16);
 
 		/*
 		 	Convert raw instruction to IR
 		*/
 		ir_raw_instr ir_instr = 
-			desc->call.org_to_ir(
+			_TBLOCK_DESC->call.org_to_ir(
 				raw_instr,
-				block->ir,
+				ir,
 				&org_len
 			);
 
@@ -219,30 +208,32 @@ bool tblock_raw_to_ir(
 		for (u8 i = 0; i < ir_instr.set.ops_count; i++){
 			ir_operand op = ir_instr.set.ops[i];
 			enum cpu_reg_role op_role = 
-				desc->org_map->root[op.value].role;
+				_TBLOCK_DESC->org_map->root[op.value].role;
 				
 			/*
 			 	Check if the operand register doesn`t have an association
 			*/
-			if (assoc[op.value].used == false){
-				assoc[op.value].used = true;
-				assoc[op.value].id = cpu_alloc_role_reg(desc->tar_map, op_role);
+			if (_TBLOCK_PASS_BLOCK->assoc[op.value].used == false){
+				_TBLOCK_PASS_BLOCK->assoc[op.value].used = true;
+				_TBLOCK_PASS_BLOCK->assoc[op.value].id =
+					cpu_alloc_role_reg(_TBLOCK_DESC->tar_map, op_role);
+
 				io_str(u"Allocated register!");
 				io_str(u"Guest id:");
 				io_i64(op.value);
 				io_str(u"");
 				io_str(u"Host id");
-				io_i64(assoc[op.value].id);
+				io_i64(_TBLOCK_PASS_BLOCK->assoc[op.value].id);
 				io_str(u"");
 			}		
 		}
 
 		// Save IR instruction to the buffer
-		pass_block->ir_buf[pass_i] = ir_instr;
+		_TBLOCK_PASS_BLOCK->ir_buf[_TBLOCK_PASS_IDX] = ir_instr;
 
 		// Calculate byte offset and block index
 		bytes += org_len;
-		next_blk_i = bytes / frag;
+		next_blk_i = bytes / _TBLOCK_FRAG;
 
 		/*
 		 	0 if blk is still the same
@@ -259,21 +250,22 @@ bool tblock_raw_to_ir(
 			which means the loop is ignored
 		*/
 		u8 i = 0;
-		u16 bound = (desc->org_map->reg_count * crossed);
+		u16 bound = (_TBLOCK_DESC->org_map->reg_count * crossed);
 		while(i < bound){
-			u8 org_id = desc->org_map->root[i].id;
+			u8 org_id = _TBLOCK_DESC->org_map->root[i].id;
 			i++;
 			/*
 			 	If register is 'alive' in the next block,
 				then skip it
 			*/
-			if (!!(org_liveness[org_id] & blk_shift)){
+			if (!!(_TBLOCK_PASS_BLOCK->liveness[org_id] & blk_shift)){
 				continue;
 			}
 
 			// Free host register since it`s not alive
-			assoc[org_id].used = false;
-			cpu_free_reg(desc->tar_map, assoc[org_id].id);
+			_TBLOCK_PASS_BLOCK->assoc[org_id].used = false;
+			cpu_free_reg(_TBLOCK_DESC->tar_map,
+				_TBLOCK_PASS_BLOCK->assoc[org_id].id);
 		}
 		blk_i = next_blk_i;
 	);
@@ -281,13 +273,17 @@ bool tblock_raw_to_ir(
 	return true;
 }
 bool tblock_ir_to_raw(
+	_in_out ir_context	*ir,
 	_in tblock		*block
 ){
+	if (__builtin_expect(ir == nullptr, false)){
+		return false;
+	}
 	if (__builtin_expect(block == nullptr, false)){
 		return false;
 	}
 
-	struct ir_context_desc *desc = &block->ir->desc;
+	struct ir_context_desc *desc = &ir->desc;
 
 	u8 tar_len = 0;
 	u32 ir_i = 0;
@@ -296,7 +292,7 @@ bool tblock_ir_to_raw(
 		mte_raw_instr tar_instr = 
 			desc->call.ir_to_tar(
 				block->ir_buf[ir_i],
-				block->ir,
+				ir,
 				&tar_len);
 
 		/*
@@ -315,7 +311,8 @@ bool tblock_ir_to_raw(
 }
 
 bool tblock_emit(
-	_in tblock 	*block
+	_in_out ir_context	*ir,
+	_in_out tblock 		*block
 ){
 	if (__builtin_expect(block == nullptr, false)){
 		return false;
@@ -323,27 +320,15 @@ bool tblock_emit(
 
 __INL_PERF_INIT
 __INL_PERF_START
-	/*
-	 	Each bit of the u16 represents the 16-byte aligned block,
-		for each register identifier.
-			
-		IR instruction count for each block is:
-			((TBLOCK_SIZE << block->type) / sizeof(ir_raw_instr))
-	*/
-	u16 org_liveness[0xff] = {0};
 
-	/*
-	 	Associations between org and tar registers.
-	*/
-	tblock_reg_assoc assoc[0xff] = {0};
 
-	if (__builtin_expect(!tblock_liveness_scan(block, org_liveness), false)){
+	if (__builtin_expect(!tblock_liveness_scan(ir, block), false)){
 		return false;
 	}
-	if (__builtin_expect(!tblock_raw_to_ir(block, org_liveness, assoc), false)){
+	if (__builtin_expect(!tblock_raw_to_ir(ir, block), false)){
 		return false;
 	}
-	if (__builtin_expect(!tblock_ir_to_raw(block), false)){
+	if (__builtin_expect(!tblock_ir_to_raw(ir, block), false)){
 		return false;
 	}
 __INL_PERF_END

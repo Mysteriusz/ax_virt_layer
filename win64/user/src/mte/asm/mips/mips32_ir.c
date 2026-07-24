@@ -38,11 +38,12 @@ axres mips32_raw_to_ir(
 	return AX_SUCC;
 }
 
-ir_raw_instr mips32_to_ir_call(
+ir_raw_instr mips32_to_ir(
 	_in mte_raw_instr	instr,
 	_in ir_context		*ctx,
 	_out u8			*len
 ){
+	unref(ctx);
 	if (__builtin_expect(len == nullptr, false)){
 		return (ir_raw_instr){0};
 	}
@@ -56,14 +57,16 @@ ir_raw_instr mips32_to_ir_call(
 	return buf;
 }
 
-ir_operand_set mips32_reg_fetch_call(
+ir_operand_set mips32_reg_fetch(
 	_in mte_raw_instr	instr,	
 	_in ir_context		*ctx,
 	_out u8			*len
 ){
+	unref(ctx);
 	if (__builtin_expect(len == nullptr, false)){
 		return (ir_operand_set){0};
 	}
+
 	*len = 4;
 
 	ir_operand_set buf = {0};

@@ -10,6 +10,7 @@
 
 // TEMPORARY
 #include <windows.h>
+#include <ax_file.h>
 
 #include "mte/pipe/vrow.h"
 #include "mte/pipe/vrow_bank.h"
@@ -159,9 +160,9 @@ int main(){
 
 	tblock tblock = {0};
 
-	tblock_alloc(ir, TBLOCK_SMALL, &tblock);
+	tblock_alloc(TBLOCK_SMALL, &tblock);
 
-	bool emit = tblock_emit(&tblock);
+	bool emit = tblock_emit(ir, &tblock);
 	if (!emit){
 		return 0;
 	}

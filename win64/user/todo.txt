@@ -1,0 +1,14 @@
+Urgent:
+
+[] Spill managment in 'cpu_alloc_role_reg'
+
+[x] Remove the 'tblock.base' field
+
+[] tblock error management
+return error codes not bools and allow axres return for 'ir.desc.call functions'
+
+Later:
+
+[] i64 support for destination register reordering
+for IR (see: i64_ir_to_raw assertion)
+

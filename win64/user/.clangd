@@ -1,0 +1,8 @@
+Diagnostics:
+  Suppress:
+    - unused-function
+    - deprecated-declarations
+    - pragma-pack
+    - unused-includes
+    - unknown-pragmas
+

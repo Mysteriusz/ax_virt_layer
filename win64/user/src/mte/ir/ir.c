@@ -25,11 +25,11 @@ org_to_ir_call arch_org_to_ir(
 ){
 	switch(arch){
 	case MIPS32:
-		return (org_to_ir_call)mips32_to_ir_call;
+		return (org_to_ir_call)mips32_to_ir;
 	case INTEL64:
-		return (org_to_ir_call)_invalid_call;
+		return (org_to_ir_call)_invalid_org_to_ir_call;
 	default:
-		return (org_to_ir_call)_invalid_call;
+		return (org_to_ir_call)_invalid_org_to_ir_call;
 	}
 }
 ir_to_tar_call arch_ir_to_tar(
@@ -37,11 +37,11 @@ ir_to_tar_call arch_ir_to_tar(
 ){
 	switch(arch){
 	case MIPS32:
-		return (ir_to_tar_call)_invalid_call;
+		return (ir_to_tar_call)_invalid_ir_to_tar_call;
 	case INTEL64:
 		return (ir_to_tar_call)i64_ir_to_raw;
 	default:
-		return (ir_to_tar_call)_invalid_call;
+		return (ir_to_tar_call)_invalid_ir_to_tar_call;
 	}
 }
 org_reg_fetch_call arch_org_reg_fetch(
@@ -49,11 +49,11 @@ org_reg_fetch_call arch_org_reg_fetch(
 ){
 	switch(arch){
 	case MIPS32:
-		return (org_reg_fetch_call)mips32_reg_fetch_call;
+		return (org_reg_fetch_call)mips32_reg_fetch;
 	case INTEL64:
-		return (org_reg_fetch_call)_invalid_call;
+		return (org_reg_fetch_call)_invalid_org_reg_fetch_call;
 	default:
-		return (org_reg_fetch_call)_invalid_call;
+		return (org_reg_fetch_call)_invalid_org_reg_fetch_call;
 	}
 }
 
@@ -93,13 +93,13 @@ _inline_avert axres ir_create(
 	memcpy(ir, &temp_ir, sizeof(ir_context));
 
 	// Prefetch by calling each function
-	if ((u64)ir->desc.call.org_to_ir != (u64)_invalid_call){
+	if ((u64)ir->desc.call.org_to_ir != (u64)_invalid_org_to_ir_call){
 		ir->desc.call.org_to_ir((mte_raw_instr){0}, nullptr, nullptr);
 	}
-	if ((u64)ir->desc.call.ir_to_tar != (u64)_invalid_call){
+	if ((u64)ir->desc.call.ir_to_tar != (u64)_invalid_ir_to_tar_call){
 		ir->desc.call.ir_to_tar((ir_raw_instr){0}, nullptr, nullptr);
 	}
-	if ((u64)ir->desc.call.org_reg_fetch != (u64)_invalid_call){
+	if ((u64)ir->desc.call.org_reg_fetch != (u64)_invalid_org_reg_fetch_call){
 		ir->desc.call.org_reg_fetch((mte_raw_instr){0}, nullptr, nullptr);
 	}
 	*buf = ir;

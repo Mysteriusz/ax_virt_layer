@@ -104,7 +104,7 @@ _inline_force void _u64_move(
 	if (*instr->ptr == 0) return;
 	instr->ptr = (u64*)(
 		((c8*)instr->ptr) + clamp(
-			n, addr_diff(instr->ptr, instr->org + instr->len)
+			n, (u64)addr_diff(instr->ptr, instr->org + instr->len)
 		);
 }
 

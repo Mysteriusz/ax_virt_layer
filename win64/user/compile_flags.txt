@@ -1,5 +1,6 @@
 -Wall
 -Wextra
+-Wno-deprecated-declarations
 -Wno-pragma-pack
 -Wno-unused-function
 -Wno-unknown-pragmas

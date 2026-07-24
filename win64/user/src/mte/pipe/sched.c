@@ -13,6 +13,7 @@ _inline_avert axres sched_create(
 	if (buf == nullptr){
 		return AX_INV_BUF;
 	}
+	unref(queue_cap);
 
 	axres res = AX_SUCC;
 
