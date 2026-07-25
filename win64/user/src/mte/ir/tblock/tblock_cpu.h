@@ -2,6 +2,7 @@
 #define MTE_TBLOCK_CPU_INT
 
 #include "mte/cpu.h"
+#include "mte/ir/ir.h"
 
 enum tblock_reg_state : u8{
 	REG_FREE = 0,
@@ -12,7 +13,7 @@ enum tblock_reg_state : u8{
  	Allocate spill space and calculate the offset of the 
 */
 u8 tblock_alloc_spill(
-	_in enum tblock_reg_state 	(*state_map)[0xff + CPU_SPILL_LIMIT]
+	_in enum tblock_reg_state 	(*state_map)[0xff + IR_SPILL_LIMIT]
 );
 
 /*
@@ -42,13 +43,13 @@ u8 tblock_alloc_spill(
 		0xff | reg_idx
 */
 u16 tblock_alloc_reg(
-	_in enum tblock_reg_state 	(*state_map)[0xff + CPU_SPILL_LIMIT],
+	_in enum tblock_reg_state 	(*state_map)[0xff + IR_SPILL_LIMIT],
 	_in struct cpu_reg_map 		*reg_map,
 	_in enum cpu_reg_role 		role
 );
 
 void tblock_free_reg(
-	_in enum tblock_reg_state 	(*state_map)[0xff + CPU_SPILL_LIMIT],
+	_in enum tblock_reg_state 	(*state_map)[0xff + IR_SPILL_LIMIT],
 	_in u8 				reg
 );
 

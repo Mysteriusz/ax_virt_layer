@@ -5,11 +5,11 @@
 
 typedef enum _ir_operand_id : u8{
 	IR_OP_REG = 0, // [value] == arch specific register id
-	IR_OP_MEM = 1, // [value] == index in cpu pointer buffer
-	IR_OP_IMM = 2, // [value] == index in cpu immediate buffer
+	IR_OP_MEM = 1, // [value] == index in ir pointer buffer
+	IR_OP_IMM = 2, // [value] == index in ir imimediate buffer
 } ir_operand_id;
 
-typedef struct _ir_operand{ _align(2)
+typedef struct _ir_operand{
 	ir_operand_id 		id;
 	u8 			value;
 } ir_operand;

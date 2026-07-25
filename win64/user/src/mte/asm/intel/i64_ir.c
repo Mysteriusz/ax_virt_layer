@@ -43,8 +43,12 @@ mte_raw_instr i64_ir_to_raw(
 		(instr.set.ops[0].value != instr.set.ops[1].value);
 	// Unsupported
 	if (dest_mov){
+		io_i64(instr.set.ops[0].value);
+		io_str(u"");
+		io_i64(instr.set.ops[1].value);
+		io_str(u"");
 		ax_log_msg(AX_NOT_IMP, u"Assertion failed!");
-		asrt(!dest_mov);
+		asrt(false);
 	}
 
 	mte_raw_instr buf = {0};
@@ -52,8 +56,11 @@ mte_raw_instr i64_ir_to_raw(
 	enum i64_opcode opcode_buf[2] = {0};
 	i64_operand operand_buf[2][I64_MAX_OP_COUNT] = {0};
 
+	/*
+		Lift from IR to I64 byte representation
+	*/
 	if (__builtin_expect(
-		!i64_ir_opcode_conv(
+		!i64_ir_opcode_conv(ir,
 			instr,
 			opcode_buf,
 			operand_buf,
@@ -75,7 +82,9 @@ mte_raw_instr i64_ir_to_raw(
 	u8 l1 = 0;
 
 	const u8 buf_i = !!dest_mov;
-	if (dest_mov){
+
+	// Will never be the case for now
+	/*if (dest_mov){
 		axcheck_r(i64_emit_64(
 				opcode_buf[0],
 				operand_buf[0],
@@ -85,7 +94,7 @@ mte_raw_instr i64_ir_to_raw(
 		);
 		// Offset the pointer by first length
 		payload_ptr = offp(payload_ptr, l0);
-	}
+	}*/
 
 	axcheck_r(i64_emit_64(
 			opcode_buf[buf_i],
@@ -103,21 +112,25 @@ mte_raw_instr i64_ir_to_raw(
 #include "mte/perf.h"
 
 bool i64_ir_opcode_conv(
-	_in ir_raw_instr		instr,
+	_in ir_context			*ir,
+	_in ir_raw_instr		ir_instr,
 	_in_out enum i64_opcode 	opcode_buf[2],
 	_in_out i64_operand 		op_buf[2][I64_MAX_OP_COUNT],
 	_in bool			dest_mov
 ){
-	// Decode IR opcode metadata
-	u8 ir_op_width = IR_OPCODE_WIDTH(instr.opcode);
-	u8 ir_op_group = IR_OPCODE_GROUP(instr.opcode);
-
-	if (__builtin_expect(instr.opcode == IR_INVALID_OPCODE, false)){
+	if (__builtin_expect(ir == nullptr, false)){
+		return false;
+	}
+	if (__builtin_expect(ir_instr.opcode == IR_INVALID_OPCODE, false)){
 		return false;
 	}
 	if (__builtin_expect(opcode_buf == nullptr, false)){
 		return false;
 	}
+
+	// Decode IR opcode metadata
+	u8 ir_op_width = IR_OPCODE_WIDTH(ir_instr.opcode);
+	u8 ir_op_group = IR_OPCODE_GROUP(ir_instr.opcode);
 
 	// Operand and opcode buffer index
 	const u8 buf_i = !!dest_mov;
@@ -137,17 +150,17 @@ bool i64_ir_opcode_conv(
 		enum i64_opcode opcode = _i64_ir_opcode_trans(
 			IR_GROUP_MOV,
 			ir_op_width,
-			instr.set.ops[0],
-			instr.set.ops[1]);
+			ir_instr.set.ops[0],
+			ir_instr.set.ops[1]);
 		i64_opcode_desc opcode_desc = _lookup_opcode_meta(opcode);
 
 		/*
 			Convert the destination operand (r0)
 		*/
 		if (__builtin_expect(
-			!_i64_op_from_ir(
+			!_i64_op_from_ir(ir,
+				ir_instr.set.ops[0],
 				opcode_desc.ops[0],
-				instr.set.ops[0],
 				&op_buf[0][0]),
 			false)
 		){
@@ -158,9 +171,9 @@ bool i64_ir_opcode_conv(
 			Convert the source operand (r1)
 		*/
 		if (__builtin_expect(
-			!_i64_op_from_ir(
+			!_i64_op_from_ir(ir,
+				ir_instr.set.ops[1],
 				opcode_desc.ops[1],
-				instr.set.ops[1],
 				&op_buf[0][1]),
 			false)
 		){
@@ -178,8 +191,8 @@ bool i64_ir_opcode_conv(
 	enum i64_opcode opcode = _i64_ir_opcode_trans(
 		ir_op_group,
 		ir_op_width,
-		instr.set.ops[0],
-		instr.set.ops[ir_op_i]);
+		ir_instr.set.ops[0],
+		ir_instr.set.ops[ir_op_i]);
 	i64_opcode_desc opcode_desc =
 		_lookup_opcode_meta(opcode);
 
@@ -187,9 +200,9 @@ bool i64_ir_opcode_conv(
 	 	Translate destination (r0) operand
 	*/
 	if (__builtin_expect(
-		!_i64_op_from_ir(
+		!_i64_op_from_ir(ir,
+			ir_instr.set.ops[0],
 			opcode_desc.ops[0],
-			instr.set.ops[0],
 			&op_buf[buf_i][0]),
 		false)
 	){
@@ -201,9 +214,9 @@ bool i64_ir_opcode_conv(
 	*/
 	for (;op_i < opcode_desc.ops_count; op_i++, ir_op_i++){
 		if (__builtin_expect(
-			!_i64_op_from_ir(
+			!_i64_op_from_ir(ir,
+				ir_instr.set.ops[ir_op_i],
 				opcode_desc.ops[op_i],
-				instr.set.ops[ir_op_i],
 				&op_buf[buf_i][op_i]),
 			false)
 		){

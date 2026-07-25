@@ -142,12 +142,14 @@ int main(){
 	res = ir_create(IR_VER, MIPS32, INTEL64, &ir);
 	axcheck(res, ax_log(res));
 
-	ir->desc.code_base = axmalloc(GIB(1));
-	ir->desc.gen_base = axmalloc(GIB(1));
+	*(u8**)&ir->desc.code_base = axmalloc(GIB(1));
+	*(u8**)&ir->desc.gen_base = axmalloc(GIB(1));
+	ir->desc.gen_ptr = (u8*)ir->desc.gen_base;
+	ir->desc.code_ptr = (u8*)ir->desc.code_base;
 
 	//((u32*)ir->desc.code_base)[0] = 0x01896020; // add $t4, $t4, $t1
 	((u32*)ir->desc.code_base)[0] = 0x012A4820; // add $t1, $t1, $t2
-	((u32*)ir->desc.code_base)[1] = 0x016C5820; // add $t3, $t3, $t4
+	//((u32*)ir->desc.code_base)[1] = 0x016C5820; // add $t3, $t3, $t4
 	//((u32*)ir->desc.code_base)[1] = 0x016C5820; // add $t3, $t3, $t4
 	//((u32*)ir->desc.code_base)[2] = 0x01AE6820; // add $t5, $t5, $t6
 	//((u32*)ir->desc.code_base)[0] = 0x01F87820; // add $t7, $t7, $t8
@@ -155,9 +157,6 @@ int main(){
 	
 	//((u32*)ir->desc.code_base)[4] = 0x01CF7020; // add $t6, $t6, $t7
 	//((u32*)ir->desc.code_base)[5] = 0x0319C020; // add $t8, $t8, $t9
-
-	ir->desc.gen_ptr = (u8*)ir->desc.gen_base;
-	ir->desc.code_ptr = (u8*)ir->desc.code_base;
 
 	tblock tblock = {0};
 

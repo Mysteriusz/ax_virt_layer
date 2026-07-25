@@ -12,7 +12,7 @@
 typedef struct _tblock_reg_assoc{
 	bool 	used;
 	bool 	spill;
-	u8	id; // Host architecture-specific register id
+	u8	id; // Host architecture-specific register/spill id/index
 } tblock_reg_assoc;
 typedef u16 tblock_reg_liveness;
 
@@ -38,11 +38,11 @@ typedef struct _tblock{
 	/*
 	 	Associations between org and tar registers.
 	*/
-	tblock_reg_assoc	assoc[0xff + CPU_SPILL_LIMIT];
+	tblock_reg_assoc	assoc[0xff + IR_SPILL_LIMIT];
 	/*
 	 	States of individual registers
 	*/
-	enum tblock_reg_state	state[0xff + CPU_SPILL_LIMIT];
+	enum tblock_reg_state	state[0xff + IR_SPILL_LIMIT];
 } tblock;
 
 /*

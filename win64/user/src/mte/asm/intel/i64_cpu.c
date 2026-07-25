@@ -5,7 +5,6 @@ struct cpu_reg_desc _I64_CPU_REG_ROOT[I64_REG_COUNT] = {0};
 struct cpu_reg_map _I64_CPU_REG_MAP = {.root = _I64_CPU_REG_ROOT};
 
 u16 _I64_CPU_REG_ROLE_MAP[0xff] = {0};
-struct cpu_spill_entry _I64_CPU_REG_SPILL_MAP[CPU_SPILL_LIMIT] = {0};
 
 _inline_avert void i64_load_cpu_reg_map(
 	void
@@ -40,7 +39,5 @@ _inline_avert void i64_load_cpu_reg_map(
 	_I64_CPU_REG_ROLE_MAP[REG_STACK_PTR] = 0x0010; // root[4]
 	_I64_CPU_REG_ROLE_MAP[REG_FRAME_PTR] = 0x0020; // root[5]
 	_I64_CPU_REG_ROLE_MAP[REG_TEMP]      = 0x0C00; // root[10, 11]
-
-	_I64_CPU_REG_MAP.spill = (struct cpu_spill_entry (*)[])_I64_CPU_REG_SPILL_MAP;
 }
 

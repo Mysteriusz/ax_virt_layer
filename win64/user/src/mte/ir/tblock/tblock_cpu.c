@@ -6,14 +6,14 @@
 #include "tblock_cpu.h"
 
 u8 tblock_alloc_spill(
-	_in enum tblock_reg_state 	(*state_map)[0xff + CPU_SPILL_LIMIT]
+	_in enum tblock_reg_state 	(*state_map)[0xff + IR_SPILL_LIMIT]
 ){
 	if (__builtin_expect(state_map == nullptr, false)){
 		return 0;
 	}
 
 	u8 i = 0;
-	while(i < CPU_SPILL_LIMIT){
+	while(i < IR_SPILL_LIMIT){
 		if ((*state_map)[0xff + i] == REG_FREE){
 			(*state_map)[0xff + i] = REG_OCCUPIED;
 			return i;
@@ -24,7 +24,7 @@ u8 tblock_alloc_spill(
 }
 
 u16 tblock_alloc_reg(
-	_in enum tblock_reg_state 	(*state_map)[0xff + CPU_SPILL_LIMIT],
+	_in enum tblock_reg_state 	(*state_map)[0xff + IR_SPILL_LIMIT],
 	_in struct cpu_reg_map 		*reg_map,
 	_in enum cpu_reg_role 		role
 ){
@@ -83,7 +83,7 @@ u16 tblock_alloc_reg(
 }
 
 void tblock_free_reg(
-	_in enum tblock_reg_state 	(*state_map)[0xff + CPU_SPILL_LIMIT],
+	_in enum tblock_reg_state 	(*state_map)[0xff + IR_SPILL_LIMIT],
 	_in u8 				reg
 ){
 	if (__builtin_expect(state_map == nullptr, false)){

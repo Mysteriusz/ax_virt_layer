@@ -76,14 +76,26 @@ _inline_avert axres ir_create(
 	// Create temporary IR context
 	ir_context temp_ir = (ir_context){
 		.desc = {
-			.org_map = _arch_to_map(org_arch),
-			.tar_map = _arch_to_map(tar_arch),
 			.org_arch = org_arch,
 			.tar_arch = tar_arch,
+			.org_map = _arch_to_map(org_arch),
+			.tar_map = _arch_to_map(tar_arch),
 			.call = {
 				.org_to_ir = arch_org_to_ir(org_arch),
 				.ir_to_tar = arch_ir_to_tar(tar_arch),
 				.org_reg_fetch = arch_org_reg_fetch(org_arch),
+			},
+			.code_base = nullptr,
+			.gen_base = nullptr,
+			.code_ptr = nullptr,
+			.gen_ptr = nullptr,
+			.imm_buf = (struct ir_sbuf){
+				.idx = 0,
+				.base = {0},
+			},
+			.ptr_buf = (struct ir_sbuf){
+				.idx = 0,
+				.base = {0},
 			},
 		},
 		.blocked = false,

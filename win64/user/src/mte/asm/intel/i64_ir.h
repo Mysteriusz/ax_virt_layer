@@ -66,10 +66,14 @@ _inline_force enum i64_opcode _i64_ir_opcode_trans(
  	Create I64 operand value and id from an IR operand
 */
 _inline_force bool _i64_op_from_ir(
-	_in i64_operand_desc	desc,
+	_in ir_context		*ir,
 	_in ir_operand		ir_op,
+	_in i64_operand_desc	desc,
 	_in_out i64_operand 	*op_buf
 ){
+	if (__builtin_expect(ir == nullptr, false)){
+		return false;
+	}
 	if (__builtin_expect(op_buf == nullptr, false)){
 		return false;
 	}
@@ -100,9 +104,10 @@ _inline_force bool _i64_op_from_ir(
 
 	TODO:
 	Make [opcode_buf] AND [op_buf] bigger (or replace it)
-	to allow custom routines for IR instructions
+	so that you are not bound to max 2 output opcodes
 */
 bool i64_ir_opcode_conv(
+	_in ir_context			*ir,
 	_in ir_raw_instr		instr,
 	_in_out enum i64_opcode 	opcode_buf[2],
 	_in_out i64_operand 		op_buf[2][I64_MAX_OP_COUNT],

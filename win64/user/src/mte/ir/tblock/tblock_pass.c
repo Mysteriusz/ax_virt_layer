@@ -149,39 +149,51 @@ struct tblock_pass_result tblock_raw_to_ir(
 		 	Select tar (host) registers to use
 		*/
 		for (u8 i = 0; i < ir_instr.set.ops_count; i++){
-			ir_operand *op = &ir_instr.set.ops[i];
+			ir_operand *ir_op = &ir_instr.set.ops[i];
 
-			switch(op->id){
+			switch(ir_op->id){
 			case IR_OP_REG:
-				enum cpu_reg_role op_role = 
-					_TBLOCK_DESC->org_map->root[op->value].role;
+				struct cpu_reg_desc *op_desc = 
+					&_TBLOCK_DESC->org_map->root[ir_op->value];
 				tblock_reg_assoc *assoc =
-					&_TBLOCK_PASS_BLOCK->assoc[op->value];
+					&_TBLOCK_PASS_BLOCK->assoc[ir_op->value];
 
 				/*
 			 		Check if the operand register doesn`t have an association
 				*/
 				if (assoc->used == false){
-					assoc->used = true;
-
-					u16 id = tblock_alloc_reg(
+					u16 reg_id = tblock_alloc_reg(
 						&_TBLOCK_PASS_BLOCK->state,
 						_TBLOCK_DESC->tar_map,
-						op_role);
+						op_desc->role);
+					
+					u8 tar_id = (reg_id & (reg_id >> 8)) & 0xff;
+					u8 spill = (reg_id & 0xff) == 0xff;
 
-					assoc->spill = (id & 0xff) == 0xff;
-					assoc->id = (id & (id >> 8)) & 0xff;
+					assoc->used = true;
+					assoc->spill = spill;
+
+					/*
+					 	Repurpose the IR operand to read/write spill memory
+					*/
+					if (spill){
+						io_str(u"SPILLED");
+						tar_id = _ir_sbuf_inc(&ir->desc.ptr_buf);
+						ir_op->id = IR_OP_MEM;
+					}
 
 					io_str(u"Allocated register/spill!");
 					io_str(u"Guest id:");
-					io_i64(op->value);
+					io_i64(ir_op->value);
 					io_str(u"");
 					io_str(u"Host id");
-					io_i64(assoc->id);
+					io_i64(tar_id);
 					io_str(u"");
-					io_str(u"Spill");
-					io_i64(assoc->spill);
-					io_str(u"");
+
+					assoc->id = tar_id;
+					ir_op->value = tar_id;
+				}else{
+					ir_op->value = assoc->id;
 				}
 
 				/*
@@ -227,15 +239,19 @@ struct tblock_pass_result tblock_raw_to_ir(
 			}
 
 			// Free host register since it`s not alive
-			_TBLOCK_PASS_BLOCK->assoc[org_id].used = false;
 			tblock_free_reg(&_TBLOCK_PASS_BLOCK->state,
 				_TBLOCK_PASS_BLOCK->assoc[org_id].id);
+
+			_TBLOCK_PASS_BLOCK->assoc[org_id].used = false;
+			_TBLOCK_PASS_BLOCK->assoc[org_id].spill = false;
+			_TBLOCK_PASS_BLOCK->assoc[org_id].id = 0;
 		}
 		blk_i = next_blk_i;
 	);
 
 	return (struct tblock_pass_result){.count = _TBLOCK_PASS_IDX, .res = AX_SUCC};
 }
+
 struct tblock_pass_result tblock_ir_to_raw(
 	_in_out ir_context	*ir,
 	_in tblock		*block
@@ -275,3 +291,4 @@ struct tblock_pass_result tblock_ir_to_raw(
 
 	return (struct tblock_pass_result){.count = run, .res = AX_SUCC};
 }
+
