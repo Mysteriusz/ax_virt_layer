@@ -1,6 +1,7 @@
 #include "mte/cpu.h"
 
 #include "mips/mips32_ir.h"
+#include "mips/mips32_cpu.h"
 
 #include "intel/i64_ir.h"
 #include "intel/i64_cpu.h"

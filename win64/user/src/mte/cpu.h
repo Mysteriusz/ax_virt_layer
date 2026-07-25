@@ -22,52 +22,36 @@ enum cpu_reg_role : u8{
 	REG_FRAME_PTR		= 0x11, // Ex: mips32.fp
 	REG_MEM_PTR		= 0x12, // Ex: mips32.gp
 };
-enum cpu_reg_state : u8{
-	REG_FREE = 0,
-	REG_OCCUPIED = 1,
-};
 struct cpu_reg_desc{
-	u64			value; // Register placeholder
+	reg64			value; // Register placeholder
 	enum cpu_reg_role 	role;
-	enum cpu_reg_state	state;
 	u8			id; // Architecture specific register identifier
 };
 
-struct cpu_spill_desc{
-	u32			size; // Map size in bytes
-	void			*base;
-	u16			(*map)[0xff]; // Register id to spill offset
+#define CPU_SPILL_LIMIT 31
+struct cpu_spill_entry{
+	u64			value;
 };
+
 struct cpu_reg_map{
-	u16			reg_count; // Register count
-	u8			reg_width; // Max register width
+	const u16		reg_count; // Register count
+	const u16		reg_width; // Max register width
 	u16			(*role_map)[0xff]; // Register id to role map
 	struct cpu_reg_desc	*const root; // Register array
-	struct cpu_spill_desc	spill;
+	/*
+	   	TODO: Remove compile-time spill limit
+	 	
+	 	Closest free spill index
+
+		If value is equal to CPU_SPILL_LIMIT + 1
+		then spill is full
+	*/
+	struct cpu_spill_entry	(*spill)[CPU_SPILL_LIMIT];
 };
 
 typedef struct _cpu_state{
 	struct cpu_reg_map 	gprs;
 } cpu_state;
-
-extern struct cpu_reg_map _MIPS32_CPU_REG_MAP;
-
-extern struct cpu_reg_map _I64_CPU_REG_MAP;
-extern u16 _I64_CPU_REG_ROLE_MAP[0xff];
-
-/*
- 	Automatically allocate any register with spill management
-	for a specific role
-*/
-u8 cpu_alloc_role_reg(
-	_in struct cpu_reg_map 	*map,
-	_in enum cpu_reg_role 	role
-);
-
-void cpu_free_reg(
-	_in struct cpu_reg_map 	*map,
-	_in u8 			reg
-);
 
 #endif // !defined(MTE_CPU_INT)
 

@@ -8,7 +8,7 @@
 -m64
 -mbmi2
 -mavx2
--IC:/msys64/ucrt64/include
+-IC:/msys64/ucrt64/lib/clang/22/include
 -ID:/ax_project/ax_virt_layer_utils/utils/ax_utility_lib/src/
 -ID:/ax_project/ax_virt_layer_utils/utils/ax_utility_lib/src/ext
 -ID:/ax_project/ax_virt_layer_utils/utils/ax_utility_lib/src/io

@@ -1,8 +1,13 @@
 Urgent:
 
-[] Spill managment in 'cpu_alloc_role_reg'
-
-[x] Remove the 'tblock.base' field
+[x] Spill managment in 'cpu_alloc_role_reg'
+	DONE - Spill buffer has to be managed by the cpu structure
+	  but cannot be intertwined with register allocation since ir is the only
+	  interface that requiers register allocation for tblock emittion
+	- 'tblock_raw_to_ir' after lowering to ir has to manually modify
+	  each operand to comply with tar requirements (or maybe make another pass function)
+	DONE - Scrap register states for the cpu since cpu doesn`t care about that and put them
+	  into some ir/tblock cpu primitive
 
 [] tblock error management
 return error codes not bools and allow axres return for 'ir.desc.call functions'
@@ -11,4 +16,8 @@ Later:
 
 [] i64 support for destination register reordering
 for IR (see: i64_ir_to_raw assertion)
+
+Done:
+
+[x] Remove the 'tblock.base' field
 

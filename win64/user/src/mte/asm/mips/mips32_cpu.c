@@ -1,10 +1,8 @@
-#include "mte/cpu.h"
-
-#include "mips32_instr.h"
+#include "mips32_cpu.h"
 
 struct cpu_reg_map _MIPS32_CPU_REG_MAP = {
-	.reg_count = 32, // 32 registers r0-r31
-	.reg_width = 32, // 32-Bit architecture
+	.reg_count = MIPS32_REG_COUNT,
+	.reg_width = MIPS32_REG_WIDTH,
 	.root = (struct cpu_reg_desc[32]){
 		[0]  = {.id = R0, 	.role = REG_PRESERVE,  .value = 0},
 		[1]  = {.id = R1, 	.role = REG_TEMP,      .value = 0},

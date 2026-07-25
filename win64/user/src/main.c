@@ -2,11 +2,12 @@
 #include "mte/ir/ir.h"
 #include "mte/perf.h"
 
+
 #include "mte/asm/mips/mips32.h"
 #include "mte/asm/intel/i64.h"
 
 #include <stdarg.h>
-#include <intrin.h>
+#include <x86intrin.h>
 
 // TEMPORARY
 #include <windows.h>

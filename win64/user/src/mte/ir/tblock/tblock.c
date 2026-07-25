@@ -1,5 +1,7 @@
 #include "mte/perf.h"
+
 #include "tblock.h"
+#include "tblock_pass.h"
 
 bool tblock_alloc(
 	_in enum tblock_type 	type,
@@ -16,6 +18,9 @@ bool tblock_alloc(
 	*buf = (tblock){
 		.type = type,
 		.ir_len = 0,
+		.state = {REG_FREE},
+		.liveness = {0},
+		.assoc = {0},
 		/*
 		 	TODO:
 			QUICKLY CHANGE TO STATIC BUFFER WHEN IMPLEMENTING TBLOCK TABLE
@@ -25,316 +30,50 @@ bool tblock_alloc(
 	return true;
 }
 
-/*
-	Fragmentation of each block
-
-	That means that every tblock is
-	fragmented into frag-count 'subblocks'
-
-	Example for TBLOCK_SMALL:
-
-		(TBLOCK_SIZE << TBLOCK_SMALL) / sizeof(ir_raw_instr)
-		which resolves to:
-		(64 << 1) / 16 = 128 / 16 = 8
-
-	Visualisation:
-		block{
-			frag {16 bytes} -> 8 times
-		}
-		
-	Example for TBLOCK_BIG:
-
-		(TBLOCK_SIZE << TBLOCK_BIG) / sizeof(ir_raw_instr)
-		which resolves to:
-		(64 << 3) / 16 = 512 / 16 = 16
-
-	Visualisation:
-		block{
-			frag {16 bytes} -> 16 times
-		}
-*/
-_inline_force u32 tblock_frag_calc(
-	_in enum tblock_type type
-){
-	return ((TBLOCK_SIZE << type) / sizeof(ir_raw_instr));
-}
-
-void tblock_liveness_log(
-	_in ir_context *ir,
-	_in tblock *block,
-	_in u16 liveness[0xff]
-){
-	struct ir_context_desc *const desc = &ir->desc;
-
-	for (u16 i = 0; i < desc->org_map->reg_count; i++){
-		u8 id = desc->org_map->root[i].id;
-		io_str(u"liveness for id:");
-		io_i64(id);
-		io_str(u"");
-		for (u16 j = 0; j < tblock_frag_calc(block->type); j++){
-			io_i64((liveness[id] >> j) & 1);
-		}
-		io_str(u"");
-	}
-}
-
-bool tblock_liveness_scan(
-	_in ir_context	*ir,
-	_in_out tblock	*block
-){
-	if (__builtin_expect(ir == nullptr, false)){
-		return false;
-	}
-	if (__builtin_expect(block == nullptr, false)){
-		return false;
-	}
-
-	u8 org_len = 0; // Byte length of the instruction itself
-	u8 blk_i = 0; // 0-15 index of the block
-	u32 bytes = 0; // Bytes already passed
-
-	__TBLOCK_PASS_INIT(ir, block);
-	/*
-	 	Loop through all instructions
-		to determine liveness of each register
-
-		If a register is used, it`s automatically marked
-		as 'living'  this frag-block (blk_i)
-
-		Visualisation:
-			Every instruction will have it`s registers
-			analyzed in this example flow
-
-			liveness[reg_0] & BIT(blk_i) = false
-			liveness[reg_1] & BIT(blk_i) = false
-
-			add 0, 1 -> reg_0, reg_1
-
-			liveness[reg_0] & BIT(blk_i) = true
-			liveness[reg_1] & BIT(blk_i) = true
-	*/
-	__TBLOCK_PASS_LOOP(org_len,
-		u16 blk_shift = BIT(blk_i);
-
-		/*
-		 	Load instruction with code data
-		*/
-		mte_raw_instr raw_instr = {
-			.arch = _TBLOCK_DESC->org_arch,
-		};
-		memcpy(raw_instr.payload, _TBLOCK_CODE_PTR, 16);
-	
-		/*
-		 	Determine registers used, 
-			and byte length of this instruction
-		*/
-		ir_operand_set set = 
-			_TBLOCK_DESC->call.org_reg_fetch(
-				raw_instr,
-				ir,
-				&org_len
-			);
-
-		/*
-		 	Loop over all operands in that set
-			and set their liveness for the current frag-block
-		*/
-		for (u8 i = 0; i < set.ops_count; i++){
-			ir_operand op = set.ops[i];
-			if(op.id != IR_OP_REG){
-				continue;
-			}
-
-			_TBLOCK_PASS_BLOCK->liveness[op.value] |= blk_shift;
-		}
-
-		/*
-			Add bytes of the instruction,
-			and calculate current block
-		*/
-		bytes += org_len;
-		blk_i = bytes / _TBLOCK_FRAG;
-
-		_TBLOCK_PASS_BLOCK->ir_len++;
-	);
-
-	return true;
-}
-bool tblock_raw_to_ir(
-	_in ir_context	*ir,
-	_in_out tblock	*block
-){
-	if (__builtin_expect(ir == nullptr, false)){
-		return false;
-	}
-	if (__builtin_expect(block == nullptr, false)){
-		return false;
-	}
-
-	/*
-	 	Association table is updated on every block
-	*/
-
-	u8 org_len = 0;
-
-	u8 blk_i = 0; // 0-15 index of the block
-	u8 next_blk_i = 0; // 0-15 index of the next block
-
-	u32 bytes = 0; // Bytes already passed
-
-	__TBLOCK_PASS_INIT(ir, block);
-	__TBLOCK_PASS_LOOP(org_len,
-		/*
-		 	Load instruction with code data
-		*/
-		mte_raw_instr raw_instr = {
-			.arch = _TBLOCK_DESC->org_arch,
-		};
-		memcpy(&raw_instr.payload, _TBLOCK_CODE_PTR, 16);
-
-		/*
-		 	Convert raw instruction to IR
-		*/
-		ir_raw_instr ir_instr = 
-			_TBLOCK_DESC->call.org_to_ir(
-				raw_instr,
-				ir,
-				&org_len
-			);
-
-		/*
-		 	Select tar (host) registers to use
-		*/
-		for (u8 i = 0; i < ir_instr.set.ops_count; i++){
-			ir_operand op = ir_instr.set.ops[i];
-			enum cpu_reg_role op_role = 
-				_TBLOCK_DESC->org_map->root[op.value].role;
-				
-			/*
-			 	Check if the operand register doesn`t have an association
-			*/
-			if (_TBLOCK_PASS_BLOCK->assoc[op.value].used == false){
-				_TBLOCK_PASS_BLOCK->assoc[op.value].used = true;
-				_TBLOCK_PASS_BLOCK->assoc[op.value].id =
-					cpu_alloc_role_reg(_TBLOCK_DESC->tar_map, op_role);
-
-				io_str(u"Allocated register!");
-				io_str(u"Guest id:");
-				io_i64(op.value);
-				io_str(u"");
-				io_str(u"Host id");
-				io_i64(_TBLOCK_PASS_BLOCK->assoc[op.value].id);
-				io_str(u"");
-			}		
-		}
-
-		// Save IR instruction to the buffer
-		_TBLOCK_PASS_BLOCK->ir_buf[_TBLOCK_PASS_IDX] = ir_instr;
-
-		// Calculate byte offset and block index
-		bytes += org_len;
-		next_blk_i = bytes / _TBLOCK_FRAG;
-
-		/*
-		 	0 if blk is still the same
-		 	1 if blk was switched (Invalidate liveness)
-		*/
-		u8 crossed = next_blk_i - blk_i;
-		u16 blk_shift = BIT(next_blk_i);
-
-		/*
-		 	Free dead registers when crossing to
-			the next frag-block (blk_i) using association table
-
-			If blk is still the same then crossed == 0,
-			which means the loop is ignored
-		*/
-		u8 i = 0;
-		u16 bound = (_TBLOCK_DESC->org_map->reg_count * crossed);
-		while(i < bound){
-			u8 org_id = _TBLOCK_DESC->org_map->root[i].id;
-			i++;
-			/*
-			 	If register is 'alive' in the next block,
-				then skip it
-			*/
-			if (!!(_TBLOCK_PASS_BLOCK->liveness[org_id] & blk_shift)){
-				continue;
-			}
-
-			// Free host register since it`s not alive
-			_TBLOCK_PASS_BLOCK->assoc[org_id].used = false;
-			cpu_free_reg(_TBLOCK_DESC->tar_map,
-				_TBLOCK_PASS_BLOCK->assoc[org_id].id);
-		}
-		blk_i = next_blk_i;
-	);
-
-	return true;
-}
-bool tblock_ir_to_raw(
-	_in_out ir_context	*ir,
-	_in tblock		*block
-){
-	if (__builtin_expect(ir == nullptr, false)){
-		return false;
-	}
-	if (__builtin_expect(block == nullptr, false)){
-		return false;
-	}
-
-	struct ir_context_desc *desc = &ir->desc;
-
-	u8 tar_len = 0;
-	u32 ir_i = 0;
-
-	while(ir_i < 2){
-		mte_raw_instr tar_instr = 
-			desc->call.ir_to_tar(
-				block->ir_buf[ir_i],
-				ir,
-				&tar_len);
-
-		/*
-			TODO!!!
-
-			This is only temporary and should be removed due to the overhead
-			Maybe use SIMD?
-		*/
-		memcpy(desc->gen_ptr, tar_instr.payload, tar_len);
-
-		desc->gen_ptr = offp(desc->gen_ptr, tar_len);
-		ir_i++;
-	}
-
-	return true;
-}
-
 bool tblock_emit(
 	_in_out ir_context	*ir,
 	_in_out tblock 		*block
 ){
+	if (__builtin_expect(ir == nullptr, false)){
+		return false;
+	}
 	if (__builtin_expect(block == nullptr, false)){
 		return false;
 	}
 
 __INL_PERF_INIT
+
 __INL_PERF_START
-
-
-	if (__builtin_expect(!tblock_liveness_scan(ir, block), false)){
-		return false;
-	}
-	if (__builtin_expect(!tblock_raw_to_ir(ir, block), false)){
-		return false;
-	}
-	if (__builtin_expect(!tblock_ir_to_raw(ir, block), false)){
+	struct tblock_pass_result ls = tblock_liveness_scan(ir, block);
+	if (__builtin_expect(ls.res, AX_SUCC)){
 		return false;
 	}
 __INL_PERF_END
-__INL_PERF_LOG
 
-	printf("Average translation in: %lfns\n", (__INL_PERF_SUM / 4.2) / 256);
+	double r1 = (__INL_PERF_SUM / 4.2);
+
+__INL_PERF_START
+	struct tblock_pass_result rti = tblock_raw_to_ir(ir, block);
+	if (__builtin_expect(rti.res, AX_SUCC)){
+		return false;
+	}
+__INL_PERF_END
+
+	double r2 = (__INL_PERF_SUM / 4.2);
+
+__INL_PERF_START
+	struct tblock_pass_result itr = tblock_ir_to_raw(ir, block);
+	if (__builtin_expect(itr.res, AX_SUCC)){
+		return false;
+	}
+__INL_PERF_END
+
+	double r3 = (__INL_PERF_SUM / 4.2);
+
+	printf("Average liveness pass in: %lfns\n", r1 / ls.count);
+	printf("Average raw to ir pass in: %lfns\n", r2 / rti.count);
+	printf("Average ir to raw pass in: %lfns\n", r3 / itr.count);
+	printf("Time sum: %lfns\n", (r1 + r2 + r3));
 
 	return true;
 }

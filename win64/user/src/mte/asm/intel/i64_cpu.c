@@ -1,13 +1,19 @@
 #include "i64_cpu.h"
 
-struct cpu_reg_map _I64_CPU_REG_MAP = {.root = (struct cpu_reg_desc[32]){0}};
+
+struct cpu_reg_desc _I64_CPU_REG_ROOT[I64_REG_COUNT] = {0};
+struct cpu_reg_map _I64_CPU_REG_MAP = {.root = _I64_CPU_REG_ROOT};
+
 u16 _I64_CPU_REG_ROLE_MAP[0xff] = {0};
+struct cpu_spill_entry _I64_CPU_REG_SPILL_MAP[CPU_SPILL_LIMIT] = {0};
 
 _inline_avert void i64_load_cpu_reg_map(
 	void
 ){
-	_I64_CPU_REG_MAP.reg_count = 16;
-	_I64_CPU_REG_MAP.reg_width = 64;
+	// Controlled UB
+	*(u16*)&_I64_CPU_REG_MAP.reg_count = I64_REG_COUNT;
+	*(u16*)&_I64_CPU_REG_MAP.reg_width = I64_REG_WIDTH;
+
 	_I64_CPU_REG_MAP.root[0]  = (struct cpu_reg_desc){.id = I64_rAX & 0x1f, .role = REG_RETURN};
 	_I64_CPU_REG_MAP.root[1]  = (struct cpu_reg_desc){.id = I64_rCX & 0x1f, .role = REG_STACK};
 	_I64_CPU_REG_MAP.root[2]  = (struct cpu_reg_desc){.id = I64_rDX & 0x1f, .role = REG_STACK};
@@ -25,7 +31,7 @@ _inline_avert void i64_load_cpu_reg_map(
 	_I64_CPU_REG_MAP.root[14] = (struct cpu_reg_desc){.id = I64_r14 & 0x1f, .role = REG_PRESERVE};
 	_I64_CPU_REG_MAP.root[15] = (struct cpu_reg_desc){.id = I64_r15 & 0x1f, .role = REG_PRESERVE};
 
-	_I64_CPU_REG_MAP.role_map = (u16 (*)[0xff])_I64_CPU_REG_ROLE_MAP;
+	_I64_CPU_REG_MAP.role_map = (u16 (*)[])_I64_CPU_REG_ROLE_MAP;
 
 	// Fill reg role mask
 	_I64_CPU_REG_ROLE_MAP[REG_RETURN]    = 0x0001; // root[0]
@@ -34,5 +40,7 @@ _inline_avert void i64_load_cpu_reg_map(
 	_I64_CPU_REG_ROLE_MAP[REG_STACK_PTR] = 0x0010; // root[4]
 	_I64_CPU_REG_ROLE_MAP[REG_FRAME_PTR] = 0x0020; // root[5]
 	_I64_CPU_REG_ROLE_MAP[REG_TEMP]      = 0x0C00; // root[10, 11]
+
+	_I64_CPU_REG_MAP.spill = (struct cpu_spill_entry (*)[])_I64_CPU_REG_SPILL_MAP;
 }
 
