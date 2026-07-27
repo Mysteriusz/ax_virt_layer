@@ -14,14 +14,17 @@
 	val -> Value of the opcode
 */
 #define I64_OPI(len, type, val) \
-	(((len##ULL & 0xf) << 60) | ((type##ULL & 0xf) << 56) | (val & 0xffffffffffffff))
+	(((len##ULL & 0xf) << 60) | ((type & 0xf) << 56) | (val & 0xffffffffffffff))
+
+#define I64_OP_GENERIC 1ULL
+#define I64_OP_INSTR 2ULL
 
 /*
    	Reference used:
 		- http://ref.x86asm.net/coder64.html
  	
  	How are opcode enums structured?
-	As expected first word is the opcode mnemonic itself.
+	As expected the first word is the opcode mnemonic itself.
 	Then each word describes one operator.
 
 	Structure follows: (ignore [ and ])
@@ -50,19 +53,26 @@ enum i64_opcode : u64{
 	 	ADD instruction group
 	*/
 	// GENERICS
-	gADD_8_8 	= I64_OPI(0, 1, 0x00), 	// ADD 	r/m/imm8	r/m/imm8
-	gADD_64_64 	= I64_OPI(0, 1, 0x01), 	// ADD 	r/m/imm8	r/m/imm8
+	gADD_8_8 	= I64_OPI(0, I64_OP_GENERIC, 0x00), 	// ADD 	r/m/imm8	r/m/imm8
+	gADD_64_64 	= I64_OPI(0, I64_OP_GENERIC, 0x01), 	// ADD 	r/m/imm64	r/m/imm64
+						//
 	// OPCODES
-	ADD_8_R8 	= I64_OPI(1, 2, 0x00), 	// ADD	r/m8		r8
-	ADD_64_R64 	= I64_OPI(1, 2, 0x01), 	// ADD	r/m16/32/64	r16/32/64
-	ADD_R8_8 	= I64_OPI(1, 2, 0x02), 	// ADD	r8		r/m8
-	ADD_R64_64 	= I64_OPI(1, 2, 0x03),	// ADD	r16/32/64	r/m16/32/64
-	ADD_AL_IMM8 	= I64_OPI(1, 2, 0x04), 	// ADD	AL		imm8
-	ADD_rAX_IMM32 	= I64_OPI(1, 2, 0x05), 	// ADD	rAX		imm16/32
+	ADD_8_R8 	= I64_OPI(1, I64_OP_INSTR, 0x00), 	// ADD	r/m8		r8
+	ADD_64_R64 	= I64_OPI(1, I64_OP_INSTR, 0x01), 	// ADD	r/m16/32/64	r16/32/64
+	ADD_R8_8 	= I64_OPI(1, I64_OP_INSTR, 0x02), 	// ADD	r8		r/m8
+	ADD_R64_64 	= I64_OPI(1, I64_OP_INSTR, 0x03),	// ADD	r16/32/64	r/m16/32/64
+	ADD_AL_IMM8 	= I64_OPI(1, I64_OP_INSTR, 0x04), 	// ADD	AL		imm8
+	ADD_rAX_IMM32 	= I64_OPI(1, I64_OP_INSTR, 0x05), 	// ADD	rAX		imm16/32
 
 	// GENERICS
-	gMOV_8_8 	= I64_OPI(0, 1, 0x02), 	// MOV 	r/m/imm8	r/m/imm8
-	gMOV_64_64 	= I64_OPI(0, 1, 0x03), 	// MOV 	r/m/imm8	r/m/imm8
+	gMOV_8_8 	= I64_OPI(0, I64_OP_GENERIC, 0x02), 	// MOV 	r/m/imm8	r/m/imm8
+	gMOV_64_64 	= I64_OPI(0, I64_OP_GENERIC, 0x03), 	// MOV 	r/m/imm64	r/m/imm64
+
+	// OPCODES
+	MOV_8_R8 	= I64_OPI(1, I64_OP_INSTR, 0x88), 	// MOV	r/m8		r8
+	MOV_64_R64 	= I64_OPI(1, I64_OP_INSTR, 0x89), 	// MOV	r/m16/32/64	r16/32/64
+	MOV_R8_8 	= I64_OPI(1, I64_OP_INSTR, 0x8a), 	// MOV	r8		r/m8
+	MOV_R64_64 	= I64_OPI(1, I64_OP_INSTR, 0x8b), 	// MOV	r16/32/64	r/m16/32/64
 };
 
 // Read lower 32 bits (unique opcode/generic value)
@@ -82,6 +92,10 @@ enum i64_opcode : u64{
 #define _I64_FORM_I(f, i) \
 	((((f) & 1) << 3) | ((i) & 0xf))
 
+/*
+ 	Forms define which and how instruction
+	arguments are written
+*/
 enum i64_opcode_form : u8{
 	FORM_RM_R 	= _I64_FORM_I(1, 0), 	// r/m 		r
 	FORM_R_RM 	= _I64_FORM_I(0, 1), 	// r 		r/m

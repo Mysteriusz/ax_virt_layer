@@ -3,10 +3,10 @@
 #include "mte/cpu.h"
 #include "mte/perf.h"
 
-#include "tblock_cpu.h"
+#include "compile_alloc.h"
 
-u8 tblock_alloc_spill(
-	_in enum tblock_reg_state 	(*state_map)[0xff + IR_SPILL_LIMIT]
+u8 comp_alloc_spill(
+	_in_out comp_reg_state 		(*state_map)[0xff + IR_SPILL_LIMIT]
 ){
 	if (__builtin_expect(state_map == nullptr, false)){
 		return 0;
@@ -23,10 +23,10 @@ u8 tblock_alloc_spill(
 	return 0;
 }
 
-u16 tblock_alloc_reg(
-	_in enum tblock_reg_state 	(*state_map)[0xff + IR_SPILL_LIMIT],
-	_in struct cpu_reg_map 		*reg_map,
-	_in enum cpu_reg_role 		role
+u16 comp_alloc_reg(
+	_in const struct cpu_reg_map 	*reg_map,
+	_in enum cpu_reg_role 		role,
+	_in_out comp_reg_state 		(*state_map)[0xff + IR_SPILL_LIMIT]
 ){
 	/*__INL_PERF_INIT
 	__INL_PERF_START*/
@@ -75,23 +75,10 @@ u16 tblock_alloc_reg(
 	 	Allocate spill index
 	*/
 	if (alloc == nullptr){
-		return tblock_alloc_spill(state_map) << 8 | 0xff;
+		return comp_alloc_spill(state_map) << 8 | 0xff;
 	}
 
 	(*state_map)[i] = REG_OCCUPIED;
 	return 0xff << 8 | alloc->id;
-}
-
-void tblock_free_reg(
-	_in enum tblock_reg_state 	(*state_map)[0xff + IR_SPILL_LIMIT],
-	_in u8 				reg
-){
-	if (__builtin_expect(state_map == nullptr, false)){
-		return;
-	}
-
-	if (reg){
-		(*state_map)[reg] = REG_FREE;
-	}
 }
 

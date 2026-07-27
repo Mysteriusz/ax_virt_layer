@@ -20,10 +20,16 @@
 
 typedef enum _ir_opcode : u16{
 	IR_INVALID_OPCODE = 0,
+
 	IR_ADD_I64 	= IR_OPI(1, IR_64BIT, IR_GROUP_ADD),	 // op[0] = add i64 op[1], op[2]
 	IR_ADD_I32 	= IR_OPI(1, IR_32BIT, IR_GROUP_ADD),	 // op[0] = add i32 op[1], op[2]
 	IR_ADD_I16 	= IR_OPI(1, IR_16BIT, IR_GROUP_ADD),	 // op[0] = add i16 op[1], op[2]
 	IR_ADD_I8 	= IR_OPI(1, IR_8BIT, IR_GROUP_ADD),	 // op[0] = add i8 op[1], op[2]
+
+	IR_MOV_I64	= IR_OPI(1, IR_64BIT, IR_GROUP_MOV),	 // op[0] = i64 op[1]
+	IR_MOV_I32	= IR_OPI(1, IR_32BIT, IR_GROUP_MOV),	 // op[0] = i32 op[1]
+	IR_MOV_I16	= IR_OPI(1, IR_16BIT, IR_GROUP_MOV),	 // op[0] = i16 op[1]
+	IR_MOV_I8	= IR_OPI(1, IR_8BIT, IR_GROUP_MOV),	 // op[0] = i8 op[1]
 } ir_opcode;
 
 #define IR_OPCODE_HAS_RETURN(opcode) 	((opcode >> 15) & 1)

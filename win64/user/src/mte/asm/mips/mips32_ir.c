@@ -14,16 +14,16 @@ axres mips32_raw_to_ir(
 	case R:
 		buf->opcode = MIPS32_TO_IR_TABLE[_mips32_funct(instr)];
 		buf->set.ops[0] = (ir_operand){
-			.id = IR_OP_REG,
-			.value = _mips32_rd(instr)
+			.kind = IR_OP_REG,
+			.id = _mips32_rd(instr)
 		};
 		buf->set.ops[1] = (ir_operand){
-			.id = IR_OP_REG,
-			.value = _mips32_rs(instr)
+			.kind = IR_OP_REG,
+			.id = _mips32_rs(instr)
 		};
 		buf->set.ops[2] = (ir_operand){
-			.id = IR_OP_REG,
-			.value = _mips32_rt(instr)
+			.kind = IR_OP_REG,
+			.id = _mips32_rt(instr)
 		};
 		buf->set.ops_count = 3;
 		break;
@@ -78,16 +78,16 @@ ir_operand_set mips32_reg_fetch(
 	*/
 	case R:
 		buf.ops[0] = (ir_operand){ // rd
-			.id = IR_OP_REG,
-			.value = _mips32_rd(mips32)
+			.kind = IR_OP_REG,
+			.id = _mips32_rd(mips32)
 		};
 		buf.ops[1] = (ir_operand){ // rs
-			.id = IR_OP_REG,
-			.value = _mips32_rs(mips32)
+			.kind = IR_OP_REG,
+			.id = _mips32_rs(mips32)
 		};
 		buf.ops[2] = (ir_operand){ // rt
-			.id = IR_OP_REG,
-			.value = _mips32_rt(mips32)
+			.kind = IR_OP_REG,
+			.id = _mips32_rt(mips32)
 		};
 		buf.ops_count = 3;
 		break;

@@ -107,8 +107,8 @@ struct ir_context_desc{
 	u8				*gen_ptr;
 
 	// Multiple cache lines
-	struct ir_sbuf 			imm_buf;
-	struct ir_sbuf 			ptr_buf;
+	/*struct ir_sbuf 			imm_buf;
+	struct ir_sbuf 			ptr_buf;*/
 };
 
 typedef struct _ir_context{

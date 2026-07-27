@@ -1,19 +1,17 @@
-#if !defined(MTE_TBLOCK_CPU_INT)
-#define MTE_TBLOCK_CPU_INT
+#if !defined(MTE_COMPILE_ALLOC_INT)
+#define MTE_COMPILE_ALLOC_INT
 
 #include "mte/cpu.h"
 #include "mte/ir/ir.h"
 
-enum tblock_reg_state : u8{
-	REG_FREE = 0,
-	REG_OCCUPIED = 1,
-};
+#include "compile_types.h"
+
 
 /*
  	Allocate spill space and calculate the offset of the 
 */
-u8 tblock_alloc_spill(
-	_in enum tblock_reg_state 	(*state_map)[0xff + IR_SPILL_LIMIT]
+u8 comp_alloc_spill(
+	_in_out comp_reg_state 	(*state_map)[0xff + IR_SPILL_LIMIT]
 );
 
 /*
@@ -42,15 +40,10 @@ u8 tblock_alloc_spill(
 	Example:
 		0xff | reg_idx
 */
-u16 tblock_alloc_reg(
-	_in enum tblock_reg_state 	(*state_map)[0xff + IR_SPILL_LIMIT],
-	_in struct cpu_reg_map 		*reg_map,
-	_in enum cpu_reg_role 		role
-);
-
-void tblock_free_reg(
-	_in enum tblock_reg_state 	(*state_map)[0xff + IR_SPILL_LIMIT],
-	_in u8 				reg
+u16 comp_alloc_reg(
+	_in const struct cpu_reg_map 	*reg_map,
+	_in enum cpu_reg_role 		role,
+	_in_out comp_reg_state 		(*state_map)[0xff + IR_SPILL_LIMIT]
 );
 
 #endif // !defined(MTE_TBLOCK_CPU_INT)

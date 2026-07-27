@@ -82,7 +82,7 @@ _inline_force bool _i64_op_from_ir(
 	case IR_OP_REG: // i64_op->desc.type & I64_REG
 		op_buf->value = 0;
 		// [value] field [ir_op] contains the unique register identifier
-		op_buf->id = I64_REG_TO_OPERAND[ir_op.value];
+		op_buf->id = I64_REG_TO_OPERAND[ir_op.id];
 		op_buf->desc = (i64_operand_desc){
 			.type = desc.type & I64_REG,
 			.width = desc.width,

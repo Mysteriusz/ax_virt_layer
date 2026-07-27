@@ -40,12 +40,12 @@ mte_raw_instr i64_ir_to_raw(
 			dest = add (dest as src2), (src1)
 	*/
 	bool dest_mov =
-		(instr.set.ops[0].value != instr.set.ops[1].value);
+		(instr.set.ops[0].id != instr.set.ops[1].id);
 	// Unsupported
 	if (dest_mov){
-		io_i64(instr.set.ops[0].value);
+		io_i64(instr.set.ops[0].id);
 		io_str(u"");
-		io_i64(instr.set.ops[1].value);
+		io_i64(instr.set.ops[1].id);
 		io_str(u"");
 		ax_log_msg(AX_NOT_IMP, u"Assertion failed!");
 		asrt(false);

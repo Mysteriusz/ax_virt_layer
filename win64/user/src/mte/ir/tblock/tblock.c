@@ -62,7 +62,7 @@ __INL_PERF_END
 	double r2 = (__INL_PERF_SUM / 4.2);
 
 __INL_PERF_START
-	struct tblock_pass_result itr = tblock_ir_to_raw(ir, block);
+	struct tblock_pass_result itr = (struct tblock_pass_result){};//tblock_ir_to_raw(ir, block);
 	if (__builtin_expect(itr.res, AX_SUCC)){
 		return false;
 	}

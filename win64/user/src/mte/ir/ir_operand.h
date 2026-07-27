@@ -3,15 +3,15 @@
 
 #include <ax_type.h>
 
-typedef enum _ir_operand_id : u8{
-	IR_OP_REG = 0, // [value] == arch specific register id
-	IR_OP_MEM = 1, // [value] == index in ir pointer buffer
-	IR_OP_IMM = 2, // [value] == index in ir imimediate buffer
-} ir_operand_id;
+typedef enum _ir_operand_kind : u8{
+	IR_OP_REG = 0, // [id] == arch specific register id
+	IR_OP_MEM = 1, // [id] == index in ir pointer buffer
+	IR_OP_IMM = 2, // [id] == index in ir imimediate buffer
+} ir_operand_kind;
 
 typedef struct _ir_operand{
-	ir_operand_id 		id;
-	u8 			value;
+	ir_operand_kind 	kind;
+	u8 			id;
 } ir_operand;
 
 typedef struct _ir_operand_set{

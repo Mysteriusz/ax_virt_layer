@@ -53,6 +53,10 @@ struct i64_operand_sum i64_sum_calc(
 			No idea why exactly but it decreases performance
 		*/
 
+		/*
+		 	Compute in parallel infomration
+			about the operand
+		*/
 		u8 w0m0 = -((ti & I64_DISP8) == I64_DISP8);
 		u8 w0m1 = -((ti & I64_DISP32) == I64_DISP32);
 
@@ -221,6 +225,10 @@ axres i64_emit_64(
 	hold[1] = (sib_mem->disp >> 16) & 0xff;
 	hold[0] = (sib_mem->disp >> 24) & 0xff;
 
+	/*
+		Walk through hold and present buffer
+		and based on them get rid of empty bytes
+	*/
 	i8 i0 = 15, i0n = 0;
 	for (;i0 >= 0; i0--){
 		buf[i0n] = hold[i0] * present[i0];

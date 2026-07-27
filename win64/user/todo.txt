@@ -1,16 +1,29 @@
 Urgent:
 
-[x] i64 support for destination mov instruction
+[x] Think about the pipeline process of register allocation
+	- Ordering convention for tblock passess since some architecutres may
+	  support different ways of receiving arguments like for example
+	  i64 which doesn`t have a receiver argument but rather
+	  receiver and working value (opcode receiver/arg0, arg1)
+	  where IR natively supports (receiver = opcode arg0, arg1)
+
+[] Move spill buffers from 'ir_context' to 'tblock'
+
+[] TODO in compile_op_fix.c
+
+Later:
 
 [] tblock error management
 return error codes not bools and allow axres return for 'ir.desc.call functions'
-
-Later:
 
 [] i64 support for destination register reordering
 for IR (see: i64_ir_to_raw assertion)
 
 Done:
+
+[] Move 'tblock_raw_to_ir' pass process into "compile/" folder 
+
+[] Write op fix and register allocation in the new "compile/" folder
 
 [] Remove the 'tblock.base' field
 

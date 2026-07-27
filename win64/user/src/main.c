@@ -146,9 +146,11 @@ int main(){
 	*(u8**)&ir->desc.gen_base = axmalloc(GIB(1));
 	ir->desc.gen_ptr = (u8*)ir->desc.gen_base;
 	ir->desc.code_ptr = (u8*)ir->desc.code_base;
+	((u32*)ir->desc.code_base)[0] = 0x012A4820; // add $t1, $t1, $t2
+	//((u32*)ir->desc.code_base)[1] = 0x00A62820; // add $r5, $r5, $r6
+
 
 	//((u32*)ir->desc.code_base)[0] = 0x01896020; // add $t4, $t4, $t1
-	((u32*)ir->desc.code_base)[0] = 0x012A4820; // add $t1, $t1, $t2
 	//((u32*)ir->desc.code_base)[1] = 0x016C5820; // add $t3, $t3, $t4
 	//((u32*)ir->desc.code_base)[1] = 0x016C5820; // add $t3, $t3, $t4
 	//((u32*)ir->desc.code_base)[2] = 0x01AE6820; // add $t5, $t5, $t6

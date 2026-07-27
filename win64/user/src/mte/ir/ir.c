@@ -89,14 +89,14 @@ _inline_avert axres ir_create(
 			.gen_base = nullptr,
 			.code_ptr = nullptr,
 			.gen_ptr = nullptr,
-			.imm_buf = (struct ir_sbuf){
+			/*.imm_buf = (struct ir_sbuf){
 				.idx = 0,
 				.base = {0},
 			},
 			.ptr_buf = (struct ir_sbuf){
 				.idx = 0,
 				.base = {0},
-			},
+			},*/
 		},
 		.blocked = false,
 		.version = version,
