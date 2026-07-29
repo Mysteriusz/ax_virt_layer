@@ -61,7 +61,7 @@ static ir_operand_set _invalid_org_reg_fetch_call(
 }
 
 #define IR_SPILL_LIMIT 0xff
-struct ir_sbuf{ _align(64)
+struct ir_sbuf{ _align(16)
 	u8	idx;
 	u64	base[IR_SPILL_LIMIT];
 };

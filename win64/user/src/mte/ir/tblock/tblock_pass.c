@@ -15,11 +15,9 @@ void tblock_liveness_log(
 		u8 id = desc->org_map->root[i].id;
 		io_str(u"liveness for id:");
 		io_i64(id);
-		io_str(u"");
 		for (u16 j = 0; j < tblock_frag_calc(block->type); j++){
-			io_i64((liveness[id] >> j) & 1);
+			printf("%i", ((liveness[id] >> j) & 1));
 		}
-		io_str(u"");
 	}
 }
 
@@ -101,8 +99,6 @@ struct tblock_pass_result tblock_liveness_scan(
 		*/
 		bytes += org_len;
 		blk_i = bytes / _TBLOCK_FRAG;
-
-		_TBLOCK_PASS_BLOCK->ir_len++;
 	);
 
 	return (struct tblock_pass_result){.count = _TBLOCK_PASS_IDX, .res = AX_SUCC};
@@ -128,6 +124,7 @@ struct tblock_pass_result tblock_raw_to_ir(
 	u8 next_blk_i = 0; // 0-15 index of the next block
 
 	u32 bytes = 0; // Bytes already passed
+	//u32 ir_idx = 0; // Index of 'tblock->ir_buf' buffer
 
 	__TBLOCK_PASS_INIT(ir, block);
 	__TBLOCK_PASS_LOOP(org_len,
@@ -137,7 +134,7 @@ struct tblock_pass_result tblock_raw_to_ir(
 		mte_raw_instr raw_instr = {
 			.arch = _TBLOCK_DESC->org_arch,
 		};
-		memcpy(&raw_instr.payload, _TBLOCK_CODE_PTR, 16);
+		memcpy(raw_instr.payload, _TBLOCK_CODE_PTR, 16);
 
 		/*
 		 	Convert org (guest) instruction to IR
@@ -166,68 +163,15 @@ struct tblock_pass_result tblock_raw_to_ir(
 		comp_fix_instr(ir, &ir_instr,
 			&_TBLOCK_PASS_BLOCK->assoc,
 			&_TBLOCK_PASS_BLOCK->state);
-#if 0
-		for (u8 i = 0; i < ir_instr.set.ops_count; i++){
-			ir_operand *ir_op = &ir_instr.set.ops[i];
 
-			switch(ir_op->id){
-			case IR_OP_REG:
-				struct cpu_reg_desc *op_desc = 
-					&_TBLOCK_DESC->org_map->root[ir_op->value];
-				comp_reg_assoc *assoc =
-					&_TBLOCK_PASS_BLOCK->assoc[ir_op->value];
+		/*
+		 	Expand and save the IR instruction to the IR buffer
+		*/
+		_TBLOCK_PASS_BLOCK->ir_len += comp_expand_instr(ir, &ir_instr,
+			_TBLOCK_PASS_BLOCK->ir_buf
+		);
 
-				/*
-			 		Check if the operand register doesn`t have an association
-				*/
-				if (assoc->used == false){
-					u16 reg_id = tblock_alloc_reg(
-						&_TBLOCK_PASS_BLOCK->state,
-						_TBLOCK_DESC->tar_map,
-						op_desc->role);
-					
-					u8 tar_id = (reg_id & (reg_id >> 8)) & 0xff;
-					u8 spill = (reg_id & 0xff) == 0xff;
-
-					assoc->used = true;
-					assoc->spill = spill;
-
-					/*
-					 	Repurpose the IR operand to read/write spill memory
-					*/
-					if (spill){
-						io_str(u"SPILLED");
-						tar_id = _ir_sbuf_inc(&ir->desc.ptr_buf);
-						ir_op->id = IR_OP_MEM;
-					}
-
-					io_str(u"Allocated register/spill!");
-					io_str(u"Guest id:");
-					io_i64(ir_op->value);
-					io_str(u"");
-					io_str(u"Host id");
-					io_i64(tar_id);
-					io_str(u"");
-
-					assoc->id = tar_id;
-					ir_op->value = tar_id;
-				}else{
-					ir_op->value = assoc->id;
-				}
-
-				/*
-					Convert operand values to what tar (host) accepts
-				*/
-			default:
-				continue;
-			}
-		}
-#endif
-
-		// Save IR instruction to the IR buffer
-		_TBLOCK_PASS_BLOCK->ir_buf[_TBLOCK_PASS_IDX] = ir_instr;
-
-skip:
+skip: // TEMP
 		// Calculate byte offset and block index
 		bytes += org_len;
 		next_blk_i = bytes / _TBLOCK_FRAG;
@@ -236,10 +180,7 @@ skip:
 		 	0 if blk is still the same
 		 	1 if blk was switched (Invalidate liveness)
 		*/
-		u8 crossed = next_blk_i - blk_i;
-		u16 blk_shift = BIT(next_blk_i);
-		unref(crossed);
-		unref(blk_shift);
+		u8 crossed = !!(next_blk_i - blk_i);
 
 		/*
 		 	Free dead registers when crossing to
@@ -253,31 +194,8 @@ skip:
 				&_TBLOCK_PASS_BLOCK->liveness,
 				&_TBLOCK_PASS_BLOCK->assoc,
 				&_TBLOCK_PASS_BLOCK->state);
+			blk_i = next_blk_i;
 		}
-#if 0
-		u8 i = 0;
-		u16 bound = (_TBLOCK_DESC->org_map->reg_count * crossed);
-		while(i < bound){
-			u8 org_id = _TBLOCK_DESC->org_map->root[i].id;
-			i++;
-			/*
-			 	If register is 'alive' in the next block,
-				then skip it
-			*/
-			if (!!(_TBLOCK_PASS_BLOCK->liveness[org_id] & blk_shift)){
-				continue;
-			}
-
-			// Free host register since it`s not alive
-			tblock_free_reg(&_TBLOCK_PASS_BLOCK->state,
-				_TBLOCK_PASS_BLOCK->assoc[org_id].id);
-
-			_TBLOCK_PASS_BLOCK->assoc[org_id].used = false;
-			_TBLOCK_PASS_BLOCK->assoc[org_id].spill = false;
-			_TBLOCK_PASS_BLOCK->assoc[org_id].id = 0;
-		}
-		blk_i = next_blk_i;
-#endif
 	);
 
 	return (struct tblock_pass_result){.count = _TBLOCK_PASS_IDX, .res = AX_SUCC};
@@ -298,10 +216,10 @@ struct tblock_pass_result tblock_ir_to_raw(
 
 	u8 tar_len = 0;
 	u32 ir_i = 0;
-	u32 run = 2;
 
-	while(ir_i < run){
+	while(ir_i < block->ir_len){
 		ir_raw_instr ir_instr = block->ir_buf[ir_i];
+
 		mte_raw_instr tar_instr = 
 			desc->call.ir_to_tar(
 				ir_instr,
@@ -320,6 +238,6 @@ struct tblock_pass_result tblock_ir_to_raw(
 		ir_i++;
 	}
 
-	return (struct tblock_pass_result){.count = run, .res = AX_SUCC};
+	return (struct tblock_pass_result){.count = block->ir_len, .res = AX_SUCC};
 }
 

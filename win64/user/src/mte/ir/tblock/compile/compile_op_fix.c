@@ -43,6 +43,10 @@ void comp_fill_assoc(
 		// Allocate tar (Host) the register/spill
 		u16 alloc = comp_alloc_reg(tar_map, org_role, state);
 
+		/*
+			Calculate the effective id and spill 
+			based on the 'comp_alloc_reg' return value encoding
+		*/
 		u8 alloc_id = (alloc & (alloc >> 8)) & 0xff;
 		bool spill = alloc >> 8 != 0xff;
 
@@ -76,6 +80,100 @@ void comp_fix_instr(
 	if (__builtin_expect(state == nullptr, false)){
 		return;
 	}
+
+	for (u8 i = 0; i < ir_instr->set.ops_count; i++){
+		// Load org (Guest) register id that`s currently stored in the IR
+		u8 org_id = ir_instr->set.ops[i].id;
+
+		// Load tar (Host) register id that`s associated to 'org_id'
+		u8 tar_id = (*assoc)[org_id].id;
+
+		// Swap the org (Guest) register id to tar (Host) register id
+		ir_instr->set.ops[i].id = tar_id;
+	}
+}
+
+u32 comp_expand_instr(
+	_in const ir_context 		*ir,
+	_in const ir_raw_instr 		*restrict ir_instr,
+	_in_out ir_raw_instr 		*restrict buf
+){
+	if (__builtin_expect(ir == nullptr, false)){
+		return 0;
+	}
+	if (__builtin_expect(ir_instr == nullptr, false)){
+		return 0;
+	}
+	if (__builtin_expect(buf == nullptr, false)){
+		return 0;
+	}
+
+	if (__builtin_expect(ir_instr == buf, false)){
+		asrt(0, ax_log_msg(AX_INV_ARG,
+			u"Instruction pointer cannot be equal to the instruction buffer"));
+	}
+
+	u8 org_isa = MTE_ARCH_ISA_FORM(ir->desc.org_arch);
+	u8 tar_isa = MTE_ARCH_ISA_FORM(ir->desc.tar_arch);
+
+	u8 idx = 0;
+
+	/*
+	 	Best case scenario that ISA forms are the same
+		and there is no need for expansion
+	*/
+	if (org_isa == tar_isa){
+		buf[0] = *ir_instr;
+		return 1;
+	}
+
+	const ir_operand_set *set = &ir_instr->set;
+
+	switch(tar_isa){
+	case MTE_ISA_TWO_OP:
+		/*
+		 	TODO:
+			Check IR instruction flags for example
+			when there are memory operands etc.
+		*/
+
+		// Expansion not required
+		if (set->ops[0].id == set->ops[1].id){
+			break;
+		}
+
+		// Expansion required
+
+		/*
+		 	Create a MOV instruction based on the current opcode
+		*/
+		ir_raw_instr mov_instr = (ir_raw_instr){
+			.opcode = (ir_instr->opcode & ~IR_GROUP_MOV) | IR_GROUP_MOV,
+			.set = (ir_operand_set){
+				.ops[0] = (ir_operand){
+					.kind = IR_OP_REG,
+					.id = set->ops[0].id,
+				},
+				.ops[1] = (ir_operand){
+					.kind = IR_OP_REG,
+					.id = set->ops[1].id,
+				},
+				.ops_count = 2,
+			}, 
+		};
+		// TODO: Write the 'ir_instr' to the buffer too
+
+		buf[idx] = mov_instr; 
+		idx++;
+
+		break;
+	default:
+		asrt(0, ax_log_msg(AX_NOT_IMP,
+			u"This ISA form expansion is not supported"));
+	}
+	buf[idx] = *ir_instr; 
+
+	return idx + 1;
 }
 
 void comp_flush_by_liveness(

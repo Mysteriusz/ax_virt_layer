@@ -2,6 +2,7 @@
 #define MTE_I64_OPCODE_INT
 
 #include <ax_type.h>
+#include <ax_io.h>
 
 #include "i64_operand.h"
 
@@ -20,42 +21,20 @@
 #define I64_OP_INSTR 2ULL
 
 /*
-   	Reference used:
+   	Reference for opcodes used:
 		- http://ref.x86asm.net/coder64.html
- 	
- 	How are opcode enums structured?
-	As expected the first word is the opcode mnemonic itself.
-	Then each word describes one operator.
-
-	Structure follows: (ignore [ and ])
-		[dest/source prefix][max bit width]
-
-	The only exception for the structure is a register.
-	For example if word is AL or AX
-
-	Table of dest/source:
-		R -> register
-		M -> memory
-		IMM -> immidiate
-
-	Table of max bit width:
-		Without explicit prefix it`s automatically RM
-		8 -> register/memory 8 bits
-		16 -> register/memory 16 bits
-		32 -> register/memory 8/16/32 bits
-		64 -> register/memory 8/16/32/64 bits
-
-	Each opcode`s MSB is it`s length in bytes
 */
 enum i64_opcode : u64{
 	I64_INVALID_OPCODE 	= I64_OPI(0, 0, 0),
+
 	/*
 	 	ADD instruction group
 	*/
+
 	// GENERICS
 	gADD_8_8 	= I64_OPI(0, I64_OP_GENERIC, 0x00), 	// ADD 	r/m/imm8	r/m/imm8
 	gADD_64_64 	= I64_OPI(0, I64_OP_GENERIC, 0x01), 	// ADD 	r/m/imm64	r/m/imm64
-						//
+
 	// OPCODES
 	ADD_8_R8 	= I64_OPI(1, I64_OP_INSTR, 0x00), 	// ADD	r/m8		r8
 	ADD_64_R64 	= I64_OPI(1, I64_OP_INSTR, 0x01), 	// ADD	r/m16/32/64	r16/32/64
@@ -63,6 +42,10 @@ enum i64_opcode : u64{
 	ADD_R64_64 	= I64_OPI(1, I64_OP_INSTR, 0x03),	// ADD	r16/32/64	r/m16/32/64
 	ADD_AL_IMM8 	= I64_OPI(1, I64_OP_INSTR, 0x04), 	// ADD	AL		imm8
 	ADD_rAX_IMM32 	= I64_OPI(1, I64_OP_INSTR, 0x05), 	// ADD	rAX		imm16/32
+
+	/*
+	 	MOV instruction group
+	*/
 
 	// GENERICS
 	gMOV_8_8 	= I64_OPI(0, I64_OP_GENERIC, 0x02), 	// MOV 	r/m/imm8	r/m/imm8

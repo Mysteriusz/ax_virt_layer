@@ -31,7 +31,7 @@ _inline_force enum i64_opcode_form _i64_ir_opcode_form_res(
 	_in ir_operand 	dest,
 	_in ir_operand 	src1
 ){
-	return I64_IR_FORM_MAP[dest.id][src1.id];
+	return I64_IR_FORM_MAP[dest.kind][src1.kind];
 }
 
 /*
@@ -63,27 +63,23 @@ _inline_force enum i64_opcode _i64_ir_opcode_trans(
 }
 
 /*	
- 	Create I64 operand value and id from an IR operand
+ 	Create I64 operand from an IR operand
 */
-_inline_force bool _i64_op_from_ir(
-	_in ir_context		*ir,
+_inline_force bool _i64_ir_operand_trans(
 	_in ir_operand		ir_op,
 	_in i64_operand_desc	desc,
-	_in_out i64_operand 	*op_buf
+	_out i64_operand 	*operand
 ){
-	if (__builtin_expect(ir == nullptr, false)){
-		return false;
-	}
-	if (__builtin_expect(op_buf == nullptr, false)){
+	if (__builtin_expect(operand == nullptr, false)){
 		return false;
 	}
 
-	switch(ir_op.id){
+	switch(ir_op.kind){
 	case IR_OP_REG: // i64_op->desc.type & I64_REG
-		op_buf->value = 0;
-		// [value] field [ir_op] contains the unique register identifier
-		op_buf->id = I64_REG_TO_OPERAND[ir_op.id];
-		op_buf->desc = (i64_operand_desc){
+		operand->value = 0;
+		// [id] field [ir_op] contains the unique register identifier
+		operand->id = I64_REG_TO_OPERAND[ir_op.id];
+		operand->desc = (i64_operand_desc){
 			.type = desc.type & I64_REG,
 			.width = desc.width,
 		};
@@ -107,10 +103,8 @@ _inline_force bool _i64_op_from_ir(
 	so that you are not bound to max 2 output opcodes
 */
 bool i64_ir_opcode_conv(
-	_in ir_context			*ir,
-	_in ir_raw_instr		instr,
-	_in_out enum i64_opcode 	opcode_buf[2],
-	_in_out i64_operand 		op_buf[2][I64_MAX_OP_COUNT],
-	_in bool			dest_mov
+	_in ir_raw_instr	instr,
+	_out enum i64_opcode 	*opcode_buf,
+	_out i64_operand 	(*operand_buf)[I64_MAX_OP_COUNT]
 );
 

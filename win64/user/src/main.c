@@ -5,6 +5,7 @@
 
 #include "mte/asm/mips/mips32.h"
 #include "mte/asm/intel/i64.h"
+#include "mte/asm/intel/instr/i64_operand.h"
 
 #include <stdarg.h>
 #include <x86intrin.h>
@@ -116,24 +117,34 @@ int main(){
 		ir,
 		&len1
 	);
+#endif
+#if 0
+	ir_context *ir;
+	res = ir_create(IR_VER, MIPS32, INTEL64, &ir);
+	axcheck(res, ax_log(res));
+
 	u8 len2 = 0;
-	ir->desc.call.ir_to_tar(
+	mte_raw_instr instr = ir->desc.call.ir_to_tar(
 		(ir_raw_instr){
 			.opcode = IR_ADD_I8,
 			.set = {
 				.ops_count = 3,
 				.ops = {
-					(ir_operand){.id = IR_OP_REG,.value = I64_rAX},
-					(ir_operand){.id = IR_OP_REG,.value = I64_rAX},
-					(ir_operand){.id = IR_OP_REG,.value = I64_rBX},
+					(ir_operand){.kind = IR_OP_REG,.id = I64_rAX},
+					(ir_operand){.kind = IR_OP_REG,.id = I64_rAX},
+					(ir_operand){.kind = IR_OP_REG,.id = I64_rBX},
 				}
 			}
 		},
 		ir,
 		&len2
 	);
-	__INL_PERF_END
-	__INL_PERF_LOG
+	io_i64(len2);
+	u8 i = 0;
+	while(i < 16){
+		printf("%02x", instr.payload[i++]);
+	}
+
 	//io_i64(len1);
 	//io_i64(len2);
 #endif

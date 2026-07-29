@@ -1,25 +1,28 @@
 Urgent:
 
-[x] Think about the pipeline process of register allocation
-	- Ordering convention for tblock passess since some architecutres may
-	  support different ways of receiving arguments like for example
-	  i64 which doesn`t have a receiver argument but rather
-	  receiver and working value (opcode receiver/arg0, arg1)
-	  where IR natively supports (receiver = opcode arg0, arg1)
+[x] IR instruction flags
+	- Somehow need to flag operands and define their type to allow
+	optimization/reordering fixes to be ran on them (Maybe a bit-field embedded in the 'kind' variable?)
 
-[] Move spill buffers from 'ir_context' to 'tblock'
+[] I64 remove static indexes when lowering from IR
 
 [] TODO in compile_op_fix.c
 
 Later:
 
+[] Move spill buffers from 'ir_context' to 'tblock'
+
 [] tblock error management
 return error codes not bools and allow axres return for 'ir.desc.call functions'
 
-[] i64 support for destination register reordering
-for IR (see: i64_ir_to_raw assertion)
-
 Done:
+
+[] Think about the pipeline process of register allocation
+	DONE - Ordering convention for tblock passess since some architecutres may
+	  support different ways of receiving arguments like for example
+	  i64 which doesn`t have a receiver argument but rather
+	  receiver and working value (opcode receiver/arg0, arg1)
+	  where IR natively supports (receiver = opcode arg0, arg1)
 
 [] Move 'tblock_raw_to_ir' pass process into "compile/" folder 
 
