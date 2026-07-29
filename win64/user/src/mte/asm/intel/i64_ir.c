@@ -41,9 +41,9 @@ mte_raw_instr i64_ir_to_raw(
 
 		TODO: Check also the IR instr/operand flags
 	*/
-	bool dest_mov =
-		(instr.set.ops[0].id != instr.set.ops[1].id);
-	asrt(!dest_mov, ax_log_msg(AX_NOT_IMP,
+	bool non_dest_mov =
+		(instr.set.ops[0].id == instr.set.ops[1].id) && (instr.opcode & IR_DEST_SRC_ACC);
+	asrt(!non_dest_mov, ax_log_msg(AX_NOT_IMP,
 		u"I64 unsupported ISA operand order"));
 
 	mte_raw_instr buf = {0};
@@ -95,33 +95,33 @@ bool i64_ir_opcode_conv(
 
 	// Decode IR opcode metadata
 	u8 ir_op_width = IR_OPCODE_WIDTH(ir_instr.opcode);
-	u8 ir_op_group = IR_OPCODE_GROUP(ir_instr.opcode);
+	u8 ir_op_group = IR_OPCODE_GROUP_NO_FLAG(ir_instr.opcode);
+	u8 ir_op_dest_src = !!(ir_instr.set.ops[0].id == ir_instr.set.ops[1].id);
 
 	// Translate the opcode
 	*opcode = _i64_ir_opcode_trans(
 		ir_op_group,
 		ir_op_width,
-		ir_instr.set.ops[1],
-		ir_instr.set.ops[2]);
+		ir_instr.set.ops[ir_op_dest_src],
+		ir_instr.set.ops[ir_op_dest_src + 1]);
 
 	// Lookup metadata for the opcode
 	i64_opcode_desc opcode_desc =
-		_lookup_opcode_meta(*opcode);
+		_i64_lookup_opcode_meta(*opcode);
 
-	// From index 1 of the ops
-	if (__builtin_expect(ir_instr.set.ops_count - 1 != opcode_desc.ops_count, false)){
-		return false;
-	}
+	/*
+	 	TODO: DO AN OPS COUNT VALIDATION
+	*/
 
 	/*
 		Iterate and convert all of the operands in the [ir_instr.set]
 	*/
-	for (u8 op_i = 0; op_i < opcode_desc.ops_count; op_i++){
+	for (u8 op_i = ir_op_dest_src; op_i < ir_instr.set.ops_count; op_i++){
 		if (__builtin_expect(
 			!_i64_ir_operand_trans(
-				ir_instr.set.ops[op_i + 1],
-				opcode_desc.ops[op_i],
-				&(*operand_buf)[op_i]),
+				ir_instr.set.ops[op_i],
+				opcode_desc.ops[op_i - ir_op_dest_src],
+				&(*operand_buf)[op_i - ir_op_dest_src]),
 			false)
 		){
 			return false;

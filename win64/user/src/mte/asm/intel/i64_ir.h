@@ -16,7 +16,7 @@ mte_raw_instr i64_ir_to_raw(
 	_out u8			*len // Target instruction length (in bytes)
 );
 
-extern enum i64_opcode I64_IR_GROUP_TO_GENERIC[][16];
+extern enum i64_opcode I64_IR_GROUP_TO_GENERIC[][8];
 extern enum i64_opcode I64_IR_GENERIC_TO_SPECIFIC[][16];
 
 // Form based on first and second operands

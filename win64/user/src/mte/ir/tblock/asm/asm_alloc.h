@@ -4,14 +4,14 @@
 #include "mte/cpu.h"
 #include "mte/ir/ir.h"
 
-#include "compile_types.h"
+#include "asm_types.h"
 
 
 /*
  	Allocate spill space and calculate the offset of the 
 */
-u8 comp_alloc_spill(
-	_in_out comp_reg_state 	(*state_map)[0xff + IR_SPILL_LIMIT]
+u8 asm_alloc_spill(
+	_in_out asm_reg_state 	(*state_map)[0xff + IR_SPILL_LIMIT]
 );
 
 /*
@@ -40,10 +40,10 @@ u8 comp_alloc_spill(
 	Example:
 		0xff | reg_idx
 */
-u16 comp_alloc_reg(
+u16 asm_alloc_reg(
 	_in const struct cpu_reg_map 	*reg_map,
 	_in enum cpu_reg_role 		role,
-	_in_out comp_reg_state 		(*state_map)[0xff + IR_SPILL_LIMIT]
+	_in_out asm_reg_state 		(*state_map)[0xff + IR_SPILL_LIMIT]
 );
 
 #endif // !defined(MTE_TBLOCK_CPU_INT)

@@ -5,7 +5,7 @@
 
 #include "mte/ir/ir.h"
 
-#include "compile/compile_types.h"
+#include "asm/asm_types.h"
 
 #define TBLOCK_SIZE 64
 
@@ -27,15 +27,15 @@ typedef struct _tblock{
 		IR instruction count for each block is:
 			((TBLOCK_SIZE << block->type) / sizeof(ir_raw_instr))
 	*/
-	comp_reg_liveness	liveness[0xff];
+	asm_reg_liveness	liveness[0xff];
 	/*
 	 	Associations between org and tar registers.
 	*/
-	comp_reg_assoc		assoc[0xff + IR_SPILL_LIMIT];
+	asm_reg_assoc		assoc[0xff + IR_SPILL_LIMIT];
 	/*
 	 	States of individual registers
 	*/
-	comp_reg_state		state[0xff + IR_SPILL_LIMIT];
+	asm_reg_state		state[0xff + IR_SPILL_LIMIT];
 } tblock;
 
 /*

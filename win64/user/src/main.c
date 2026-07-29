@@ -126,13 +126,12 @@ int main(){
 	u8 len2 = 0;
 	mte_raw_instr instr = ir->desc.call.ir_to_tar(
 		(ir_raw_instr){
-			.opcode = IR_ADD_I8,
+			.opcode = IR_MOV_I64,
 			.set = {
-				.ops_count = 3,
+				.ops_count = 2,
 				.ops = {
-					(ir_operand){.kind = IR_OP_REG,.id = I64_rAX},
-					(ir_operand){.kind = IR_OP_REG,.id = I64_rAX},
-					(ir_operand){.kind = IR_OP_REG,.id = I64_rBX},
+					(ir_operand){.kind = IR_OP_REG,.id = I64_rCX},
+					(ir_operand){.kind = IR_OP_REG,.id = I64_rDX},
 				}
 			}
 		},
@@ -157,8 +156,8 @@ int main(){
 	*(u8**)&ir->desc.gen_base = axmalloc(GIB(1));
 	ir->desc.gen_ptr = (u8*)ir->desc.gen_base;
 	ir->desc.code_ptr = (u8*)ir->desc.code_base;
-	((u32*)ir->desc.code_base)[0] = 0x012A4820; // add $t1, $t1, $t2
-	//((u32*)ir->desc.code_base)[1] = 0x00A62820; // add $r5, $r5, $r6
+	//((u32*)ir->desc.code_base)[0] = 0x012A4820; // add $t1, $t1, $t2
+	((u32*)ir->desc.code_base)[0] = 0x00A62020; // add $r4, $r5, $r6
 
 
 	//((u32*)ir->desc.code_base)[0] = 0x01896020; // add $t4, $t4, $t1

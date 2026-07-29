@@ -3,28 +3,28 @@
 
 #include "mte/ir/ir.h"
 
-#include "compile_types.h"
+#include "asm_types.h"
 
 /*
 	Fill the association table
 	between org (Guest) and tar (Host) operands
 */
-void comp_fill_assoc(
+void asm_fill_assoc(
 	_in const ir_context 	*ir,
 	_in ir_raw_instr 	*ir_instr,
-	_in_out comp_reg_assoc	(*assoc)[0xff + IR_SPILL_LIMIT],
-	_in_out comp_reg_state	(*state)[0xff + IR_SPILL_LIMIT]
+	_in_out asm_reg_assoc	(*assoc)[0xff + IR_SPILL_LIMIT],
+	_in_out asm_reg_state	(*state)[0xff + IR_SPILL_LIMIT]
 );
 
 /*
 	Fix instruction by swapping it`s operands based
-	on the associtation table filled by 'comp_fill_assoc'
+	on the associtation table filled by 'asm_fill_assoc'
 */
-void comp_fix_instr(
+void asm_fix_instr(
 	_in const ir_context 	*ir,
 	_in_out ir_raw_instr 	*ir_instr,
-	_in_out comp_reg_assoc	(*assoc)[0xff + IR_SPILL_LIMIT],
-	_in_out comp_reg_state	(*state)[0xff + IR_SPILL_LIMIT]
+	_in_out asm_reg_assoc	(*assoc)[0xff + IR_SPILL_LIMIT],
+	_in_out asm_reg_state	(*state)[0xff + IR_SPILL_LIMIT]
 );
 
 /*
@@ -47,7 +47,7 @@ void comp_fix_instr(
 		- add r0, r2
 
 */
-u32 comp_expand_instr(
+u32 asm_expand_instr(
 	_in const ir_context 		*ir,
 	_in const ir_raw_instr 		*restrict ir_instr,
 	_in_out ir_raw_instr 		*restrict buf
@@ -57,12 +57,12 @@ u32 comp_expand_instr(
  	Clear association/state for the given liveness buffer
 	at bit index of 'liveness_idx'
 */
-void comp_flush_by_liveness(
+void asm_flush_by_liveness(
 	_in const ir_context 		*ir,
 	_in const u8			liveness_idx,
-	_in const comp_reg_liveness	(*liveness)[0xff],
-	_in_out comp_reg_assoc		(*assoc)[0xff + IR_SPILL_LIMIT],
-	_in_out comp_reg_state		(*state)[0xff + IR_SPILL_LIMIT]
+	_in const asm_reg_liveness	(*liveness)[0xff],
+	_in_out asm_reg_assoc		(*assoc)[0xff + IR_SPILL_LIMIT],
+	_in_out asm_reg_state		(*state)[0xff + IR_SPILL_LIMIT]
 );
 
 #endif // !defined(MTE_OPERAND_FIX_INT)

@@ -2,10 +2,17 @@
 
 #include <ax_type.h>
 
+#define IR_DEST_SRC_ACC BIT(13)
 /*
- 	ret -> Return value present (1 or 0)
- 	wid -> Operand bit-width encoding (0-3)
- 	grp -> Opcode group
+ 	ret -> Return value present (1 bit -> 0-1)
+ 	wid -> Operand bit-width encoding (2 bits -> 0-3)
+
+	Flag field is an inherit part of the group
+ 	flg -> (3 bit flags) 
+		- BIT 13 -> IR_DEST_SRC_ACC
+		- BIT 12 -> RESERVED
+		- BIT 11 -> RESERVED
+ 	grp -> Opcode group (10 bits -> 0-1023)
 */
 #define IR_OPI(ret, wid, grp) \
 	(((ret & 1) << 15) | ((wid & 3) << 13) | (grp & 0x1fff))
@@ -15,8 +22,12 @@
 #define IR_32BIT 2
 #define IR_64BIT 3
 
+/*
+ 	Opcode groups identify the type of instruction
+	and it`s semantics for all instructions in that group
+*/
 #define IR_GROUP_ADD 1
-#define IR_GROUP_MOV 2
+#define IR_GROUP_MOV (IR_DEST_SRC_ACC | 2)
 
 typedef enum _ir_opcode : u16{
 	IR_INVALID_OPCODE = 0,
@@ -34,7 +45,10 @@ typedef enum _ir_opcode : u16{
 
 #define IR_OPCODE_HAS_RETURN(opcode) 	((opcode >> 15) & 1)
 #define IR_OPCODE_WIDTH(opcode) 	((opcode >> 13) & 3)
-#define IR_OPCODE_GROUP(opcode) 	(opcode & 0x1fff)
+#define IR_OPCODE_FLAGS(opcode) 	((opcode >> 10) & 7)
+#define IR_OPCODE_GROUP(opcode) 	(opcode & 0x3ff)
+#define IR_OPCODE_GROUP_NO_FLAG(opcode) (opcode & 0x3ff)
+#define ir_opcode_swap_group(opcode, group) 	((opcode & ~0x1fff) | group)
 
 #endif // !defined(MTE_IR_OPCODE_INT)
 

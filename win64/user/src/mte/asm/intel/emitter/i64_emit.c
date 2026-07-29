@@ -137,7 +137,7 @@ axres i64_emit_64(
 	}
 
 	i64_opcode_desc opcode_desc =
-		_lookup_opcode_meta(opcode); 
+		_i64_lookup_opcode_meta(opcode); 
 
 	struct i64_operand_sum sum =
 		i64_sum_calc(opcode_desc, ops);

@@ -112,7 +112,7 @@ enum i64_opcode_prefix : u8{
 	I64_DPUSH_PREF 	= 0xda,
 };
 
-typedef struct _i64_opcode_desc{
+typedef struct _i64_opcode_desc{ _align(16)
 	i64_operand_desc 		ops[I64_MAX_OP_COUNT];
 	u8 				ops_count;
 	enum i64_opcode_flags 		flags;
@@ -125,7 +125,7 @@ typedef struct _i64_opcode_desc{
 */
 extern i64_opcode_desc L1_OPCODE_META_TABLE[0xff];
 
-_inline_force i64_opcode_desc _lookup_opcode_meta(
+_inline_force i64_opcode_desc _i64_lookup_opcode_meta(
 	_in enum i64_opcode	opcode
 ){
 	// Read encoded opcode length (defined by I64_OPI)

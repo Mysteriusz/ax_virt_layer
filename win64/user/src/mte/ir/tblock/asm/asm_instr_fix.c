@@ -1,11 +1,11 @@
-#include "compile_alloc.h"
-#include "compile_op_fix.h"
+#include "asm_alloc.h"
+#include "asm_instr_fix.h"
 
-void comp_fill_assoc(
+void asm_fill_assoc(
 	_in const ir_context 	*ir,
 	_in ir_raw_instr 	*ir_instr,
-	_in_out comp_reg_assoc	(*assoc)[0xff + IR_SPILL_LIMIT],
-	_in_out comp_reg_state	(*state)[0xff + IR_SPILL_LIMIT]
+	_in_out asm_reg_assoc	(*assoc)[0xff + IR_SPILL_LIMIT],
+	_in_out asm_reg_state	(*state)[0xff + IR_SPILL_LIMIT]
 ){
 	if (__builtin_expect(ir == nullptr, false)){
 		return;
@@ -41,11 +41,11 @@ void comp_fill_assoc(
 		enum cpu_reg_role org_role = org_map->root[ir_reg->id].role;
 
 		// Allocate tar (Host) the register/spill
-		u16 alloc = comp_alloc_reg(tar_map, org_role, state);
+		u16 alloc = asm_alloc_reg(tar_map, org_role, state);
 
 		/*
 			Calculate the effective id and spill 
-			based on the 'comp_alloc_reg' return value encoding
+			based on the 'asm_alloc_reg' return value encoding
 		*/
 		u8 alloc_id = (alloc & (alloc >> 8)) & 0xff;
 		bool spill = alloc >> 8 != 0xff;
@@ -62,11 +62,11 @@ void comp_fill_assoc(
 	}
 }
 
-void comp_fix_instr(
+void asm_fix_instr(
 	_in const ir_context 	*ir,
 	_in_out ir_raw_instr 	*ir_instr,
-	_in_out comp_reg_assoc	(*assoc)[0xff + IR_SPILL_LIMIT],
-	_in_out comp_reg_state	(*state)[0xff + IR_SPILL_LIMIT]
+	_in_out asm_reg_assoc	(*assoc)[0xff + IR_SPILL_LIMIT],
+	_in_out asm_reg_state	(*state)[0xff + IR_SPILL_LIMIT]
 ){
 	if (__builtin_expect(ir == nullptr, false)){
 		return;
@@ -93,7 +93,7 @@ void comp_fix_instr(
 	}
 }
 
-u32 comp_expand_instr(
+u32 asm_expand_instr(
 	_in const ir_context 		*ir,
 	_in const ir_raw_instr 		*restrict ir_instr,
 	_in_out ir_raw_instr 		*restrict buf
@@ -116,7 +116,7 @@ u32 comp_expand_instr(
 	u8 org_isa = MTE_ARCH_ISA_FORM(ir->desc.org_arch);
 	u8 tar_isa = MTE_ARCH_ISA_FORM(ir->desc.tar_arch);
 
-	u8 idx = 0;
+	u8 count = 0;
 
 	/*
 	 	Best case scenario that ISA forms are the same
@@ -132,56 +132,64 @@ u32 comp_expand_instr(
 	switch(tar_isa){
 	case MTE_ISA_TWO_OP:
 		/*
-		 	TODO:
-			Check IR instruction flags for example
-			when there are memory operands etc.
+		 	Expansion required since either dest/src is not present
+			or the opcode doesn`t require non dest/src operands
 		*/
 
-		// Expansion not required
-		if (set->ops[0].id == set->ops[1].id){
-			break;
+		if (!(set->ops[0].id == set->ops[1].id || ir_instr->opcode & IR_DEST_SRC_ACC)){
+			/*
+			 	Create a MOV instruction based on the current opcode
+
+				r0 = r1
+			*/
+			ir_raw_instr mov_instr = (ir_raw_instr){
+				.opcode = ir_opcode_swap_group(ir_instr->opcode, IR_GROUP_MOV),
+				.set = (ir_operand_set){
+					.ops[0] = set->ops[0],
+					.ops[1] = set->ops[1],
+					.ops_count = 2,
+				}, 
+			};
+			buf[0] = mov_instr;
+			count = 1;
 		}
 
-		// Expansion required
-
 		/*
-		 	Create a MOV instruction based on the current opcode
+		 	Create a new folded instruction 
+
+			r0 = r0, r2
 		*/
-		ir_raw_instr mov_instr = (ir_raw_instr){
-			.opcode = (ir_instr->opcode & ~IR_GROUP_MOV) | IR_GROUP_MOV,
+		ir_raw_instr fix_instr = (ir_raw_instr){
+			.opcode = ir_instr->opcode,
 			.set = (ir_operand_set){
-				.ops[0] = (ir_operand){
-					.kind = IR_OP_REG,
-					.id = set->ops[0].id,
-				},
-				.ops[1] = (ir_operand){
-					.kind = IR_OP_REG,
-					.id = set->ops[1].id,
-				},
-				.ops_count = 2,
+				.ops[0] = set->ops[0],
+				.ops[1] = set->ops[0],
+				.ops[2] = set->ops[2],
+				.ops[3] = set->ops[3],
+				.ops[4] = set->ops[4],
+				.ops[5] = set->ops[5],
+				.ops_count = set->ops_count,
 			}, 
 		};
-		// TODO: Write the 'ir_instr' to the buffer too
 
-		buf[idx] = mov_instr; 
-		idx++;
+		buf[count] = fix_instr;
+		count++;
 
 		break;
 	default:
 		asrt(0, ax_log_msg(AX_NOT_IMP,
 			u"This ISA form expansion is not supported"));
 	}
-	buf[idx] = *ir_instr; 
 
-	return idx + 1;
+	return count;
 }
 
-void comp_flush_by_liveness(
+void asm_flush_by_liveness(
 	_in const ir_context 		*ir,
 	_in const u8			liveness_block_idx,
-	_in const comp_reg_liveness	(*liveness)[0xff],
-	_in_out comp_reg_assoc		(*assoc)[0xff + IR_SPILL_LIMIT],
-	_in_out comp_reg_state		(*state)[0xff + IR_SPILL_LIMIT]
+	_in const asm_reg_liveness	(*liveness)[0xff],
+	_in_out asm_reg_assoc		(*assoc)[0xff + IR_SPILL_LIMIT],
+	_in_out asm_reg_state		(*state)[0xff + IR_SPILL_LIMIT]
 ){
 	if (__builtin_expect(ir == nullptr, false)){
 		return;

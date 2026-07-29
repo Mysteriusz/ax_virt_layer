@@ -1,5 +1,5 @@
-#include "compile/compile_types.h"
-#include "compile/compile_op_fix.h"
+#include "asm/asm_types.h"
+#include "asm/asm_instr_fix.h"
 
 #include "tblock.h"
 #include "tblock_pass.h"
@@ -152,7 +152,7 @@ struct tblock_pass_result tblock_raw_to_ir(
 		 	Fill associations for the current state
 			(Allocate registers for the tar (Host) cpu)
 		*/
-		comp_fill_assoc(ir, &ir_instr, 
+		asm_fill_assoc(ir, &ir_instr, 
 			&_TBLOCK_PASS_BLOCK->assoc,
 			&_TBLOCK_PASS_BLOCK->state);
 
@@ -160,14 +160,14 @@ struct tblock_pass_result tblock_raw_to_ir(
 		 	Fix the instruction
 			given association and state
 		*/
-		comp_fix_instr(ir, &ir_instr,
+		asm_fix_instr(ir, &ir_instr,
 			&_TBLOCK_PASS_BLOCK->assoc,
 			&_TBLOCK_PASS_BLOCK->state);
 
 		/*
 		 	Expand and save the IR instruction to the IR buffer
 		*/
-		_TBLOCK_PASS_BLOCK->ir_len += comp_expand_instr(ir, &ir_instr,
+		_TBLOCK_PASS_BLOCK->ir_len += asm_expand_instr(ir, &ir_instr,
 			_TBLOCK_PASS_BLOCK->ir_buf
 		);
 
@@ -190,7 +190,7 @@ skip: // TEMP
 			which means the loop is ignored
 		*/
 		if (crossed){
-			comp_flush_by_liveness(ir, blk_i,
+			asm_flush_by_liveness(ir, blk_i,
 				&_TBLOCK_PASS_BLOCK->liveness,
 				&_TBLOCK_PASS_BLOCK->assoc,
 				&_TBLOCK_PASS_BLOCK->state);

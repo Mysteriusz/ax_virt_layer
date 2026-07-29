@@ -3,10 +3,10 @@
 #include "mte/cpu.h"
 #include "mte/perf.h"
 
-#include "compile_alloc.h"
+#include "asm_alloc.h"
 
-u8 comp_alloc_spill(
-	_in_out comp_reg_state 		(*state_map)[0xff + IR_SPILL_LIMIT]
+u8 asm_alloc_spill(
+	_in_out asm_reg_state 		(*state_map)[0xff + IR_SPILL_LIMIT]
 ){
 	if (__builtin_expect(state_map == nullptr, false)){
 		return 0;
@@ -23,10 +23,10 @@ u8 comp_alloc_spill(
 	return 0;
 }
 
-u16 comp_alloc_reg(
+u16 asm_alloc_reg(
 	_in const struct cpu_reg_map 	*reg_map,
 	_in enum cpu_reg_role 		role,
-	_in_out comp_reg_state 		(*state_map)[0xff + IR_SPILL_LIMIT]
+	_in_out asm_reg_state 		(*state_map)[0xff + IR_SPILL_LIMIT]
 ){
 	/*__INL_PERF_INIT
 	__INL_PERF_START*/
@@ -39,15 +39,15 @@ u16 comp_alloc_reg(
 
 	u16 mask = (*reg_map->role_map)[role];
 	u32 n = __builtin_popcount(mask);
-	u8 i = 0;
-	u8 cnt = 0;
+	u8 idx = 0;
+	u8 count = 0;
 
 	struct cpu_reg_desc *alloc = nullptr;
-	while (cnt < n){
-		i = __builtin_ctz(mask) & 0x0f;
-		cnt++;
+	while (count < n){
+		idx = __builtin_ctz(mask) & 0x0f;
+		count++;
 
-		struct cpu_reg_desc *reg = &reg_map->root[i];
+		struct cpu_reg_desc *reg = &reg_map->root[idx];
 		/*
 		 	If register is not free then move
 			mask left to increase the 'i'
@@ -63,8 +63,8 @@ u16 comp_alloc_reg(
 
 				Now ctz on the next iteration will return the next index to check
 		*/
-		if ((*state_map)[i] != REG_FREE){
-			mask &= ~BIT(i);
+		if ((*state_map)[idx] != REG_FREE){
+			mask &= ~BIT(idx);
 			continue;
 		}
 		alloc = reg;
@@ -75,10 +75,10 @@ u16 comp_alloc_reg(
 	 	Allocate spill index
 	*/
 	if (alloc == nullptr){
-		return comp_alloc_spill(state_map) << 8 | 0xff;
+		return asm_alloc_spill(state_map) << 8 | 0xff;
 	}
 
-	(*state_map)[i] = REG_OCCUPIED;
+	(*state_map)[idx] = REG_OCCUPIED;
 	return 0xff << 8 | alloc->id;
 }
 
