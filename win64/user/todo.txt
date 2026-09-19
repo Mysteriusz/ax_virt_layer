@@ -1,10 +1,6 @@
 Urgent:
 
-[x] IR instruction flags
-	- Somehow need to flag operands and define their type to allow
-	optimization/reordering fixes to be ran on them (Maybe a bit-field embedded in the 'kind' variable?)
-
-[] I64 remove static indexes when lowering from IR
+[x] Add SUB, XOR, AND, OR, NOT instructions to both IR and I64 and MIPS32
 
 [] TODO in compile_op_fix.c
 
@@ -16,6 +12,14 @@ Later:
 return error codes not bools and allow axres return for 'ir.desc.call functions'
 
 Done:
+
+[] Update perf.h to include tsc counter to clock ratio for rdtscp
+
+[] I64 remove static indexes when lowering from IR
+
+[] IR opcode flags
+	DONE - Somehow need to flag operands and define their type to allow
+	optimization/reordering fixes to be ran on them (Maybe a bit-field embedded in the 'kind' variable?)
 
 [] Think about the pipeline process of register allocation
 	DONE - Ordering convention for tblock passess since some architecutres may

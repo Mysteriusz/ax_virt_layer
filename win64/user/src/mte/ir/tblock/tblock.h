@@ -7,17 +7,18 @@
 
 #include "asm/asm_types.h"
 
-#define TBLOCK_SIZE 64
+#define TBLOCK_SIZE 64 // Byte size of the default tblock size
 
 /*
  	A structure that holds code translation information
 */
-typedef struct _tblock{
-	enum tblock_type : u8{
+typedef struct _align(8) _tblock{
+	const enum tblock_type : u8{
 		TBLOCK_BIG = 3, // Shift multiplier TBLOCK_SIZE*8
 		TBLOCK_SMALL = 1, // Shift multiplier TBLOCK_SIZE*2
 	} type;
-	u16		ir_len; // Length of the 'ir_buf'
+	u16		ir_cnt; // Count of instructions in 'ir_buf'
+	const u32	ir_buf_len; // Length of the 'ir_buf'
 	ir_raw_instr	*ir_buf; // Heap buffer for translated instructions
 
 	/*
@@ -27,15 +28,15 @@ typedef struct _tblock{
 		IR instruction count for each block is:
 			((TBLOCK_SIZE << block->type) / sizeof(ir_raw_instr))
 	*/
-	asm_reg_liveness	liveness[0xff];
+	asm_reg_liveness	liveness[IR_REG_LIMIT];
 	/*
-	 	Associations between org and tar registers.
+	 	Associations between org (guest) and tar (host) registers.
 	*/
-	asm_reg_assoc		assoc[0xff + IR_SPILL_LIMIT];
+	asm_reg_assoc		assoc[IR_SPILL_REG_LIMIT];
 	/*
-	 	States of individual registers
+	 	States of individual org (guest) registers
 	*/
-	asm_reg_state		state[0xff + IR_SPILL_LIMIT];
+	asm_reg_state		state[IR_SPILL_REG_LIMIT];
 } tblock;
 
 /*
@@ -60,7 +61,6 @@ typedef struct _tblock{
 		(TBLOCK_SIZE << TBLOCK_BIG) / sizeof(ir_raw_instr)
 		which resolves to:
 		(64 << 3) / 16 = 512 / 16 = 16
-
 	Visualisation:
 		block{
 			frag {16 bytes} -> 16 times
@@ -72,9 +72,8 @@ _inline_force u32 tblock_frag_calc(
 	return ((TBLOCK_SIZE << type) / sizeof(ir_raw_instr));
 }
 
-bool tblock_alloc(
-	_in enum tblock_type 	type,
-	_out tblock 		*buf
+tblock* tblock_alloc(
+	_in const enum tblock_type 	type
 );
 
 /*
@@ -83,7 +82,7 @@ bool tblock_alloc(
 */
 bool tblock_emit(
 	_in_out ir_context	*ir,
-	_in_out tblock 		*block
+	_in_out tblock 		*const block
 );
 
 #endif // !defined(MTE_TBLOCK_INT)

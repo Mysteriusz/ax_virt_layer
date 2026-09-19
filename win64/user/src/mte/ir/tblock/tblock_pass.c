@@ -3,27 +3,11 @@
 
 #include "tblock.h"
 #include "tblock_pass.h"
-
-void tblock_liveness_log(
-	_in ir_context *ir,
-	_in tblock *block,
-	_in u16 liveness[0xff]
-){
-	struct ir_context_desc *const desc = &ir->desc;
-
-	for (u16 i = 0; i < desc->org_map->reg_count; i++){
-		u8 id = desc->org_map->root[i].id;
-		io_str(u"liveness for id:");
-		io_i64(id);
-		for (u16 j = 0; j < tblock_frag_calc(block->type); j++){
-			printf("%i", ((liveness[id] >> j) & 1));
-		}
-	}
-}
+#include "tblock_debug.h"
 
 struct tblock_pass_result tblock_liveness_scan(
-	_in ir_context	*ir,
-	_in_out tblock	*block
+	_in ir_context	*const ir,
+	_in_out tblock	*const block
 ){
 	if (__builtin_expect(ir == nullptr, false)){
 		return (struct tblock_pass_result){.res = AX_INV_ARG};
@@ -86,7 +70,7 @@ struct tblock_pass_result tblock_liveness_scan(
 		*/
 		for (u8 i = 0; i < set.ops_count; i++){
 			ir_operand op = set.ops[i];
-			if(op.id != IR_OP_REG){
+			if(op.kind != IR_OP_REG){
 				continue;
 			}
 
@@ -104,8 +88,8 @@ struct tblock_pass_result tblock_liveness_scan(
 	return (struct tblock_pass_result){.count = _TBLOCK_PASS_IDX, .res = AX_SUCC};
 }
 struct tblock_pass_result tblock_raw_to_ir(
-	_in ir_context	*ir,
-	_in_out tblock	*block
+	_in ir_context	*const ir,
+	_in_out tblock	*const block
 ){
 	if (__builtin_expect(ir == nullptr, false)){
 		return (struct tblock_pass_result){.res = AX_INV_ARG};
@@ -124,7 +108,6 @@ struct tblock_pass_result tblock_raw_to_ir(
 	u8 next_blk_i = 0; // 0-15 index of the next block
 
 	u32 bytes = 0; // Bytes already passed
-	//u32 ir_idx = 0; // Index of 'tblock->ir_buf' buffer
 
 	__TBLOCK_PASS_INIT(ir, block);
 	__TBLOCK_PASS_LOOP(org_len,
@@ -134,16 +117,15 @@ struct tblock_pass_result tblock_raw_to_ir(
 		mte_raw_instr raw_instr = {
 			.arch = _TBLOCK_DESC->org_arch,
 		};
-		memcpy(raw_instr.payload, _TBLOCK_CODE_PTR, 16);
+		memcpy(raw_instr.payload, _TBLOCK_CODE_PTR, sizeof(raw_instr.payload));
 
 		/*
 		 	Convert org (guest) instruction to IR
 		*/
-		ir_raw_instr ir_instr = _TBLOCK_DESC->call.org_to_ir(
-				raw_instr,
-				ir,
-				&org_len
-			);
+		ir_raw_instr ir_instr = 
+			_TBLOCK_DESC->call.org_to_ir(
+				raw_instr, ir,
+				&org_len);
 		if (ir_instr.opcode == IR_INVALID_OPCODE){
 			goto skip;
 		}
@@ -157,19 +139,18 @@ struct tblock_pass_result tblock_raw_to_ir(
 			&_TBLOCK_PASS_BLOCK->state);
 
 		/*
-		 	Fix the instruction
-			given association and state
+		 	Fix the instruction given association
 		*/
 		asm_fix_instr(ir, &ir_instr,
-			&_TBLOCK_PASS_BLOCK->assoc,
-			&_TBLOCK_PASS_BLOCK->state);
+			&_TBLOCK_PASS_BLOCK->assoc);
 
 		/*
 		 	Expand and save the IR instruction to the IR buffer
 		*/
-		_TBLOCK_PASS_BLOCK->ir_len += asm_expand_instr(ir, &ir_instr,
-			_TBLOCK_PASS_BLOCK->ir_buf
-		);
+		u32 expanded = asm_expand_instr(ir, &ir_instr,
+			_TBLOCK_PASS_BLOCK->ir_buf_len - _TBLOCK_PASS_BLOCK->ir_cnt,
+			&_TBLOCK_PASS_BLOCK->ir_buf[_TBLOCK_PASS_BLOCK->ir_cnt]);
+		_TBLOCK_PASS_BLOCK->ir_cnt += expanded;
 
 skip: // TEMP
 		// Calculate byte offset and block index
@@ -198,12 +179,12 @@ skip: // TEMP
 		}
 	);
 
-	return (struct tblock_pass_result){.count = _TBLOCK_PASS_IDX, .res = AX_SUCC};
+	return (struct tblock_pass_result){.count = 2, .res = AX_SUCC};
 }
 
 struct tblock_pass_result tblock_ir_to_raw(
-	_in_out ir_context	*ir,
-	_in tblock		*block
+	_in_out ir_context	*const ir,
+	_in tblock		*const block
 ){
 	if (__builtin_expect(ir == nullptr, false)){
 		return (struct tblock_pass_result){.res = AX_INV_ARG};
@@ -212,17 +193,22 @@ struct tblock_pass_result tblock_ir_to_raw(
 		return (struct tblock_pass_result){.res = AX_INV_ARG};
 	}
 
-	struct ir_context_desc *desc = &ir->desc;
+	struct ir_context_desc *const desc = &ir->desc;
 
 	u8 tar_len = 0;
 	u32 ir_i = 0;
 
-	while(ir_i < block->ir_len){
-		ir_raw_instr ir_instr = block->ir_buf[ir_i];
+	//tblock_liveness_log(ir, block);
+	while(ir_i < block->ir_cnt){
+		ir_raw_instr *ir_instr = &block->ir_buf[ir_i];
+		asrt(IR_OPCODE_GROUP(ir_instr->opcode) != IR_GROUP_INVALID,
+			io_str(u"Invalid IR opcode generated.");
+			io_i64(ir_i);
+		);
 
 		mte_raw_instr tar_instr = 
 			desc->call.ir_to_tar(
-				ir_instr,
+				*ir_instr,
 				ir,
 				&tar_len);
 
@@ -238,6 +224,6 @@ struct tblock_pass_result tblock_ir_to_raw(
 		ir_i++;
 	}
 
-	return (struct tblock_pass_result){.count = block->ir_len, .res = AX_SUCC};
+	return (struct tblock_pass_result){.count = block->ir_cnt, .res = AX_SUCC};
 }
 

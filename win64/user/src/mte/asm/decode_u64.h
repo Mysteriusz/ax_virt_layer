@@ -1,3 +1,8 @@
+/*
+ * 	===========================	This file has been deprecated	===========================
+ */
+
+#if 0
 #if !defined(MTE_DECODE_U64_INT)
 #define MTE_DECODE_U64_INT
 
@@ -134,3 +139,6 @@ _inline_force u64 _u64_slen(
 }
 
 #endif // !defined(MTE_DECODE_U64_INT)
+
+#endif
+

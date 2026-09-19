@@ -6,16 +6,16 @@
 #include "asm_alloc.h"
 
 u8 asm_alloc_spill(
-	_in_out asm_reg_state 		(*state_map)[0xff + IR_SPILL_LIMIT]
+	_in_out asm_reg_state 		(*state_map)[IR_SPILL_REG_LIMIT]
 ){
 	if (__builtin_expect(state_map == nullptr, false)){
 		return 0;
 	}
 
-	u8 i = 0;
+	u16 i = 0;
 	while(i < IR_SPILL_LIMIT){
-		if ((*state_map)[0xff + i] == REG_FREE){
-			(*state_map)[0xff + i] = REG_OCCUPIED;
+		if ((*state_map)[IR_REG_LIMIT + i] == REG_FREE){
+			(*state_map)[IR_REG_LIMIT + i] = REG_OCCUPIED;
 			return i;
 		}
 		i++;
@@ -26,10 +26,8 @@ u8 asm_alloc_spill(
 u16 asm_alloc_reg(
 	_in const struct cpu_reg_map 	*reg_map,
 	_in enum cpu_reg_role 		role,
-	_in_out asm_reg_state 		(*state_map)[0xff + IR_SPILL_LIMIT]
+	_in_out asm_reg_state 		(*state_map)[IR_SPILL_REG_LIMIT]
 ){
-	/*__INL_PERF_INIT
-	__INL_PERF_START*/
 	if (__builtin_expect(reg_map == nullptr, false)){
 		return 0;
 	}
@@ -37,10 +35,11 @@ u16 asm_alloc_reg(
 		return 0;
 	}
 
-	u16 mask = (*reg_map->role_map)[role];
-	u32 n = __builtin_popcount(mask);
 	u8 idx = 0;
 	u8 count = 0;
+
+	u16 mask = (*reg_map->role_map)[role];
+	u32 n = __builtin_popcount((*reg_map->role_map)[role]); // Count of all registers
 
 	struct cpu_reg_desc *alloc = nullptr;
 	while (count < n){
@@ -50,7 +49,7 @@ u16 asm_alloc_reg(
 		struct cpu_reg_desc *reg = &reg_map->root[idx];
 		/*
 		 	If register is not free then move
-			mask left to increase the 'i'
+			mask left to increase the 'idx'
 
 			Example:
 				mask = 0x0C00

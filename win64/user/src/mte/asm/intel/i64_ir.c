@@ -14,7 +14,7 @@ ir_raw_instr i64_raw_to_ir(
 }
 
 mte_raw_instr i64_ir_to_raw(
-	_in ir_raw_instr 	instr,
+	_in ir_raw_instr 	ir_instr,
 	_in ir_context 		*ir,
 	_out u8			*len // Target instruction length (in bytes)
 ){
@@ -25,9 +25,11 @@ mte_raw_instr i64_ir_to_raw(
 		return (mte_raw_instr){0};
 	}
 	// Check operand count
-	if (__builtin_expect(instr.set.ops_count > I64_MAX_OP_COUNT, false)){
+	if (__builtin_expect(ir_instr.set.ops_count > I64_MAX_OP_COUNT, false)){
 		return (mte_raw_instr){0};
 	}
+
+	u8 ir_flags = IR_OPCODE_FLAGS(ir_instr.opcode);
 
 	/*
 		mov instruction required
@@ -39,39 +41,36 @@ mte_raw_instr i64_ir_to_raw(
 		Intel64:
 			dest = add (dest as src2), (src1)
 
-		TODO: Check also the IR instr/operand flags
 	*/
-	bool non_dest_mov =
-		(instr.set.ops[0].id == instr.set.ops[1].id) && (instr.opcode & IR_DEST_SRC_ACC);
+	bool non_dest_mov = (ir_instr.set.ops[0].id == ir_instr.set.ops[1].id) &&
+		(ir_flags & IR_DEST_NEQ_SRC);
+
 	asrt(!non_dest_mov, ax_log_msg(AX_NOT_IMP,
 		u"I64 unsupported ISA operand order"));
 
 	mte_raw_instr buf = {0};
 
-	enum i64_opcode opcode = {0};
-	i64_operand operand_buf[I64_MAX_OP_COUNT] = {0};
+	enum i64_opcode i64_opcode = {0};
+	i64_operand i64_operands[I64_MAX_OP_COUNT] = {0};
 
 	/*
 		Lift from IR to I64 byte representation
 	*/
 	if (__builtin_expect(
-		!i64_ir_opcode_conv(instr,
-			&opcode,
-			&operand_buf),
+		!i64_ir_opcode_conv(ir_instr,
+			&i64_opcode,
+			&i64_operands),
 		false)
 	){
 		return (mte_raw_instr){0};
 	}
 
 	/*
-	 	IMPORTANT!!!
-		
-	 	RIGHT NOW, payload cannot exceed 60 bytes.
-		Single Intel64 instruction can take up to 16 bytes.
+	 	Emit the instruciton into the payload
 	*/
 	axcheck_r(i64_emit_64(
-			opcode,
-			operand_buf,
+			i64_opcode,
+			i64_operands,
 			buf.payload,
 			len),
 		(mte_raw_instr){0}
@@ -95,7 +94,7 @@ bool i64_ir_opcode_conv(
 
 	// Decode IR opcode metadata
 	u8 ir_op_width = IR_OPCODE_WIDTH(ir_instr.opcode);
-	u8 ir_op_group = IR_OPCODE_GROUP_NO_FLAG(ir_instr.opcode);
+	u8 ir_op_group = IR_OPCODE_GROUP(ir_instr.opcode);
 	u8 ir_op_dest_src = !!(ir_instr.set.ops[0].id == ir_instr.set.ops[1].id);
 
 	// Translate the opcode

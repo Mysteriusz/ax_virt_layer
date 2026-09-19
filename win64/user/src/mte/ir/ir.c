@@ -11,7 +11,6 @@ static struct cpu_reg_map *_arch_to_map(
 ){
 	switch(arch){
 	case MIPS32:
-		mips32_load_qtables();
 		return &_MIPS32_CPU_REG_MAP;
 	case INTEL64:
 		i64_load_qtables();

@@ -4,8 +4,8 @@
 void asm_fill_assoc(
 	_in const ir_context 	*ir,
 	_in ir_raw_instr 	*ir_instr,
-	_in_out asm_reg_assoc	(*assoc)[0xff + IR_SPILL_LIMIT],
-	_in_out asm_reg_state	(*state)[0xff + IR_SPILL_LIMIT]
+	_in_out asm_reg_assoc	(*assoc)[IR_SPILL_REG_LIMIT],
+	_in_out asm_reg_state	(*state)[IR_SPILL_REG_LIMIT]
 ){
 	if (__builtin_expect(ir == nullptr, false)){
 		return;
@@ -20,6 +20,8 @@ void asm_fill_assoc(
 		return;
 	}
 
+	u8 idx = ir_instr->set.ops[0].id == ir_instr->set.ops[1].id
+		? 1 : 0;
 	struct cpu_reg_map *org_map = ir->desc.org_map;
 	struct cpu_reg_map *tar_map = ir->desc.tar_map;
 
@@ -27,14 +29,14 @@ void asm_fill_assoc(
 	 	Iterate over the entire instruction operand set
 		and process each operand individually
 	*/
-	for (u8 i = 0; i < ir_instr->set.ops_count; i++){
+	for (u8 i = idx; i < ir_instr->set.ops_count; i++){
 		ir_operand *ir_reg = &ir_instr->set.ops[i];
 
 		/*
-			TODO: Reconsider what exactly to do in that case
+		 	Reuse the register
 		*/
 		if ((*assoc)[ir_reg->id].used == true){
-			continue;
+			return;
 		}
 
 		// Role of the org (Guest) register
@@ -65,8 +67,7 @@ void asm_fill_assoc(
 void asm_fix_instr(
 	_in const ir_context 	*ir,
 	_in_out ir_raw_instr 	*ir_instr,
-	_in_out asm_reg_assoc	(*assoc)[0xff + IR_SPILL_LIMIT],
-	_in_out asm_reg_state	(*state)[0xff + IR_SPILL_LIMIT]
+	_in_out asm_reg_assoc	(*assoc)[IR_SPILL_REG_LIMIT]
 ){
 	if (__builtin_expect(ir == nullptr, false)){
 		return;
@@ -75,9 +76,6 @@ void asm_fix_instr(
 		return;
 	}
 	if (__builtin_expect(assoc == nullptr, false)){
-		return;
-	}
-	if (__builtin_expect(state == nullptr, false)){
 		return;
 	}
 
@@ -96,6 +94,7 @@ void asm_fix_instr(
 u32 asm_expand_instr(
 	_in const ir_context 		*ir,
 	_in const ir_raw_instr 		*restrict ir_instr,
+	_in const u32			buf_len,
 	_in_out ir_raw_instr 		*restrict buf
 ){
 	if (__builtin_expect(ir == nullptr, false)){
@@ -105,6 +104,9 @@ u32 asm_expand_instr(
 		return 0;
 	}
 	if (__builtin_expect(buf == nullptr, false)){
+		return 0;
+	}
+	if (__builtin_expect(buf_len == 0, false)){
 		return 0;
 	}
 
@@ -131,18 +133,27 @@ u32 asm_expand_instr(
 
 	switch(tar_isa){
 	case MTE_ISA_TWO_OP:
+		if (__builtin_expect(buf_len == 1, false)){
+			asrt(0, ax_log_msg(AX_BUF_TOO_SMALL,
+				u"Not enough space left in the buffer for instruction fix."));
+		}
+
 		/*
 		 	Expansion required since either dest/src is not present
 			or the opcode doesn`t require non dest/src operands
 		*/
 
-		if (!(set->ops[0].id == set->ops[1].id || ir_instr->opcode & IR_DEST_SRC_ACC)){
+		if (!(set->ops[0].id == set->ops[1].id || ir_instr->opcode & IR_DEST_NEQ_SRC)){
 			/*
 			 	Create a MOV instruction based on the current opcode
 
 				r0 = r1
 			*/
 			ir_raw_instr mov_instr = (ir_raw_instr){
+				/*
+					Only swap the group since we want to keep
+					the bit-width of the moved data
+				*/
 				.opcode = ir_opcode_swap_group(ir_instr->opcode, IR_GROUP_MOV),
 				.set = (ir_operand_set){
 					.ops[0] = set->ops[0],
@@ -187,9 +198,9 @@ u32 asm_expand_instr(
 void asm_flush_by_liveness(
 	_in const ir_context 		*ir,
 	_in const u8			liveness_block_idx,
-	_in const asm_reg_liveness	(*liveness)[0xff],
-	_in_out asm_reg_assoc		(*assoc)[0xff + IR_SPILL_LIMIT],
-	_in_out asm_reg_state		(*state)[0xff + IR_SPILL_LIMIT]
+	_in const asm_reg_liveness	(*liveness)[IR_REG_LIMIT],
+	_in_out asm_reg_assoc		(*assoc)[IR_SPILL_REG_LIMIT],
+	_in_out asm_reg_state		(*state)[IR_SPILL_REG_LIMIT]
 ){
 	if (__builtin_expect(ir == nullptr, false)){
 		return;

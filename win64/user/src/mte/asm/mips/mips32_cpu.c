@@ -3,7 +3,7 @@
 struct cpu_reg_map _MIPS32_CPU_REG_MAP = {
 	.reg_count = MIPS32_REG_COUNT,
 	.reg_width = MIPS32_REG_WIDTH,
-	.root = (struct cpu_reg_desc[32]){
+	.root = (struct cpu_reg_desc[MIPS32_REG_COUNT]){
 		[0]  = {.id = R0, 	.role = REG_PRESERVE,  .value = 0},
 		[1]  = {.id = R1, 	.role = REG_TEMP,      .value = 0},
 		[2]  = {.id = R2, 	.role = REG_RETURN,    .value = 0},

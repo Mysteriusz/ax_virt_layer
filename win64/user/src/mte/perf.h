@@ -12,15 +12,10 @@
 /*
  	---------------------------------- NOTICE ----------------------------------
 
- 	All elements between __INL_PERF_START and __INL_PERF_END
-	are recommended to be volatile to prevent compiler reordering.
+	__INL_PERF_*_ASM is deprecated for now
 */
 
-/*
- 	Currently there is a chance (approximately 1/10)
-	for measurement to return negative number! (NO IDEA HOW TO MEASURE CPUID MORE ACCURATELY)
-*/
-#define __INL_PERF_INIT_ASM \
+/*#define __INL_PERF_INIT_ASM \
 	volatile i64 mm_perf_l1 = 0, mm_perf_l2 = 0, mm_perf_empty = 0; \
 	__asm__ __volatile__( \
 		"cpuid\n\t" \
@@ -62,31 +57,55 @@
 		: "=a"(mm_perf_l2) \
 		: \
 		: "rbx", "rcx", "rdx", "memory" \
-	);
-
-#define __INL_PERF_START \
-	__asm__ __volatile__("mfence\n\t" ::: "memory"); \
-	mm_perf_l1 = __rdtsc(); \
-	__asm__ __volatile__("mfence\n\t" ::: "memory");
-
-#define __INL_PERF_END \
-	__asm__ __volatile__("mfence\n\t" ::: "memory"); \
-	mm_perf_l2 = __rdtscp(&mm_perf_aux); \
-	__asm__ __volatile__("mfence\n\t" ::: "memory");
+	);*/
 
 #define __INL_PERF_INIT \
 	volatile i64 mm_perf_l1 = 0, mm_perf_l2 = 0, mm_perf_empty = 0; \
-	u32 mm_perf_aux = 0; \
-	__INL_PERF_START \
-	__INL_PERF_END \
-	mm_perf_empty = __INL_PERF_SUM;
+	u32 mm_perf_aux = 0;
+
+#define __INL_PERF_START \
+	_mm_mfence(); \
+	mm_perf_l1 = __rdtscp(&mm_perf_aux);
+
+#define __INL_PERF_END \
+	_mm_lfence(); \
+	mm_perf_l2 = __rdtscp(&mm_perf_aux);
+
+void perf_measure_cpu();
+void perf_measure_tsc();
+
+/*
+ 	TODO:
+	Make both frequencies atomic
+*/
+extern double __inl_perf_cpu_freq; // In MHz
+extern double __inl_perf_tsc_freq; // In MHz
+
+static double _inl_perf_cpu_freq(){
+	if (__inl_perf_cpu_freq == 0){
+		perf_measure_cpu();
+	}
+	return __inl_perf_cpu_freq;
+}
+static double _inl_perf_tsc_freq(){
+	if (__inl_perf_tsc_freq == 0){
+		perf_measure_tsc();
+	}
+	return __inl_perf_tsc_freq;
+}
+static double _inl_perf_cpu_tsc_ratio(){
+	return _inl_perf_cpu_freq() / _inl_perf_tsc_freq();
+}
 
 #define __INL_PERF_LOG \
-	printf("Empty in ns: %lf\n", (mm_perf_empty / 4.2)); \
-	printf("Time in ns: %lf\n", (__INL_PERF_SUM / 4.2));
+	printf("TSC frequency in MHz: %lf\n", _inl_perf_tsc_freq() / 1000); \
+	printf("CPU frequency in MHz: %lf\n", _inl_perf_cpu_freq() / 1000); \
+	printf("Empty in ns: %lf\n", (mm_perf_empty * _inl_perf_cpu_tsc_ratio()) / (_inl_perf_cpu_freq() / 1000)); \
+	printf("Time in cycles: %lf\n", __INL_PERF_SUM * _inl_perf_cpu_tsc_ratio()); \
+	printf("Time in ns: %lf\n", (__INL_PERF_SUM * _inl_perf_cpu_tsc_ratio()) / (_inl_perf_cpu_freq() / 1000));
 
-#define __INL_PERF_LOG_MS \
-	printf("Time in ms: %lf\n", ((__INL_PERF_SUM * 1e-6) / 4.2));
+/*#define __INL_PERF_LOG_MS \
+	printf("Time in ms: %lf\n", (__INL_PERF_SUM * 1e-6) / 4.2);*/
 
 #endif // !defined(MTE_PERF_INT)
 

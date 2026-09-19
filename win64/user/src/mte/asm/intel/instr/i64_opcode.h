@@ -28,7 +28,7 @@ enum i64_opcode : u64{
 	I64_INVALID_OPCODE 	= I64_OPI(0, 0, 0),
 
 	/*
-	 	ADD instruction group
+	 	ADD instruction group (0x00 - 0x05)
 	*/
 
 	// GENERICS
@@ -44,12 +44,60 @@ enum i64_opcode : u64{
 	ADD_rAX_IMM32 	= I64_OPI(1, I64_OP_INSTR, 0x05), 	// ADD	rAX		imm16/32
 
 	/*
-	 	MOV instruction group
+	 	OR instruction group (0x08 - 0x0d)
 	*/
 
 	// GENERICS
-	gMOV_8_8 	= I64_OPI(0, I64_OP_GENERIC, 0x02), 	// MOV 	r/m/imm8	r/m/imm8
-	gMOV_64_64 	= I64_OPI(0, I64_OP_GENERIC, 0x03), 	// MOV 	r/m/imm64	r/m/imm64
+	gOR_8_8 	= I64_OPI(0, I64_OP_GENERIC, 0x08), 	// OR 	r/m/imm8	r/m/imm8
+	gOR_64_64 	= I64_OPI(0, I64_OP_GENERIC, 0x09), 	// OR 	r/m/imm64	r/m/imm64
+
+	// OPCODES
+	OR_8_R8 	= I64_OPI(1, I64_OP_INSTR, 0x08), 	// OR	r/m8		r8
+	OR_64_R64 	= I64_OPI(1, I64_OP_INSTR, 0x09), 	// OR	r/m16/32/64	r16/32/64
+	OR_R8_8 	= I64_OPI(1, I64_OP_INSTR, 0x0a), 	// OR	r8		r/m8
+	OR_R64_64 	= I64_OPI(1, I64_OP_INSTR, 0x0b),	// OR	r16/32/64	r/m16/32/64
+	OR_AL_IMM8 	= I64_OPI(1, I64_OP_INSTR, 0x0c), 	// OR	AL		imm8
+	OR_rAX_IMM32 	= I64_OPI(1, I64_OP_INSTR, 0x0d), 	// OR	rAX		imm16/32
+
+	/*
+	 	AND instruction group (0x20 - 0x25)
+	*/
+
+	// GENERICS
+	gAND_8_8 	= I64_OPI(0, I64_OP_GENERIC, 0x20), 	// AND 	r/m/imm8	r/m/imm8
+	gAND_64_64 	= I64_OPI(0, I64_OP_GENERIC, 0x21), 	// AND 	r/m/imm64	r/m/imm64
+
+	// OPCODES
+	AND_8_R8 	= I64_OPI(1, I64_OP_INSTR, 0x20), 	// AND	r/m8		r8
+	AND_64_R64 	= I64_OPI(1, I64_OP_INSTR, 0x21), 	// AND	r/m16/32/64	r16/32/64
+	AND_R8_8 	= I64_OPI(1, I64_OP_INSTR, 0x22), 	// AND	r8		r/m8
+	AND_R64_64 	= I64_OPI(1, I64_OP_INSTR, 0x23),	// AND	r16/32/64	r/m16/32/64
+	AND_AL_IMM8 	= I64_OPI(1, I64_OP_INSTR, 0x24), 	// AND	AL		imm8
+	AND_rAX_IMM32 	= I64_OPI(1, I64_OP_INSTR, 0x25), 	// AND	rAX		imm16/32
+
+	/*
+	 	SUB instruction group (0x28 - 0x2d)
+	*/
+
+	// GENERICS
+	gSUB_8_8 	= I64_OPI(0, I64_OP_GENERIC, 0x28), 	// SUB 	r/m/imm8	r/m/imm8
+	gSUB_64_64 	= I64_OPI(0, I64_OP_GENERIC, 0x2d), 	// SUB 	r/m/imm64	r/m/imm64
+
+	// OPCODES
+	SUB_8_R8 	= I64_OPI(1, I64_OP_INSTR, 0x28), 	// SUB	r/m8		r8
+	SUB_64_R64 	= I64_OPI(1, I64_OP_INSTR, 0x29), 	// SUB	r/m16/32/64	r16/32/64
+	SUB_R8_8 	= I64_OPI(1, I64_OP_INSTR, 0x2a), 	// SUB	r8		r/m8
+	SUB_R64_64 	= I64_OPI(1, I64_OP_INSTR, 0x2b),	// SUB	r16/32/64	r/m16/32/64
+	SUB_AL_IMM8 	= I64_OPI(1, I64_OP_INSTR, 0x2c), 	// SUB	AL		imm8
+	SUB_rAX_IMM32 	= I64_OPI(1, I64_OP_INSTR, 0x2d), 	// SUB	rAX		imm16/32
+
+	/*
+	 	MOV instruction group (0x88 - 0x8b)
+	*/
+
+	// GENERICS
+	gMOV_8_8 	= I64_OPI(0, I64_OP_GENERIC, 0x88), 	// MOV 	r/m/imm8	r/m/imm8
+	gMOV_64_64 	= I64_OPI(0, I64_OP_GENERIC, 0x89), 	// MOV 	r/m/imm64	r/m/imm64
 
 	// OPCODES
 	MOV_8_R8 	= I64_OPI(1, I64_OP_INSTR, 0x88), 	// MOV	r/m8		r8

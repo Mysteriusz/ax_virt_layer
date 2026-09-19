@@ -19,22 +19,5 @@ typedef struct _mte_raw_instr{
 	u8 		payload[60];
 } mte_raw_instr;
 
-typedef struct _mte_byte_instr{
-	enum mte_syn		syn;
-	enum mte_arch		arch;
-	mte_u64_instr 		val;
-} mte_byte_instr;
-
-_inline_force static bool mte_byte_instr_inv(
-	_in mte_byte_instr 	*instr
-){
-	if (instr == nullptr
-	|| instr->val.org == nullptr
-	|| instr->val.ptr == nullptr){
-		return true;
-	}
-	return false;
-}
-
 #endif // !defined(MTE_CORE_INT)
 

@@ -4,6 +4,7 @@
 -Wno-pragma-pack
 -Wno-unused-function
 -Wno-unknown-pragmas
+-Wno-initializer-overrides
 -std=c23
 -m64
 -mbmi2

@@ -1,6 +1,8 @@
+#include <ax_type.h>
+
 #include "mips32_ir.h"
+#include "mips32_opcode.h"
 #include "mips32_instr.h"
-#include "mte/perf.h"
 
 axres mips32_raw_to_ir(
 	_in mips32_mte_raw_instr	instr,
@@ -28,8 +30,10 @@ axres mips32_raw_to_ir(
 		buf->set.ops_count = 3;
 		break;
 	case I:
+		asrt(0, ax_log_msg(AX_NOT_IMP, u"MIPS32 I-type instructions not implemented."));
 		break;
 	case J:
+		asrt(0, ax_log_msg(AX_NOT_IMP, u"MIPS32 J-type instructions not implemented."));
 		break;
 	default:
 		return AX_MTE_INV_INSTR;
@@ -74,9 +78,13 @@ ir_operand_set mips32_reg_fetch(
 
 	switch(_mips32_get_instr_type(mips32)){
 	/*
-	 	rd = rs + rt
+	 	rd = opcode rs, rt
 	*/
 	case R:
+		if (_mips32_funct(mips32) == 0){
+			break;
+		}
+
 		buf.ops[0] = (ir_operand){ // rd
 			.kind = IR_OP_REG,
 			.id = _mips32_rd(mips32)

@@ -3,36 +3,36 @@
 #include "tblock.h"
 #include "tblock_pass.h"
 
-bool tblock_alloc(
-	_in enum tblock_type 	type,
-	_out tblock 		*buf
+_free tblock* tblock_alloc(
+	_in const enum tblock_type 	type
 ){
-	if (__builtin_expect(buf == nullptr, false)){
-		return nullptr;
-	}
-
 	/*
-	 	TODO:
-		Make some tblock heap buffer and allocate from there
+		TODO:
+		CHANGE TO STATIC BUFFER WHEN IMPLEMENTING TBLOCK TABLE
 	*/
-	*buf = (tblock){
-		.type = type,
-		.ir_len = 0,
-		.state = {REG_FREE},
-		.liveness = {0},
-		.assoc = {0},
-		/*
-		 	TODO:
-			QUICKLY CHANGE TO STATIC BUFFER WHEN IMPLEMENTING TBLOCK TABLE
-		*/
-		.ir_buf = axmalloc((TBLOCK_SIZE << type) * sizeof(ir_raw_instr)),
-	};
-	return true;
+	tblock *out = axmalloc(sizeof(tblock));
+
+	_fill_array(out->state, sizeof(out->state) / sizeof(asm_reg_state),
+		&(asm_reg_state){REG_FREE}, sizeof(asm_reg_state));
+
+	_fill_array((u8*)out->liveness, sizeof(out->liveness) / sizeof(asm_reg_liveness),
+		&(asm_reg_liveness){0}, sizeof(asm_reg_liveness));
+
+	_fill_array((u8*)out->assoc, sizeof(out->assoc) / sizeof(asm_reg_assoc),
+		&(asm_reg_assoc){0}, sizeof(asm_reg_assoc));
+
+	out->ir_cnt = 0;
+
+	*(u32*)&out->ir_buf_len = tblock_frag_calc(type);
+	*(ir_raw_instr**)&out->ir_buf = axmalloc(tblock_frag_calc(type));
+	*(enum tblock_type*)&out->type = type;
+
+	return out;
 }
 
 bool tblock_emit(
 	_in_out ir_context	*ir,
-	_in_out tblock 		*block
+	_in_out tblock 		*const block
 ){
 	if (__builtin_expect(ir == nullptr, false)){
 		return false;
@@ -41,39 +41,44 @@ bool tblock_emit(
 		return false;
 	}
 
-__INL_PERF_INIT
+__INL_PERF_INIT;
 
-__INL_PERF_START
-	struct tblock_pass_result ls = tblock_liveness_scan(ir, block);
+__INL_PERF_START;
+
+	auto ls = tblock_liveness_scan(ir, block);
 	if (__builtin_expect(ls.res, AX_SUCC)){
 		return false;
 	}
-__INL_PERF_END
 
-	double r1 = (__INL_PERF_SUM / 4.2);
+__INL_PERF_END;
 
-__INL_PERF_START
-	struct tblock_pass_result rti = tblock_raw_to_ir(ir, block);
+	double r1 = __INL_PERF_SUM * _inl_perf_cpu_tsc_ratio();
+
+__INL_PERF_START;
+
+	auto rti = tblock_raw_to_ir(ir, block);
 	if (__builtin_expect(rti.res, AX_SUCC)){
 		return false;
 	}
-__INL_PERF_END
+__INL_PERF_END;
 
-	double r2 = (__INL_PERF_SUM / 4.2);
+	double r2 = __INL_PERF_SUM * _inl_perf_cpu_tsc_ratio();
 
-__INL_PERF_START
-	struct tblock_pass_result itr = tblock_ir_to_raw(ir, block);
+__INL_PERF_START;
+
+	auto itr = tblock_ir_to_raw(ir, block);
 	if (__builtin_expect(itr.res, AX_SUCC)){
 		return false;
 	}
-__INL_PERF_END
+__INL_PERF_END;
 
-	double r3 = (__INL_PERF_SUM / 4.2);
+	double r3 = __INL_PERF_SUM * _inl_perf_cpu_tsc_ratio();
 
-	printf("Average liveness pass in: %lfns\n", r1 / ls.count);
-	printf("Average raw to ir pass in: %lfns\n", r2 / rti.count);
-	printf("Average ir to raw pass in: %lfns\n", r3 / itr.count);
-	printf("Time sum: %lfns\n", (r1 + r2 + r3));
+	printf("IR instructions generated: %u\n", block->ir_cnt);
+	printf("Liveness pass in: %lf ns\n", r1 / (_inl_perf_cpu_freq() / 1000));
+	printf("Raw to ir pass in: %lf ns\n", r2 / (_inl_perf_cpu_freq() / 1000));
+	printf("IR to raw pass in: %lf ns\n", r3 / (_inl_perf_cpu_freq() / 1000));
+	printf("Time sum: %lf ns\n", (r1 + r2 + r3) / (_inl_perf_cpu_freq() / 1000));
 
 	return true;
 }

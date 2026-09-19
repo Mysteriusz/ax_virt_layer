@@ -11,7 +11,7 @@
  	Allocate spill space and calculate the offset of the 
 */
 u8 asm_alloc_spill(
-	_in_out asm_reg_state 	(*state_map)[0xff + IR_SPILL_LIMIT]
+	_in_out asm_reg_state 	(*state_map)[IR_SPILL_REG_LIMIT]
 );
 
 /*
@@ -43,7 +43,7 @@ u8 asm_alloc_spill(
 u16 asm_alloc_reg(
 	_in const struct cpu_reg_map 	*reg_map,
 	_in enum cpu_reg_role 		role,
-	_in_out asm_reg_state 		(*state_map)[0xff + IR_SPILL_LIMIT]
+	_in_out asm_reg_state 		(*state_map)[IR_SPILL_REG_LIMIT]
 );
 
 #endif // !defined(MTE_TBLOCK_CPU_INT)

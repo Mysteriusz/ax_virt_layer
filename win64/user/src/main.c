@@ -4,6 +4,7 @@
 
 
 #include "mte/asm/mips/mips32.h"
+#include "mte/asm/mips/mips32_opcode.h"
 #include "mte/asm/intel/i64.h"
 #include "mte/asm/intel/instr/i64_operand.h"
 
@@ -13,6 +14,7 @@
 // TEMPORARY
 #include <windows.h>
 #include <ax_file.h>
+#include <ax_type.h>
 
 #include "mte/pipe/vrow.h"
 #include "mte/pipe/vrow_bank.h"
@@ -156,9 +158,7 @@ int main(){
 	*(u8**)&ir->desc.gen_base = axmalloc(GIB(1));
 	ir->desc.gen_ptr = (u8*)ir->desc.gen_base;
 	ir->desc.code_ptr = (u8*)ir->desc.code_base;
-	//((u32*)ir->desc.code_base)[0] = 0x012A4820; // add $t1, $t1, $t2
-	((u32*)ir->desc.code_base)[0] = 0x00A62020; // add $r4, $r5, $r6
-
+	((u32*)ir->desc.code_base)[0] = 0x012A4820; // add $t1, $t1, $t2
 
 	//((u32*)ir->desc.code_base)[0] = 0x01896020; // add $t4, $t4, $t1
 	//((u32*)ir->desc.code_base)[1] = 0x016C5820; // add $t3, $t3, $t4
@@ -170,11 +170,9 @@ int main(){
 	//((u32*)ir->desc.code_base)[4] = 0x01CF7020; // add $t6, $t6, $t7
 	//((u32*)ir->desc.code_base)[5] = 0x0319C020; // add $t8, $t8, $t9
 
-	tblock tblock = {0};
+	tblock *const block = tblock_alloc(TBLOCK_SMALL);
 
-	tblock_alloc(TBLOCK_SMALL, &tblock);
-
-	bool emit = tblock_emit(ir, &tblock);
+	bool emit = tblock_emit(ir, block);
 	if (!emit){
 		return 0;
 	}
@@ -183,6 +181,7 @@ int main(){
 	while(i < 20){
 		printf("%02x", ir->desc.gen_base[i++]);
 	}
+	printf("\n%llu", (u64)ir->desc.gen_ptr - (u64)ir->desc.gen_base);
 #endif
 
 	//printf("Time in ns per instruction: %lf\n", (__INL_PERF_SUM / 4.2) / 128);

@@ -47,7 +47,7 @@ static mte_raw_instr _invalid_ir_to_tar_call(
 	exit(1);
 }
 
-// Fetch all register id`s from guest instruction 
+// Fetch all register id`s from (guest) instruction 
 typedef ir_operand_set (*const org_reg_fetch_call)(
 	_in mte_raw_instr 	instr,
 	_in ir_context 		*ctx,
@@ -60,25 +60,9 @@ static ir_operand_set _invalid_org_reg_fetch_call(
 	exit(1);
 }
 
-#define IR_SPILL_LIMIT 0xff
-struct ir_sbuf{ _align(16)
-	u8	idx;
-	u64	base[IR_SPILL_LIMIT];
-};
-
-static u8 _ir_sbuf_inc(struct ir_sbuf *sbuf){
-	if (__builtin_expect(sbuf == nullptr, false)){
-		return 0xff;
-	}
-
-	sbuf->idx++;
-	if (__builtin_expect(sbuf->idx == 0xff, false)){
-		ax_log_msg(AX_UNK_ERR, u"Static buffer out of bounds!!");
-		asrt(false);
-	}
-	return sbuf->idx - 1;
-}
-
+#define IR_SPILL_LIMIT 0x100
+#define IR_REG_LIMIT 0x100
+#define IR_SPILL_REG_LIMIT (IR_SPILL_LIMIT + IR_REG_LIMIT)
 struct ir_context_desc{
 	// Cache line
 	enum mte_arch 			org_arch;
@@ -86,29 +70,21 @@ struct ir_context_desc{
 	struct cpu_reg_map *const 	org_map;
 	struct cpu_reg_map *const	tar_map;
 
+	u8 *const 			code_base;
+	u8 *const 			gen_base;
+	u8				*code_ptr;
+	u8				*gen_ptr;
+	
 	// Cache line
-	const struct{
+	const struct _align(64){
 		/*
 		 	TODO:
 				tar_reg_fetch_call 	; Translate registers from tar (host) to IR representation
-				
-				QUESTIONABLE:
-				org_len_resolve_call	; Resolve length of org (guest) raw instruction
-				tar_len_resolve_call 	; Resolve length of tar (host) raw instruction 
 		*/
 		org_to_ir_call 		org_to_ir;
 		ir_to_tar_call 		ir_to_tar;
 		org_reg_fetch_call 	org_reg_fetch;
 	} call;
-	// Cache line
-	u8 *const 			code_base;
-	u8 *const 			gen_base;
-	u8				*code_ptr;
-	u8				*gen_ptr;
-
-	// Multiple cache lines
-	/*struct ir_sbuf 			imm_buf;
-	struct ir_sbuf 			ptr_buf;*/
 };
 
 typedef struct _ir_context{

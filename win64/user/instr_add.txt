@@ -1,0 +1,16 @@
+FOR IR:
+
+1) ir_opcode.h -> IR_GROUP_X
+2) ir_opcode.h -> ir_opcode
+
+FOR MIPS32:
+
+1) mips32_op_tables.c -> MIPS32_TO_IR_TABLE 
+
+FOR I64:
+
+1) i64_opcode.h -> i64_opcode
+2) i64_opcode.c -> OPCODE_META_TABLE
+3) i64_ir_tables.c -> MIPS32_TO_IR_TABLE
+4) i64_ir_tables.c -> I64_IR_GENERIC_TO_SPECIFIC
+

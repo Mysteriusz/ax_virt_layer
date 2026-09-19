@@ -32,24 +32,24 @@ struct tblock_pass_result{
 	Sets the [block->ir_count] field.
 */
 struct tblock_pass_result tblock_liveness_scan(
-	_in ir_context 	*ir,
-	_in_out tblock	*block
+	_in ir_context 	*const ir,
+	_in_out tblock	*const block
 );
 
 /*
  	Converts tar (guest) to IR instructions.
 */
 struct tblock_pass_result tblock_raw_to_ir(
-	_in ir_context	*ir,
-	_in_out tblock	*block
+	_in ir_context	*const ir,
+	_in_out tblock	*const block
 );
 
 /*
  	Converts IR to tar (host) instructions.
 */
 struct tblock_pass_result  tblock_ir_to_raw(
-	_in_out ir_context	*ir,
-	_in tblock		*block
+	_in_out ir_context	*const ir,
+	_in tblock		*const block
 );
 
 #endif // !defined(MTE_TBLOCK_PASS_INT)

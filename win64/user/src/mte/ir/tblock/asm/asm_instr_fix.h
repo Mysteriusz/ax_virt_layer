@@ -12,8 +12,8 @@
 void asm_fill_assoc(
 	_in const ir_context 	*ir,
 	_in ir_raw_instr 	*ir_instr,
-	_in_out asm_reg_assoc	(*assoc)[0xff + IR_SPILL_LIMIT],
-	_in_out asm_reg_state	(*state)[0xff + IR_SPILL_LIMIT]
+	_in_out asm_reg_assoc	(*assoc)[IR_SPILL_REG_LIMIT],
+	_in_out asm_reg_state	(*state)[IR_SPILL_REG_LIMIT]
 );
 
 /*
@@ -23,8 +23,7 @@ void asm_fill_assoc(
 void asm_fix_instr(
 	_in const ir_context 	*ir,
 	_in_out ir_raw_instr 	*ir_instr,
-	_in_out asm_reg_assoc	(*assoc)[0xff + IR_SPILL_LIMIT],
-	_in_out asm_reg_state	(*state)[0xff + IR_SPILL_LIMIT]
+	_in_out asm_reg_assoc	(*assoc)[IR_SPILL_REG_LIMIT]
 );
 
 /*
@@ -46,10 +45,13 @@ void asm_fix_instr(
 		- mov r0, r1
 		- add r0, r2
 
+	Returns the amount of IR instructions
+	written to buf
 */
 u32 asm_expand_instr(
 	_in const ir_context 		*ir,
 	_in const ir_raw_instr 		*restrict ir_instr,
+	_in const u32			buf_len,
 	_in_out ir_raw_instr 		*restrict buf
 );
 
@@ -60,9 +62,9 @@ u32 asm_expand_instr(
 void asm_flush_by_liveness(
 	_in const ir_context 		*ir,
 	_in const u8			liveness_idx,
-	_in const asm_reg_liveness	(*liveness)[0xff],
-	_in_out asm_reg_assoc		(*assoc)[0xff + IR_SPILL_LIMIT],
-	_in_out asm_reg_state		(*state)[0xff + IR_SPILL_LIMIT]
+	_in const asm_reg_liveness	(*liveness)[IR_REG_LIMIT],
+	_in_out asm_reg_assoc		(*assoc)[IR_SPILL_REG_LIMIT],
+	_in_out asm_reg_state		(*state)[IR_SPILL_REG_LIMIT]
 );
 
 #endif // !defined(MTE_OPERAND_FIX_INT)
