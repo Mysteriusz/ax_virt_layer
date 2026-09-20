@@ -147,7 +147,7 @@ i64_opcode_desc L1_OPCODE_META_TABLE[0xff] = {
 		.ops[1].width = W8,
 		.flags = MODRM | LEGACY,
 		.prefix = I64_LOCK_PREF,
-		.form = FORM_rAX_IMM,
+		.form = FORM_RM_R,
 	},
 	[AND_64_R64 & 0xff] = {
 		.ops_count = 2,
@@ -157,7 +157,7 @@ i64_opcode_desc L1_OPCODE_META_TABLE[0xff] = {
 		.ops[1].width = W64,
 		.flags = REX | MODRM | LEGACY,
 		.prefix = I64_LOCK_PREF,
-		.form = FORM_rAX_IMM,
+		.form = FORM_RM_R,
 	},
 	[AND_R8_8 & 0xff] = {
 		.ops_count = 2,
@@ -167,7 +167,7 @@ i64_opcode_desc L1_OPCODE_META_TABLE[0xff] = {
 		.ops[1].width = W8,
 		.flags = MODRM,
 		.prefix = I64_NO_PREF,
-		.form = FORM_rAX_IMM,
+		.form = FORM_R_RM,
 	},
 	[AND_R64_64 & 0xff] = {
 		.ops_count = 2,
@@ -177,7 +177,7 @@ i64_opcode_desc L1_OPCODE_META_TABLE[0xff] = {
 		.ops[1].width = W64,
 		.flags = REX | MODRM,
 		.prefix = I64_NO_PREF,
-		.form = FORM_rAX_IMM,
+		.form = FORM_R_RM,
 	},
 	[AND_AL_IMM8 & 0xff] = {
 		.ops_count = 2,
@@ -212,7 +212,7 @@ i64_opcode_desc L1_OPCODE_META_TABLE[0xff] = {
 		.ops[1].width = W8,
 		.flags = MODRM | LEGACY,
 		.prefix = I64_LOCK_PREF,
-		.form = FORM_rAX_IMM,
+		.form = FORM_RM_R,
 	},
 	[SUB_64_R64 & 0xff] = {
 		.ops_count = 2,
@@ -222,7 +222,7 @@ i64_opcode_desc L1_OPCODE_META_TABLE[0xff] = {
 		.ops[1].width = W64,
 		.flags = REX | MODRM | LEGACY,
 		.prefix = I64_LOCK_PREF,
-		.form = FORM_rAX_IMM,
+		.form = FORM_RM_R,
 	},
 	[SUB_R8_8 & 0xff] = {
 		.ops_count = 2,
@@ -232,7 +232,7 @@ i64_opcode_desc L1_OPCODE_META_TABLE[0xff] = {
 		.ops[1].width = W8,
 		.flags = MODRM,
 		.prefix = I64_NO_PREF,
-		.form = FORM_rAX_IMM,
+		.form = FORM_R_RM,
 	},
 	[SUB_R64_64 & 0xff] = {
 		.ops_count = 2,
@@ -242,7 +242,7 @@ i64_opcode_desc L1_OPCODE_META_TABLE[0xff] = {
 		.ops[1].width = W64,
 		.flags = REX | MODRM,
 		.prefix = I64_NO_PREF,
-		.form = FORM_rAX_IMM,
+		.form = FORM_R_RM,
 	},
 	[SUB_AL_IMM8 & 0xff] = {
 		.ops_count = 2,

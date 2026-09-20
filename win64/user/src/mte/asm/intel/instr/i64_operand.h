@@ -123,6 +123,8 @@ enum i64_operand_width : u8{
 	(((i) | (v)) & 0xff)
 
 /*
+   	Values for (i64_operand_id & 0xf)
+
 	[0 - 7] -> Base registers
 	[8 - 15] -> Extended registers
 	[16 - x] -> Numerical type

@@ -110,6 +110,8 @@ struct tblock_pass_result tblock_raw_to_ir(
 	u32 bytes = 0; // Bytes already passed
 
 	__TBLOCK_PASS_INIT(ir, block);
+	unref(_TBLOCK_PASS_IDX);
+
 	__TBLOCK_PASS_LOOP(org_len,
 		/*
 		 	Load instruction with code data
@@ -179,7 +181,7 @@ skip: // TEMP
 		}
 	);
 
-	return (struct tblock_pass_result){.count = 2, .res = AX_SUCC};
+	return (struct tblock_pass_result){.count = _TBLOCK_PASS_BLOCK->ir_cnt, .res = AX_SUCC};
 }
 
 struct tblock_pass_result tblock_ir_to_raw(

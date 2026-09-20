@@ -60,22 +60,28 @@ static ir_operand_set _invalid_org_reg_fetch_call(
 	exit(1);
 }
 
+struct ir_bin_buffer{
+	u8	*ptr;
+	u64	size;
+};
+
 #define IR_SPILL_LIMIT 0x100
 #define IR_REG_LIMIT 0x100
 #define IR_SPILL_REG_LIMIT (IR_SPILL_LIMIT + IR_REG_LIMIT)
 struct ir_context_desc{
 	// Cache line
-	enum mte_arch 			org_arch;
-	enum mte_arch 			tar_arch;
-	struct cpu_reg_map *const 	org_map;
-	struct cpu_reg_map *const	tar_map;
 
-	u8 *const 			code_base;
-	u8 *const 			gen_base;
+	const struct ir_bin_buffer 	code_base;
+	const struct ir_bin_buffer 	gen_base;
+
 	u8				*code_ptr;
 	u8				*gen_ptr;
+
+	struct cpu_reg_map 		*const org_map;
+	struct cpu_reg_map 		*const tar_map;
 	
 	// Cache line
+
 	const struct _align(64){
 		/*
 		 	TODO:
@@ -85,6 +91,11 @@ struct ir_context_desc{
 		ir_to_tar_call 		ir_to_tar;
 		org_reg_fetch_call 	org_reg_fetch;
 	} call;
+
+	// Cache line
+
+	const enum mte_arch 		org_arch;
+	const enum mte_arch 		tar_arch;
 };
 
 typedef struct _ir_context{
@@ -95,8 +106,10 @@ typedef struct _ir_context{
 
 _inline_avert axres ir_create(
 	_in const u64 		version,
-	_in enum mte_arch 	org_arch,
-	_in enum mte_arch 	tar_arch,
+	_in const enum mte_arch org_arch,
+	_in const enum mte_arch tar_arch,
+	_in const u64 		code_size,
+	_in const u64 		gen_size,
 	_out ir_context		**buf
 );
 

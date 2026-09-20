@@ -73,8 +73,7 @@ mte_raw_instr i64_ir_to_raw(
 			i64_operands,
 			buf.payload,
 			len),
-		(mte_raw_instr){0}
-	);
+		(mte_raw_instr){0});
 
 	return buf;
 }
@@ -104,9 +103,19 @@ bool i64_ir_opcode_conv(
 		ir_instr.set.ops[ir_op_dest_src],
 		ir_instr.set.ops[ir_op_dest_src + 1]);
 
+	// Load format to perform validation
+	enum i64_opcode_form i64_op_form = 
+		_i64_ir_opcode_form_res(ir_instr.set.ops[ir_op_dest_src], ir_instr.set.ops[ir_op_dest_src + 1]);
+
 	// Lookup metadata for the opcode
 	i64_opcode_desc opcode_desc =
 		_i64_lookup_opcode_meta(*opcode);
+
+	/*
+	 	Catch invalid table data
+	*/
+	asrt(i64_op_form == opcode_desc.form, 
+		io_str(u"Critical I64 emission bug:\n\tTranslated opcode form doesn`t match I64_IR_FORM_MAP"));
 
 	/*
 	 	TODO: DO AN OPS COUNT VALIDATION

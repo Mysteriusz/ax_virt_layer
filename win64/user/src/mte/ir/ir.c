@@ -60,8 +60,10 @@ org_reg_fetch_call arch_org_reg_fetch(
 #include <ax_utility.h>
 _inline_avert axres ir_create(
 	_in const u64 		version,
-	_in enum mte_arch 	org_arch,
-	_in enum mte_arch 	tar_arch,
+	_in const enum mte_arch org_arch,
+	_in const enum mte_arch tar_arch,
+	_in const u64 		code_size,
+	_in const u64 		gen_size,
 	_out ir_context		**buf
 ){
 	if (buf == nullptr){
@@ -72,30 +74,35 @@ _inline_avert axres ir_create(
 	 	Controlled undefined behaviour (const overwrite)
 	*/
 
+	void *code_buf = axmalloc(code_size);
+	void *gen_buf = axmalloc(gen_size);
+
 	// Create temporary IR context
 	ir_context temp_ir = (ir_context){
 		.desc = {
-			.org_arch = org_arch,
-			.tar_arch = tar_arch,
+			.code_base = (const struct ir_bin_buffer){
+				.ptr = code_buf,
+				.size = code_size,
+			},
+			.gen_base = (const struct ir_bin_buffer){
+				.ptr = gen_buf,
+				.size = gen_size,
+			},
+
+			.code_ptr = code_buf,
+			.gen_ptr = gen_buf,
+
 			.org_map = _arch_to_map(org_arch),
 			.tar_map = _arch_to_map(tar_arch),
+
 			.call = {
 				.org_to_ir = arch_org_to_ir(org_arch),
 				.ir_to_tar = arch_ir_to_tar(tar_arch),
 				.org_reg_fetch = arch_org_reg_fetch(org_arch),
 			},
-			.code_base = nullptr,
-			.gen_base = nullptr,
-			.code_ptr = nullptr,
-			.gen_ptr = nullptr,
-			/*.imm_buf = (struct ir_sbuf){
-				.idx = 0,
-				.base = {0},
-			},
-			.ptr_buf = (struct ir_sbuf){
-				.idx = 0,
-				.base = {0},
-			},*/
+
+			.org_arch = org_arch,
+			.tar_arch = tar_arch,
 		},
 		.blocked = false,
 		.version = version,
@@ -104,7 +111,9 @@ _inline_avert axres ir_create(
 		axmalloc(sizeof(ir_context));
 	memcpy(ir, &temp_ir, sizeof(ir_context));
 
-	// Prefetch by calling each function
+	/*
+	 	Prefetch and check if correct by calling each function
+	*/
 	if ((u64)ir->desc.call.org_to_ir != (u64)_invalid_org_to_ir_call){
 		ir->desc.call.org_to_ir((mte_raw_instr){0}, nullptr, nullptr);
 	}
@@ -114,6 +123,7 @@ _inline_avert axres ir_create(
 	if ((u64)ir->desc.call.org_reg_fetch != (u64)_invalid_org_reg_fetch_call){
 		ir->desc.call.org_reg_fetch((mte_raw_instr){0}, nullptr, nullptr);
 	}
+
 	*buf = ir;
 
 	return AX_SUCC;
