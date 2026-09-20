@@ -5,11 +5,27 @@
 
 typedef u16 asm_reg_liveness;
 
-typedef struct _align(2) _asm_reg_assoc{
-	bool 	used;
-	bool 	spill;
+
+typedef struct _asm_reg_assoc{
+	/*
+		Bit format follows:
+			- 000000US
+			(U) -> Used;
+			(S) -> Spilled;
+	*/
+	u8 	flags;
 	u8	id; // Host architecture-specific register/spill id/index
 } asm_reg_assoc;
+
+inline static bool _ir_reg_assoc_used(asm_reg_assoc assoc){
+	return !!(assoc.flags & BIT(1));
+}
+inline static bool _ir_reg_assoc_spilled(asm_reg_assoc assoc){
+	return !!(assoc.flags & BIT(0));
+}
+inline static u8 _ir_reg_assoc_flags(bool used, bool spill){
+	return (used << 1) | (spill); 
+}
 
 typedef enum _asm_reg_state : u8{
 	REG_FREE = 0, // Register is unused

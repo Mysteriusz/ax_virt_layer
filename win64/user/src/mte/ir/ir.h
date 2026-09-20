@@ -60,10 +60,10 @@ static ir_operand_set _invalid_org_reg_fetch_call(
 	exit(1);
 }
 
-struct ir_bin_buffer{
-	u8	*ptr;
-	u64	size;
-};
+typedef struct _ir_const_buffer{
+	const u8	*ptr;
+	const u64	size;
+} const ir_const_buffer;
 
 #define IR_SPILL_LIMIT 0x100
 #define IR_REG_LIMIT 0x100
@@ -71,8 +71,8 @@ struct ir_bin_buffer{
 struct ir_context_desc{
 	// Cache line
 
-	const struct ir_bin_buffer 	code_base;
-	const struct ir_bin_buffer 	gen_base;
+	ir_const_buffer 	code_base;
+	ir_const_buffer 	gen_base;
 
 	u8				*code_ptr;
 	u8				*gen_ptr;

@@ -154,8 +154,22 @@ int main(){
 	res = ir_create(IR_VER, MIPS32, INTEL64, GIB(1), GIB(1), &ir);
 	axcheck(res, ax_log(res));
 
-	((u32*)ir->desc.code_base.ptr)[0] = 0x012A4820; // add $t1, $t1, $t2
-	((u32*)ir->desc.code_base.ptr)[1] = 0x012A4822; // sub $t1, $t1, $t2
+#if 1
+((u32*)ir->desc.code_base.ptr)[0] = 0x012A4820; // add $t1, $t1, $t2
+((u32*)ir->desc.code_base.ptr)[1] = 0x01495020; // add $t2, $t2, $t1
+((u32*)ir->desc.code_base.ptr)[2] = 0x012A4822; // sub $t1, $t1, $t2
+((u32*)ir->desc.code_base.ptr)[3] = 0x01495022; // sub $t2, $t2, $t1
+((u32*)ir->desc.code_base.ptr)[4] = 0x012A4825; // or  $t1, $t1, $t2
+((u32*)ir->desc.code_base.ptr)[5] = 0x01495025; // or  $t2, $t2, $t1
+((u32*)ir->desc.code_base.ptr)[6] = 0x012A4824; // and $t1, $t1, $t2
+((u32*)ir->desc.code_base.ptr)[7] = 0x01495024; // and $t2, $t2, $t1
+((u32*)ir->desc.code_base.ptr)[8] = 0x014A4820; // add $t1, $t2, $t2
+#endif
+#if 0
+	((u32*)ir->desc.code_base.ptr)[0] = 0x014A4820; // sub $t1, $t2, $t2
+	((u32*)ir->desc.code_base.ptr)[1] = 0x014A4822; // sub $t1, $t2, $t2
+	//((u32*)ir->desc.code_base.ptr)[0] = 0x01295022; // sub $t2, $t1, $t1
+#endif
 
 	//((u32*)ir->desc.code_base)[0] = 0x01896020; // add $t4, $t4, $t1
 	//((u32*)ir->desc.code_base)[1] = 0x016C5820; // add $t3, $t3, $t4
@@ -169,16 +183,21 @@ int main(){
 
 	tblock *const block = tblock_alloc(TBLOCK_SMALL);
 
+	for (u32 i = 0; i < 100; i++){
 	bool emit = tblock_emit(ir, block);
 	if (!emit){
 		return 0;
 	}
+	block->ir_cnt = 0;
+	}
 
 	u8 i = 0;
-	while(i < 20){
+	while(i < 200){
 		printf("%02x", ir->desc.gen_base.ptr[i++]);
 	}
 	printf("\n%llu", (u64)ir->desc.gen_ptr - (u64)ir->desc.gen_base.ptr);
+
+	axfree(block);
 #endif
 
 	//printf("Time in ns per instruction: %lf\n", (__INL_PERF_SUM / 4.2) / 128);

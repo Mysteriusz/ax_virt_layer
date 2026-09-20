@@ -119,7 +119,7 @@ struct tblock_pass_result tblock_raw_to_ir(
 		mte_raw_instr raw_instr = {
 			.arch = _TBLOCK_DESC->org_arch,
 		};
-		memcpy(raw_instr.payload, _TBLOCK_CODE_PTR, sizeof(raw_instr.payload));
+		memcpy(raw_instr.payload, _TBLOCK_CODE_PTR, 16);
 
 		/*
 		 	Convert org (guest) instruction to IR
@@ -128,7 +128,7 @@ struct tblock_pass_result tblock_raw_to_ir(
 			_TBLOCK_DESC->call.org_to_ir(
 				raw_instr, ir,
 				&org_len);
-		if (ir_instr.opcode == IR_INVALID_OPCODE){
+		if (__builtin_expect(ir_instr.opcode == IR_INVALID_OPCODE, false)){
 			goto skip;
 		}
 
@@ -145,6 +145,7 @@ struct tblock_pass_result tblock_raw_to_ir(
 		*/
 		asm_fix_instr(ir, &ir_instr,
 			&_TBLOCK_PASS_BLOCK->assoc);
+
 
 		/*
 		 	Expand and save the IR instruction to the IR buffer
@@ -200,12 +201,14 @@ struct tblock_pass_result tblock_ir_to_raw(
 	u8 tar_len = 0;
 	u32 ir_i = 0;
 
-	//tblock_liveness_log(ir, block);
 	while(ir_i < block->ir_cnt){
-		ir_raw_instr *ir_instr = &block->ir_buf[ir_i];
-		asrt(IR_OPCODE_GROUP(ir_instr->opcode) != IR_GROUP_INVALID,
-			io_str(u"Invalid IR opcode generated.");
+		auto ir_instr = (ir_raw_instr*)&block->ir_buf[ir_i];
+		asrt(ir_instr->opcode != IR_INVALID_OPCODE,
+			io_str(u"Invalid IR opcode generated at index");
 			io_i64(ir_i);
+			io_str(u"Out of:");
+			io_i64(block->ir_cnt);
+			printf("Opcode: %u\n", ir_instr->opcode);
 		);
 
 		mte_raw_instr tar_instr = 

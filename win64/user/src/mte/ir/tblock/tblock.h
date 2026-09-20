@@ -12,14 +12,15 @@
 /*
  	A structure that holds code translation information
 */
-typedef struct _align(8) _tblock{
+typedef struct _align(64) _tblock{
 	const enum tblock_type : u8{
 		TBLOCK_BIG = 3, // Shift multiplier TBLOCK_SIZE*8
 		TBLOCK_SMALL = 1, // Shift multiplier TBLOCK_SIZE*2
 	} type;
-	u16		ir_cnt; // Count of instructions in 'ir_buf'
+
+	u16		ir_cnt; // Count of instructions written to 'ir_buf.ptr'
 	const u32	ir_buf_len; // Length of the 'ir_buf'
-	ir_raw_instr	*ir_buf; // Heap buffer for translated instructions
+	ir_raw_instr 	*const ir_buf;
 
 	/*
 	 	Each bit of the u16 represents the 16-byte aligned block,
@@ -66,7 +67,7 @@ typedef struct _align(8) _tblock{
 			frag {16 bytes} -> 16 times
 		}
 */
-_inline_force u32 tblock_frag_calc(
+inline u32 _tblock_frag_calc(
 	_in enum tblock_type type
 ){
 	return ((TBLOCK_SIZE << type) / sizeof(ir_raw_instr));

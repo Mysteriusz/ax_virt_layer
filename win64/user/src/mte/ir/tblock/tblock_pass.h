@@ -7,7 +7,7 @@
 	struct ir_context_desc *const _TBLOCK_DESC = &ir->desc; \
 	u16 _TBLOCK_PASS_IDX = 0; \
 	tblock *const _TBLOCK_PASS_BLOCK = block; \
-	u8 *_TBLOCK_CODE_PTR = _TBLOCK_DESC->code_base.ptr; \
+	u8 *_TBLOCK_CODE_PTR = (u8*)_TBLOCK_DESC->code_base.ptr; \
 	u8 *const _TBLOCK_CODE_PTR_CEIL = offp(_TBLOCK_DESC->code_base.ptr, TBLOCK_SIZE << block->type); \
 	const u32 _TBLOCK_FRAG = (TBLOCK_SIZE << block->type) / sizeof(ir_raw_instr);
 

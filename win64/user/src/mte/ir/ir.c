@@ -80,11 +80,11 @@ _inline_avert axres ir_create(
 	// Create temporary IR context
 	ir_context temp_ir = (ir_context){
 		.desc = {
-			.code_base = (const struct ir_bin_buffer){
+			.code_base = (ir_const_buffer){
 				.ptr = code_buf,
 				.size = code_size,
 			},
-			.gen_base = (const struct ir_bin_buffer){
+			.gen_base = (ir_const_buffer){
 				.ptr = gen_buf,
 				.size = gen_size,
 			},

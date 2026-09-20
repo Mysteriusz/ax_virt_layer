@@ -33,13 +33,23 @@ void perf_measure_tsc(){
 	__inl_perf_tsc_freq = ((double)(tsc_end - tsc_start) / qpc_seconds) / 1e+6;
 }
 
+WINAPI DWORD perf_measure_cpu_stress(){
+	volatile u32 i = 0;
+	while(i++ < 100000);
+	return 0;
+};
+
 void perf_measure_cpu(){
+	DWORD id = 0;
+	HANDLE thread = CreateThread(nullptr, 0, (void*)perf_measure_cpu_stress, nullptr, CREATE_SUSPENDED, &id);
+	SetThreadAffinityMask(thread, 1);
+
 	PDH_HQUERY query;
 	PDH_HCOUNTER base_freq_counter;
 	PDH_STATUS stat;
 
 	PDH_FMT_COUNTERVALUE base_freq;
-	
+
 	stat = PdhOpenQueryA(NULL, 0, &query);
 	asrt(stat == ERROR_SUCCESS);
 
@@ -49,7 +59,8 @@ void perf_measure_cpu(){
 
 	PdhCollectQueryData(query);
 	
-	Sleep(100); 
+	ResumeThread(thread);
+	WaitForSingleObject(thread, INFINITE);
 	
 	stat = PdhCollectQueryData(query);
 	asrt(stat == ERROR_SUCCESS);
@@ -58,6 +69,7 @@ void perf_measure_cpu(){
 	asrt(stat == ERROR_SUCCESS);
 	
 	PdhCloseQuery(query);
+	CloseHandle(thread);
 
 	__inl_perf_cpu_freq = base_freq.doubleValue;
 }

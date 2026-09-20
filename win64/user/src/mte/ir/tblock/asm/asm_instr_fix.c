@@ -35,7 +35,7 @@ void asm_fill_assoc(
 		/*
 		 	Reuse the register
 		*/
-		if ((*assoc)[ir_reg->id].used == true){
+		if (_ir_reg_assoc_used((*assoc)[ir_reg->id])){
 			return;
 		}
 
@@ -50,16 +50,15 @@ void asm_fill_assoc(
 			based on the 'asm_alloc_reg' return value encoding
 		*/
 		u8 alloc_id = (alloc & (alloc >> 8)) & 0xff;
-		bool spill = alloc >> 8 != 0xff;
+		bool is_spill = alloc >> 8 != 0xff;
 
 		/*
 			TODO: Support spilling
 		*/
-		asrt(!spill, ax_log_msg(AX_NOT_IMP,
+		asrt(!is_spill, ax_log_msg(AX_NOT_IMP,
 			u"Register spilling not supported."));
 
-		(*assoc)[ir_reg->id].spill = spill;
-		(*assoc)[ir_reg->id].used = true;
+		(*assoc)[ir_reg->id].flags = _ir_reg_assoc_flags(true, is_spill);
 		(*assoc)[ir_reg->id].id = alloc_id;
 	}
 }
@@ -133,7 +132,7 @@ u32 asm_expand_instr(
 
 	switch(tar_isa){
 	case MTE_ISA_TWO_OP:
-		if (__builtin_expect(buf_len == 1, false)){
+		if (__builtin_expect(buf_len <= 1, false)){
 			asrt(0, ax_log_msg(AX_BUF_TOO_SMALL,
 				u"Not enough space left in the buffer for instruction fix."));
 		}
@@ -143,7 +142,7 @@ u32 asm_expand_instr(
 			or the opcode doesn`t require non dest/src operands
 		*/
 
-		if (!(set->ops[0].id == set->ops[1].id || ir_instr->opcode & IR_DEST_NEQ_SRC)){
+		if (set->ops[0].id != set->ops[1].id && !(IR_OPCODE_FLAGS(ir_instr->opcode) & IR_DEST_NEQ_SRC)){
 			/*
 			 	Create a MOV instruction based on the current opcode
 
@@ -233,8 +232,7 @@ void asm_flush_by_liveness(
 		 	Cleanup the register assoc entry
 		*/
 		(*assoc)[reg_id].id = 0;
-		(*assoc)[reg_id].used = false;
-		(*assoc)[reg_id].spill = false;
+		(*assoc)[reg_id].flags = 0;
 
 		/*
 		 	Cleanup the register state entry

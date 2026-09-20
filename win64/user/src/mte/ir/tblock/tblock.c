@@ -3,7 +3,7 @@
 #include "tblock.h"
 #include "tblock_pass.h"
 
-_free tblock* tblock_alloc(
+_free _inline_avert tblock* tblock_alloc(
 	_in const enum tblock_type 	type
 ){
 	/*
@@ -23,8 +23,8 @@ _free tblock* tblock_alloc(
 
 	out->ir_cnt = 0;
 
-	*(u32*)&out->ir_buf_len = tblock_frag_calc(type);
-	*(ir_raw_instr**)&out->ir_buf = axmalloc(tblock_frag_calc(type));
+	*(u32*)&out->ir_buf_len = KIB(4) / sizeof(ir_raw_instr);
+	*(ir_raw_instr**)&out->ir_buf = axmalloc(KIB(4));
 	*(enum tblock_type*)&out->type = type;
 
 	return out;
@@ -74,6 +74,7 @@ __INL_PERF_END;
 
 	double r3 = __INL_PERF_SUM * _inl_perf_cpu_tsc_ratio();
 
+	printf("CPU Frequency: %lf\n", _inl_perf_cpu_freq());
 	printf("IR instructions generated: %u\n", block->ir_cnt);
 	printf("Liveness pass in: %lf ns\n", r1 / (_inl_perf_cpu_freq() / 1000));
 	printf("Raw to ir pass in: %lf ns\n", r2 / (_inl_perf_cpu_freq() / 1000));
