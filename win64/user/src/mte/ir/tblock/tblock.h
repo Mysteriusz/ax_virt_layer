@@ -18,9 +18,8 @@ typedef struct _align(64) _tblock{
 		TBLOCK_SMALL = 1, // Shift multiplier TBLOCK_SIZE*2
 	} type;
 
-	u16		ir_cnt; // Count of instructions written to 'ir_buf.ptr'
-	const u32	ir_buf_len; // Length of the 'ir_buf'
-	ir_raw_instr 	*const ir_buf;
+	u16				ir_cnt; // Count of instructions written to 'ir_buf.ptr'
+	__IR_DATA_BUFFER(ir_raw_instr) 	ir_buf;
 
 	/*
 	 	Each bit of the u16 represents the 16-byte aligned block,
@@ -31,11 +30,11 @@ typedef struct _align(64) _tblock{
 	*/
 	asm_reg_liveness	liveness[IR_REG_LIMIT];
 	/*
-	 	Associations between org (guest) and tar (host) registers.
+	 	Associations between guest (guest) and host (host) registers.
 	*/
 	asm_reg_assoc		assoc[IR_SPILL_REG_LIMIT];
 	/*
-	 	States of individual org (guest) registers
+	 	States of individual guest (guest) registers
 	*/
 	asm_reg_state		state[IR_SPILL_REG_LIMIT];
 } tblock;
@@ -72,6 +71,9 @@ inline u32 _tblock_frag_calc(
 ){
 	return ((TBLOCK_SIZE << type) / sizeof(ir_raw_instr));
 }
+
+#define TBLOCK_IR_BUFFER_SIZE KIB(4)
+static_asrt(divide_compatible(TBLOCK_IR_BUFFER_SIZE, sizeof(ir_raw_instr)));
 
 tblock* tblock_alloc(
 	_in const enum tblock_type 	type

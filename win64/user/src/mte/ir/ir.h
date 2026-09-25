@@ -9,11 +9,16 @@
 #include "mte/cpu.h"
 #include "mte/core.h"
 
-#include "ir_instr.h"
+#include "mte/ir/ir_instr.h"
 
-#define IR_VER		*(u64*)"0.01"
+#define IR_LATEST		*(u64*)"0.01"
 
 typedef struct _ir_context ir_context;
+
+#define __IR_DATA_BUFFER(type) struct{ \
+	const u32 capacity; \
+	type *const base; \
+}
 
 /*
 
@@ -21,26 +26,26 @@ typedef struct _ir_context ir_context;
 
 */
 
-// Translate org (guest) asm to IR
-typedef ir_raw_instr (*const org_to_ir_call)(
+// Translate guest (guest) asm to IR
+typedef ir_raw_instr (*const guest_to_ir_call)(
 	_in mte_raw_instr 	instr,
 	_in ir_context 		*ctx,
 	_out u8			*len // Original instruction length (in bytes)
 );
-static ir_raw_instr _invalid_org_to_ir_call(
+static ir_raw_instr _invalid_guest_to_ir_call(
 	...
 ){
 	io_str(u"Invalid guest to ir call");
 	exit(1);
 }
 
-// Translate IR to tar (host) asm
-typedef mte_raw_instr (*const ir_to_tar_call)(
+// Translate IR to host (host) asm
+typedef mte_raw_instr (*const ir_to_host_call)(
 	_in ir_raw_instr 	instr,
 	_in ir_context 		*ctx,
 	_out u8			*len // Target instruction length (in bytes)
 );
-static mte_raw_instr _invalid_ir_to_tar_call(
+static mte_raw_instr _invalid_ir_to_host_call(
 	...
 ){
 	io_str(u"Invalid ir to host call");
@@ -48,22 +53,17 @@ static mte_raw_instr _invalid_ir_to_tar_call(
 }
 
 // Fetch all register id`s from (guest) instruction 
-typedef ir_operand_set (*const org_reg_fetch_call)(
+typedef ir_operand_set (*const guest_reg_fetch_call)(
 	_in mte_raw_instr 	instr,
 	_in ir_context 		*ctx,
 	_out u8			*len
 );
-static ir_operand_set _invalid_org_reg_fetch_call(
+static ir_operand_set _invalid_guest_reg_fetch_call(
 	...
 ){
 	io_str(u"Invalid guest register fetch call");
 	exit(1);
 }
-
-typedef struct _ir_const_buffer{
-	const u8	*ptr;
-	const u64	size;
-} const ir_const_buffer;
 
 #define IR_SPILL_LIMIT 0x100
 #define IR_REG_LIMIT 0x100
@@ -71,43 +71,44 @@ typedef struct _ir_const_buffer{
 struct ir_context_desc{
 	// Cache line
 
-	ir_const_buffer 	code_base;
-	ir_const_buffer 	gen_base;
+	__IR_DATA_BUFFER(u8) 	guest;
+	__IR_DATA_BUFFER(u8) 	host;
 
-	u8				*code_ptr;
-	u8				*gen_ptr;
+	u8 			*guest_ptr;
+	u8 			*host_ptr;
 
-	struct cpu_reg_map 		*const org_map;
-	struct cpu_reg_map 		*const tar_map;
+	struct cpu_reg_map 		*const guest_map;
+	struct cpu_reg_map 		*const host_map;
 	
 	// Cache line
 
 	const struct _align(64){
 		/*
 		 	TODO:
-				tar_reg_fetch_call 	; Translate registers from tar (host) to IR representation
+				host_reg_fetch_call 	; Translate registers from host (host) to IR representation
 		*/
-		org_to_ir_call 		org_to_ir;
-		ir_to_tar_call 		ir_to_tar;
-		org_reg_fetch_call 	org_reg_fetch;
+		guest_to_ir_call 		guest_to_ir;
+		ir_to_host_call 	ir_to_host;
+		guest_reg_fetch_call 	guest_reg_fetch;
 	} call;
 
 	// Cache line
 
-	const enum mte_arch 		org_arch;
-	const enum mte_arch 		tar_arch;
+	const enum mte_arch 		guest_arch;
+	const enum mte_arch 		host_arch;
 };
+static_asrt(divide_compatible(sizeof(struct ir_context_desc), 64));
 
 typedef struct _ir_context{
-	const u64 		version; // Ex: 0.01\0, 123.45\0
-	_Atomic bool 		blocked;
 	struct ir_context_desc 	desc;
+	const u64 		version; // IR_BASE_VERSION
+	_Atomic bool 		blocked;
 } ir_context;
 
 _inline_avert axres ir_create(
 	_in const u64 		version,
-	_in const enum mte_arch org_arch,
-	_in const enum mte_arch tar_arch,
+	_in const enum mte_arch guest_arch,
+	_in const enum mte_arch host_arch,
 	_in const u64 		code_size,
 	_in const u64 		gen_size,
 	_out ir_context		**buf
@@ -117,10 +118,10 @@ _inline_avert void ir_delete(
 	_in ir_context 		*ir
 );
 
-org_to_ir_call arch_org_to_ir(
+guest_to_ir_call arch_guest_to_ir(
 	_in enum mte_arch 	arch
 );
-ir_to_tar_call arch_ir_to_tar(
+ir_to_host_call arch_ir_to_host(
 	_in enum mte_arch 	arch
 );
 

@@ -22,8 +22,8 @@ void asm_fill_assoc(
 
 	u8 idx = ir_instr->set.ops[0].id == ir_instr->set.ops[1].id
 		? 1 : 0;
-	struct cpu_reg_map *org_map = ir->desc.org_map;
-	struct cpu_reg_map *tar_map = ir->desc.tar_map;
+	struct cpu_reg_map *guest_map = ir->desc.guest_map;
+	struct cpu_reg_map *host_map = ir->desc.host_map;
 
 	/*
 	 	Iterate over the entire instruction operand set
@@ -39,11 +39,11 @@ void asm_fill_assoc(
 			return;
 		}
 
-		// Role of the org (Guest) register
-		enum cpu_reg_role org_role = org_map->root[ir_reg->id].role;
+		// Role of the guest (Guest) register
+		enum cpu_reg_role guest_role = guest_map->root[ir_reg->id].role;
 
-		// Allocate tar (Host) the register/spill
-		u16 alloc = asm_alloc_reg(tar_map, org_role, state);
+		// Allocate host (Host) the register/spill
+		u16 alloc = asm_alloc_reg(host_map, guest_role, state);
 
 		/*
 			Calculate the effective id and spill 
@@ -79,14 +79,14 @@ void asm_fix_instr(
 	}
 
 	for (u8 i = 0; i < ir_instr->set.ops_count; i++){
-		// Load org (Guest) register id that`s currently stored in the IR
-		u8 org_id = ir_instr->set.ops[i].id;
+		// Load guest (Guest) register id that`s currently stored in the IR
+		u8 guest_id = ir_instr->set.ops[i].id;
 
-		// Load tar (Host) register id that`s associated to 'org_id'
-		u8 tar_id = (*assoc)[org_id].id;
+		// Load host (Host) register id that`s associated to 'guest_id'
+		u8 host_id = (*assoc)[guest_id].id;
 
-		// Swap the org (Guest) register id to tar (Host) register id
-		ir_instr->set.ops[i].id = tar_id;
+		// Swap the guest (Guest) register id to host (Host) register id
+		ir_instr->set.ops[i].id = host_id;
 	}
 }
 
@@ -114,8 +114,8 @@ u32 asm_expand_instr(
 			u"Instruction pointer cannot be equal to the instruction buffer"));
 	}
 
-	u8 org_isa = MTE_ARCH_ISA_FORM(ir->desc.org_arch);
-	u8 tar_isa = MTE_ARCH_ISA_FORM(ir->desc.tar_arch);
+	u8 guest_isa = MTE_ARCH_ISA_FORM(ir->desc.guest_arch);
+	u8 host_isa = MTE_ARCH_ISA_FORM(ir->desc.host_arch);
 
 	u8 count = 0;
 
@@ -123,14 +123,14 @@ u32 asm_expand_instr(
 	 	Best case scenario that ISA forms are the same
 		and there is no need for expansion
 	*/
-	if (org_isa == tar_isa){
+	if (guest_isa == host_isa){
 		buf[0] = *ir_instr;
 		return 1;
 	}
 
 	const ir_operand_set *set = &ir_instr->set;
 
-	switch(tar_isa){
+	switch(host_isa){
 	case MTE_ISA_TWO_OP:
 		if (__builtin_expect(buf_len <= 1, false)){
 			asrt(0, ax_log_msg(AX_BUF_TOO_SMALL,
@@ -215,18 +215,18 @@ void asm_flush_by_liveness(
 	}
 
 	const u16 block_bit = BIT(liveness_block_idx);
-	struct cpu_reg_map *org_map = ir->desc.org_map; 
+	struct cpu_reg_map *guest_map = ir->desc.guest_map; 
 
 	/*
 	 	Iterate over all registers in the assoc and clear them
 	*/
-	for(u8 i = 0; i < org_map->reg_count; i++){
+	for(u8 i = 0; i < guest_map->reg_count; i++){
 		bool alive = (*liveness)[i] & block_bit;
 		if (alive){
 			continue;
 		}
 
-		u8 reg_id = org_map->root[i].id;
+		u8 reg_id = guest_map->root[i].id;
 
 		/*
 		 	Cleanup the register assoc entry

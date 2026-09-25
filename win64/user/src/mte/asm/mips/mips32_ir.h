@@ -17,7 +17,7 @@ ir_raw_instr mips32_to_ir(
 	_in ir_context		*ctx,
 	_out u8			*len
 );
-mte_raw_instr mips32_to_tar(
+mte_raw_instr mips32_to_host(
 	_in mte_raw_instr	instr,
 	_in ir_context		*ctx,
 	_out u8			*len

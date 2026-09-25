@@ -1,4 +1,4 @@
-#include "tblock.h"
+#include "mte/ir/tblock/tblock.h"
 
 void tblock_liveness_log(
 	_in ir_context 	*const ir,
@@ -6,8 +6,8 @@ void tblock_liveness_log(
 ){
 	struct ir_context_desc *const desc = &ir->desc;
 
-	for (u16 i = 0; i < desc->org_map->reg_count; i++){
-		u8 id = desc->org_map->root[i].id;
+	for (u16 i = 0; i < desc->guest_map->reg_count; i++){
+		u8 id = desc->guest_map->root[i].id;
 		io_str(u"Guest liveness for id:");
 		io_i64(id);
 
@@ -39,8 +39,8 @@ void tblock_assoc_log(
 ){
 	struct ir_context_desc *const desc = &ir->desc;
 
-	for (u16 i = 0; i < desc->org_map->reg_count; i++){
-		u8 id = desc->org_map->root[i].id;
+	for (u16 i = 0; i < desc->guest_map->reg_count; i++){
+		u8 id = desc->guest_map->root[i].id;
 		io_str(u"Register association for id:");
 		io_i64(id);
 

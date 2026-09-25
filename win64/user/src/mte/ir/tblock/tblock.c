@@ -1,7 +1,7 @@
 #include "mte/perf.h"
 
-#include "tblock.h"
-#include "tblock_pass.h"
+#include "mte/ir/tblock/tblock.h"
+#include "mte/ir/tblock/tblock_pass.h"
 
 _free _inline_avert tblock* tblock_alloc(
 	_in const enum tblock_type 	type
@@ -23,8 +23,9 @@ _free _inline_avert tblock* tblock_alloc(
 
 	out->ir_cnt = 0;
 
-	*(u32*)&out->ir_buf_len = KIB(4) / sizeof(ir_raw_instr);
-	*(ir_raw_instr**)&out->ir_buf = axmalloc(KIB(4));
+	*(ir_raw_instr**)&out->ir_buf.base = axmalloc(TBLOCK_IR_BUFFER_SIZE);
+	*(u32*)&out->ir_buf.capacity = TBLOCK_IR_BUFFER_SIZE / sizeof(ir_raw_instr);
+
 	*(enum tblock_type*)&out->type = type;
 
 	return out;
@@ -80,6 +81,7 @@ __INL_PERF_END;
 	printf("Raw to ir pass in: %lf ns\n", r2 / (_inl_perf_cpu_freq() / 1000));
 	printf("IR to raw pass in: %lf ns\n", r3 / (_inl_perf_cpu_freq() / 1000));
 	printf("Time sum: %lf ns\n", (r1 + r2 + r3) / (_inl_perf_cpu_freq() / 1000));
+	printf("\n");
 
 	return true;
 }

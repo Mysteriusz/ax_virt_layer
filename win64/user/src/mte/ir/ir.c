@@ -20,48 +20,48 @@ static struct cpu_reg_map *_arch_to_map(
 		return nullptr;
 	}
 }
-org_to_ir_call arch_org_to_ir(
+guest_to_ir_call arch_guest_to_ir(
 	_in enum mte_arch 	arch
 ){
 	switch(arch){
 	case MIPS32:
-		return (org_to_ir_call)mips32_to_ir;
+		return (guest_to_ir_call)mips32_to_ir;
 	case INTEL64:
-		return (org_to_ir_call)_invalid_org_to_ir_call;
+		return (guest_to_ir_call)_invalid_guest_to_ir_call;
 	default:
-		return (org_to_ir_call)_invalid_org_to_ir_call;
+		return (guest_to_ir_call)_invalid_guest_to_ir_call;
 	}
 }
-ir_to_tar_call arch_ir_to_tar(
+ir_to_host_call arch_ir_to_host(
 	_in enum mte_arch 	arch
 ){
 	switch(arch){
 	case MIPS32:
-		return (ir_to_tar_call)_invalid_ir_to_tar_call;
+		return (ir_to_host_call)_invalid_ir_to_host_call;
 	case INTEL64:
-		return (ir_to_tar_call)i64_ir_to_raw;
+		return (ir_to_host_call)i64_ir_to_raw;
 	default:
-		return (ir_to_tar_call)_invalid_ir_to_tar_call;
+		return (ir_to_host_call)_invalid_ir_to_host_call;
 	}
 }
-org_reg_fetch_call arch_org_reg_fetch(
+guest_reg_fetch_call arch_guest_reg_fetch(
 	_in enum mte_arch 	arch
 ){
 	switch(arch){
 	case MIPS32:
-		return (org_reg_fetch_call)mips32_reg_fetch;
+		return (guest_reg_fetch_call)mips32_reg_fetch;
 	case INTEL64:
-		return (org_reg_fetch_call)_invalid_org_reg_fetch_call;
+		return (guest_reg_fetch_call)_invalid_guest_reg_fetch_call;
 	default:
-		return (org_reg_fetch_call)_invalid_org_reg_fetch_call;
+		return (guest_reg_fetch_call)_invalid_guest_reg_fetch_call;
 	}
 }
 
 #include <ax_utility.h>
 _inline_avert axres ir_create(
 	_in const u64 		version,
-	_in const enum mte_arch org_arch,
-	_in const enum mte_arch tar_arch,
+	_in const enum mte_arch guest_arch,
+	_in const enum mte_arch host_arch,
 	_in const u64 		code_size,
 	_in const u64 		gen_size,
 	_out ir_context		**buf
@@ -80,29 +80,29 @@ _inline_avert axres ir_create(
 	// Create temporary IR context
 	ir_context temp_ir = (ir_context){
 		.desc = {
-			.code_base = (ir_const_buffer){
-				.ptr = code_buf,
-				.size = code_size,
+			.guest = {
+				.base = code_buf,
+				.capacity = code_size,
 			},
-			.gen_base = (ir_const_buffer){
-				.ptr = gen_buf,
-				.size = gen_size,
+			.host = {
+				.base = gen_buf,
+				.capacity = gen_size,
 			},
 
-			.code_ptr = code_buf,
-			.gen_ptr = gen_buf,
+			.guest_ptr = code_buf,
+			.host_ptr = gen_buf,
 
-			.org_map = _arch_to_map(org_arch),
-			.tar_map = _arch_to_map(tar_arch),
+			.guest_map = _arch_to_map(guest_arch),
+			.host_map = _arch_to_map(host_arch),
 
 			.call = {
-				.org_to_ir = arch_org_to_ir(org_arch),
-				.ir_to_tar = arch_ir_to_tar(tar_arch),
-				.org_reg_fetch = arch_org_reg_fetch(org_arch),
+				.guest_to_ir = arch_guest_to_ir(guest_arch),
+				.ir_to_host = arch_ir_to_host(host_arch),
+				.guest_reg_fetch = arch_guest_reg_fetch(guest_arch),
 			},
 
-			.org_arch = org_arch,
-			.tar_arch = tar_arch,
+			.guest_arch = guest_arch,
+			.host_arch = host_arch,
 		},
 		.blocked = false,
 		.version = version,
@@ -114,14 +114,14 @@ _inline_avert axres ir_create(
 	/*
 	 	Prefetch and check if correct by calling each function
 	*/
-	if ((u64)ir->desc.call.org_to_ir != (u64)_invalid_org_to_ir_call){
-		ir->desc.call.org_to_ir((mte_raw_instr){0}, nullptr, nullptr);
+	if ((u64)ir->desc.call.guest_to_ir != (u64)_invalid_guest_to_ir_call){
+		ir->desc.call.guest_to_ir((mte_raw_instr){0}, nullptr, nullptr);
 	}
-	if ((u64)ir->desc.call.ir_to_tar != (u64)_invalid_ir_to_tar_call){
-		ir->desc.call.ir_to_tar((ir_raw_instr){0}, nullptr, nullptr);
+	if ((u64)ir->desc.call.ir_to_host != (u64)_invalid_ir_to_host_call){
+		ir->desc.call.ir_to_host((ir_raw_instr){0}, nullptr, nullptr);
 	}
-	if ((u64)ir->desc.call.org_reg_fetch != (u64)_invalid_org_reg_fetch_call){
-		ir->desc.call.org_reg_fetch((mte_raw_instr){0}, nullptr, nullptr);
+	if ((u64)ir->desc.call.guest_reg_fetch != (u64)_invalid_guest_reg_fetch_call){
+		ir->desc.call.guest_reg_fetch((mte_raw_instr){0}, nullptr, nullptr);
 	}
 
 	*buf = ir;

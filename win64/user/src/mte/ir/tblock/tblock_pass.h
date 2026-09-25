@@ -1,23 +1,24 @@
 #if !defined(MTE_TBLOCK_PASS_INT)
 #define MTE_TBLOCK_PASS_INT
 
-#include "tblock.h"
+#include "mte/ir/tblock/tblock.h"
 
 #define __TBLOCK_PASS_INIT(ir, block) \
 	struct ir_context_desc *const _TBLOCK_DESC = &ir->desc; \
 	u16 _TBLOCK_PASS_IDX = 0; \
-	tblock *const _TBLOCK_PASS_BLOCK = block; \
-	u8 *_TBLOCK_CODE_PTR = (u8*)_TBLOCK_DESC->code_base.ptr; \
-	u8 *const _TBLOCK_CODE_PTR_CEIL = offp(_TBLOCK_DESC->code_base.ptr, TBLOCK_SIZE << block->type); \
+	tblock *const _TBLOCK = block; \
+	u8 *_TBLOCK_GUEST_PTR = _TBLOCK_DESC->guest_ptr; \
+	u8 *_TBLOCK_GUEST_PTR_CEIL = offp(_TBLOCK_GUEST_PTR, TBLOCK_SIZE << block->type); \
 	const u32 _TBLOCK_FRAG = (TBLOCK_SIZE << block->type) / sizeof(ir_raw_instr);
 
 #define __TBLOCK_PASS_LOOP(pass_len, ...) ({ \
 	/* Check if code_ptr exceeds the tblock bounds */ \
-	while(_TBLOCK_CODE_PTR < _TBLOCK_CODE_PTR_CEIL){ \
+	while(_TBLOCK_GUEST_PTR < _TBLOCK_GUEST_PTR_CEIL){ \
 		__VA_ARGS__ \
 		/* Calculate new offset */ \
-		_TBLOCK_CODE_PTR = offp(_TBLOCK_CODE_PTR, pass_len); \
+		_TBLOCK_GUEST_PTR = offp(_TBLOCK_GUEST_PTR, pass_len); \
 		_TBLOCK_PASS_IDX++; \
+		asrt(pass_len > 0); \
 	} \
 })
 
@@ -37,7 +38,7 @@ struct tblock_pass_result tblock_liveness_scan(
 );
 
 /*
- 	Converts tar (guest) to IR instructions.
+ 	Converts host (guest) to IR instructions.
 */
 struct tblock_pass_result tblock_raw_to_ir(
 	_in ir_context	*const ir,
@@ -45,7 +46,7 @@ struct tblock_pass_result tblock_raw_to_ir(
 );
 
 /*
- 	Converts IR to tar (host) instructions.
+ 	Converts IR to host (host) instructions.
 */
 struct tblock_pass_result  tblock_ir_to_raw(
 	_in_out ir_context	*const ir,

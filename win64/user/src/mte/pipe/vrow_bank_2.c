@@ -2,7 +2,7 @@
 
 bool vrow_bank_2_proc(
 	_in vrow_desc		*vrow,
-	_in ir_to_tar_call	func
+	_in ir_to_host_call	func
 ){
 	if (vrow == nullptr
 	|| func == nullptr){

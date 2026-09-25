@@ -1,9 +1,9 @@
 #include "asm/asm_types.h"
 #include "asm/asm_instr_fix.h"
 
-#include "tblock.h"
-#include "tblock_pass.h"
-#include "tblock_debug.h"
+#include "mte/ir/tblock/tblock.h"
+#include "mte/ir/tblock/tblock_pass.h"
+#include "mte/ir/tblock/tblock_debug.h"
 
 struct tblock_pass_result tblock_liveness_scan(
 	_in ir_context	*const ir,
@@ -16,7 +16,7 @@ struct tblock_pass_result tblock_liveness_scan(
 		return (struct tblock_pass_result){.res = AX_INV_ARG};
 	}
 
-	u8 org_len = 0; // Byte length of the instruction itself
+	u8 guest_len = 0; // Byte length of the instruction itself
 	u8 blk_i = 0; // 0-15 index of the block
 	u32 bytes = 0; // Bytes already passed
 
@@ -42,26 +42,25 @@ struct tblock_pass_result tblock_liveness_scan(
 			liveness[reg_0] & BIT(blk_i) = true
 			liveness[reg_1] & BIT(blk_i) = true
 	*/
-	__TBLOCK_PASS_LOOP(org_len,
+	__TBLOCK_PASS_LOOP(guest_len,
 		u16 blk_shift = BIT(blk_i);
 
 		/*
 		 	Load instruction with code data
 		*/
 		mte_raw_instr raw_instr = {
-			.arch = _TBLOCK_DESC->org_arch,
+			.arch = _TBLOCK_DESC->guest_arch,
 		};
-		memcpy(raw_instr.payload, _TBLOCK_CODE_PTR, 16);
+		memcpy(raw_instr.payload, _TBLOCK_GUEST_PTR, 16);
 	
 		/*
 		 	Determine registers used, 
 			and byte length of this instruction
 		*/
 		ir_operand_set set = 
-			_TBLOCK_DESC->call.org_reg_fetch(
-				raw_instr,
-				ir,
-				&org_len
+			_TBLOCK_DESC->call.guest_reg_fetch(
+				raw_instr, ir,
+				&guest_len
 			);
 
 		/*
@@ -74,14 +73,14 @@ struct tblock_pass_result tblock_liveness_scan(
 				continue;
 			}
 
-			_TBLOCK_PASS_BLOCK->liveness[op.id] |= blk_shift;
+			_TBLOCK->liveness[op.id] |= blk_shift;
 		}
 
 		/*
 			Add bytes of the instruction,
 			and calculate current block
 		*/
-		bytes += org_len;
+		bytes += guest_len;
 		blk_i = bytes / _TBLOCK_FRAG;
 	);
 
@@ -102,7 +101,7 @@ struct tblock_pass_result tblock_raw_to_ir(
 	 	Association table is updated on every block
 	*/
 
-	u8 org_len = 0;
+	u8 guest_len = 0;
 
 	u8 blk_i = 0; // 0-15 index of the block
 	u8 next_blk_i = 0; // 0-15 index of the next block
@@ -112,52 +111,52 @@ struct tblock_pass_result tblock_raw_to_ir(
 	__TBLOCK_PASS_INIT(ir, block);
 	unref(_TBLOCK_PASS_IDX);
 
-	__TBLOCK_PASS_LOOP(org_len,
+	__TBLOCK_PASS_LOOP(guest_len,
 		/*
 		 	Load instruction with code data
 		*/
 		mte_raw_instr raw_instr = {
-			.arch = _TBLOCK_DESC->org_arch,
+			.arch = _TBLOCK_DESC->guest_arch,
 		};
-		memcpy(raw_instr.payload, _TBLOCK_CODE_PTR, 16);
+		memcpy(raw_instr.payload, _TBLOCK_GUEST_PTR, 16);
 
 		/*
-		 	Convert org (guest) instruction to IR
+		 	Convert guest instruction to IR
 		*/
 		ir_raw_instr ir_instr = 
-			_TBLOCK_DESC->call.org_to_ir(
+			_TBLOCK_DESC->call.guest_to_ir(
 				raw_instr, ir,
-				&org_len);
+				&guest_len);
 		if (__builtin_expect(ir_instr.opcode == IR_INVALID_OPCODE, false)){
 			goto skip;
 		}
 
 		/*
 		 	Fill associations for the current state
-			(Allocate registers for the tar (Host) cpu)
+			(Allocate registers for the host cpu)
 		*/
 		asm_fill_assoc(ir, &ir_instr, 
-			&_TBLOCK_PASS_BLOCK->assoc,
-			&_TBLOCK_PASS_BLOCK->state);
+			&_TBLOCK->assoc,
+			&_TBLOCK->state);
 
 		/*
 		 	Fix the instruction given association
 		*/
 		asm_fix_instr(ir, &ir_instr,
-			&_TBLOCK_PASS_BLOCK->assoc);
+			&_TBLOCK->assoc);
 
 
 		/*
 		 	Expand and save the IR instruction to the IR buffer
 		*/
 		u32 expanded = asm_expand_instr(ir, &ir_instr,
-			_TBLOCK_PASS_BLOCK->ir_buf_len - _TBLOCK_PASS_BLOCK->ir_cnt,
-			&_TBLOCK_PASS_BLOCK->ir_buf[_TBLOCK_PASS_BLOCK->ir_cnt]);
-		_TBLOCK_PASS_BLOCK->ir_cnt += expanded;
+			_TBLOCK->ir_buf.capacity - _TBLOCK->ir_cnt,
+			&_TBLOCK->ir_buf.base[_TBLOCK->ir_cnt]);
+		_TBLOCK->ir_cnt += expanded;
 
 skip: // TEMP
 		// Calculate byte offset and block index
-		bytes += org_len;
+		bytes += guest_len;
 		next_blk_i = bytes / _TBLOCK_FRAG;
 
 		/*
@@ -175,14 +174,14 @@ skip: // TEMP
 		*/
 		if (crossed){
 			asm_flush_by_liveness(ir, blk_i,
-				&_TBLOCK_PASS_BLOCK->liveness,
-				&_TBLOCK_PASS_BLOCK->assoc,
-				&_TBLOCK_PASS_BLOCK->state);
+				&_TBLOCK->liveness,
+				&_TBLOCK->assoc,
+				&_TBLOCK->state);
 			blk_i = next_blk_i;
 		}
 	);
 
-	return (struct tblock_pass_result){.count = _TBLOCK_PASS_BLOCK->ir_cnt, .res = AX_SUCC};
+	return (struct tblock_pass_result){.count = _TBLOCK->ir_cnt, .res = AX_SUCC};
 }
 
 struct tblock_pass_result tblock_ir_to_raw(
@@ -198,11 +197,11 @@ struct tblock_pass_result tblock_ir_to_raw(
 
 	struct ir_context_desc *const desc = &ir->desc;
 
-	u8 tar_len = 0;
+	u8 host_len = 0;
 	u32 ir_i = 0;
 
 	while(ir_i < block->ir_cnt){
-		auto ir_instr = (ir_raw_instr*)&block->ir_buf[ir_i];
+		auto ir_instr = (ir_raw_instr *const)&block->ir_buf.base[ir_i];
 		asrt(ir_instr->opcode != IR_INVALID_OPCODE,
 			io_str(u"Invalid IR opcode generated at index");
 			io_i64(ir_i);
@@ -211,11 +210,11 @@ struct tblock_pass_result tblock_ir_to_raw(
 			printf("Opcode: %u\n", ir_instr->opcode);
 		);
 
-		mte_raw_instr tar_instr = 
-			desc->call.ir_to_tar(
+		mte_raw_instr host_instr = 
+			desc->call.ir_to_host(
 				*ir_instr,
 				ir,
-				&tar_len);
+				&host_len);
 
 		/*
 			TODO!!!
@@ -223,9 +222,9 @@ struct tblock_pass_result tblock_ir_to_raw(
 			This is only temporary and should be removed due to the overhead
 			Maybe use SIMD?
 		*/
-		memcpy(desc->gen_ptr, tar_instr.payload, tar_len);
+		memcpy(desc->host_ptr, host_instr.payload, host_len);
 
-		desc->gen_ptr = offp(desc->gen_ptr, tar_len);
+		desc->host_ptr = offp(desc->host_ptr, host_len);
 		ir_i++;
 	}
 

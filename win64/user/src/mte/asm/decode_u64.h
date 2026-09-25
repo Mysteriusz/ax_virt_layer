@@ -13,7 +13,7 @@
 typedef struct _mte_u64_instr{
 	u32 			len;
 	u64 			*ptr;
-	u64 *const 		org;
+	u64 *const 		guest;
 } mte_u64_instr;
 
 static mte_u64_instr _str_to_u64(
@@ -25,7 +25,7 @@ static mte_u64_instr _str_to_u64(
 	u64 *buf = axmalloc((buf_len + 1) * sizeof(u64));
 	memcpy(buf, str, len);
 
-	return (mte_u64_instr){.org = buf, .ptr = buf, .len = buf_len};
+	return (mte_u64_instr){.guest = buf, .ptr = buf, .len = buf_len};
 }
 
 #define U64_BIT_LOW_MASK 	0x0101010101010101ULL
@@ -109,7 +109,7 @@ _inline_force void _u64_move(
 	if (*instr->ptr == 0) return;
 	instr->ptr = (u64*)(
 		((c8*)instr->ptr) + clamp(
-			n, (u64)addr_diff(instr->ptr, instr->org + instr->len)
+			n, (u64)addr_diff(instr->ptr, instr->guest + instr->len)
 		);
 }
 

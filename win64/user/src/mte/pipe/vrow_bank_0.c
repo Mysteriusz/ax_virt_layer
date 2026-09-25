@@ -2,7 +2,7 @@
 
 bool vrow_bank_0_proc(
 	_in vrow_desc		*vrow,
-	_in org_to_ir_call	func
+	_in guest_to_ir_call	func
 ){
 	if (vrow == nullptr
 	|| func == nullptr){

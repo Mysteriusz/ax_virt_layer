@@ -41,7 +41,7 @@ struct vrow_b0_payload{ _align(16)
 */
 bool vrow_bank_0_proc(
 	_in vrow_desc		*vrow,
-	_in org_to_ir_call	func
+	_in guest_to_ir_call	func
 );
 
 /*
@@ -58,7 +58,7 @@ bool vrow_bank_1_proc(
 */
 bool vrow_bank_2_proc(
 	_in vrow_desc		*vrow,
-	_in ir_to_tar_call	func
+	_in ir_to_host_call	func
 );
 
 #endif // !defined(MTE_VROW_BANK_INT)

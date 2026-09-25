@@ -7,7 +7,7 @@
 
 /*
 	Fill the association table
-	between org (Guest) and tar (Host) operands
+	between guest (Guest) and host (Host) operands
 */
 void asm_fill_assoc(
 	_in const ir_context 	*ir,
@@ -19,6 +19,10 @@ void asm_fill_assoc(
 /*
 	Fix instruction by swapping it`s operands based
 	on the associtation table filled by 'asm_fill_assoc'
+
+   	=======================	IMPORTANT =======================
+	After running this function, all operands in the 'ir_instr'
+	will be set to associated host (Host) id`s
 */
 void asm_fix_instr(
 	_in const ir_context 	*ir,

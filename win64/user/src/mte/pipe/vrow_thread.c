@@ -56,10 +56,10 @@ void *vrow_thread_main(
 	asrt(vrow_is_active(vrow, 0));
 
 	// Prefetch conversion data
-	org_to_ir_call b0_func = 
-		stack->ir->desc.call.org_to_ir;
-	ir_to_tar_call b2_func = 
-		stack->ir->desc.call.ir_to_tar;
+	guest_to_ir_call b0_func = 
+		stack->ir->desc.call.guest_to_ir;
+	ir_to_host_call b2_func = 
+		stack->ir->desc.call.ir_to_host;
 
 	// Main thread loop
 	while(!vrow_is_closed(vrow)){
