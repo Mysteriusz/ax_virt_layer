@@ -6,7 +6,7 @@
 #include "intel/i64_ir.h"
 #include "intel/i64_cpu.h"
 
-static struct cpu_reg_map *_arch_to_map(
+static const struct cpu_reg_map *_arch_to_map(
 	_in enum mte_arch 	arch
 ){
 	switch(arch){
@@ -14,7 +14,6 @@ static struct cpu_reg_map *_arch_to_map(
 		return &_MIPS32_CPU_REG_MAP;
 	case INTEL64:
 		i64_load_qtables();
-		i64_load_cpu_reg_map();
 		return &_I64_CPU_REG_MAP;
 	default:
 		return nullptr;
@@ -115,13 +114,13 @@ _inline_avert axres ir_create(
 	 	Prefetch and check if correct by calling each function
 	*/
 	if ((u64)ir->desc.call.guest_to_ir != (u64)_invalid_guest_to_ir_call){
-		ir->desc.call.guest_to_ir((mte_raw_instr){0}, nullptr, nullptr);
+		ir->desc.call.guest_to_ir(&(mte_raw_instr){0}, nullptr, nullptr);
 	}
 	if ((u64)ir->desc.call.ir_to_host != (u64)_invalid_ir_to_host_call){
-		ir->desc.call.ir_to_host((ir_raw_instr){0}, nullptr, nullptr);
+		ir->desc.call.ir_to_host(&(ir_raw_instr){0}, nullptr, nullptr);
 	}
 	if ((u64)ir->desc.call.guest_reg_fetch != (u64)_invalid_guest_reg_fetch_call){
-		ir->desc.call.guest_reg_fetch((mte_raw_instr){0}, nullptr, nullptr);
+		ir->desc.call.guest_reg_fetch(&(mte_raw_instr){0}, nullptr, nullptr);
 	}
 
 	*buf = ir;

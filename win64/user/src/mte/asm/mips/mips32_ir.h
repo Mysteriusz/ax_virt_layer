@@ -13,18 +13,18 @@ axres mips32_raw_to_ir(
  	Interface call for context based translation
 */
 ir_raw_instr mips32_to_ir(
-	_in mte_raw_instr	instr,	
+	_in mte_raw_instr	*instr,
 	_in ir_context		*ctx,
 	_out u8			*len
 );
 mte_raw_instr mips32_to_host(
-	_in mte_raw_instr	instr,
+	_in mte_raw_instr	*instr,
 	_in ir_context		*ctx,
 	_out u8			*len
 );
 
 ir_operand_set mips32_reg_fetch(
-	_in mte_raw_instr	instr,	
+	_in mte_raw_instr	*instr,	
 	_in ir_context		*ctx,
 	_out u8			*len
 );

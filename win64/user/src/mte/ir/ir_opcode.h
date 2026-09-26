@@ -43,12 +43,18 @@
 	and it`s semantics for all instructions in that group
 */
 
-#define IR_GROUP_INVALID 0
-#define IR_GROUP_ADD 1
-#define IR_GROUP_OR 2
-#define IR_GROUP_AND 3
-#define IR_GROUP_SUB 4
-#define IR_GROUP_MOV ((IR_DEST_NEQ_SRC << 10) | 5)
+enum ir_opcode_group : u16{
+	IR_GROUP_INVALID = 0,
+	IR_GROUP_ADD,
+	IR_GROUP_OR,
+	IR_GROUP_AND,
+	IR_GROUP_SUB,
+
+	IR_GROUP_ALLOC = 	((IR_DEST_NEQ_SRC << 10) | (IR_GROUP_SUB + 1)),
+	IR_GROUP_DEALLOC = 	((IR_DEST_NEQ_SRC << 10) | (IR_GROUP_ALLOC + 1)),
+
+	IR_GROUP_MOV = 		((IR_DEST_NEQ_SRC << 10) | (IR_GROUP_DEALLOC + 1)),
+};
 
 typedef enum _ir_opcode : u16{
 	IR_INVALID_OPCODE = 0,
@@ -76,7 +82,19 @@ typedef enum _ir_opcode : u16{
 	IR_MOV_I64	= _IR_OPI(1, IR_64BIT, IR_GROUP_MOV),	 // op[0] = mov i64 op[1]
 	IR_MOV_I32	= _IR_OPI(1, IR_32BIT, IR_GROUP_MOV),	 // op[0] = mov i32 op[1]
 	IR_MOV_I16	= _IR_OPI(1, IR_16BIT, IR_GROUP_MOV),	 // op[0] = mov i16 op[1]
-	IR_MOV_I8	= _IR_OPI(1, IR_8BIT, IR_GROUP_MOV),	 // op[0] = mov i8 op[1]
+	IR_MOV_I8	= _IR_OPI(1, IR_8BIT, IR_GROUP_MOV), 	 // op[0] = mov i8 op[1]
+
+	/*
+	 	Allocates stack memory, which may be different
+		instructions depending on the architecture
+	*/
+	IR_ALLOC 	= _IR_OPI(1, IR_32BIT, IR_GROUP_ALLOC),	 	// alloc op[0]
+
+	/*
+	 	Deallocates stack memory, which may be different
+		instructions depending on the architecture
+	*/
+	IR_DEALLOC	= _IR_OPI(1, IR_32BIT, IR_GROUP_DEALLOC),	 // dealloc op[0]
 } ir_opcode;
 
 #define IR_OPCODE_HAS_RETURN(opcode) 	((opcode >> 15) & 1)

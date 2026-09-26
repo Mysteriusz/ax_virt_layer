@@ -4,46 +4,28 @@
 #include "mte/cpu.h"
 #include "mte/ir/ir.h"
 
-#include "asm_types.h"
-
-
-/*
- 	Allocate spill space and calculate the offset of the 
-*/
-u8 asm_alloc_spill(
-	_in_out asm_reg_state 	(*state_map)[IR_SPILL_REG_LIMIT]
-);
+#include "mte/ir/tblock/asm/asm_types.h"
 
 /*
- 	Automatically allocate any register with spill management
-	for a specific role
+ 	Allocate role-specific register or spill
 
 	Return u16 is defined as following:
 
-	(SSSSSSSSRRRRRRRR)
+	(000000I RRRRRRRR)
 
-	S -> Spill 8 bit index
+	I -> Is spilled
 	R -> Register 8 bit index
 
-	Since each field is an index then
-	field of value 0xff is a special case
-		
 	If spill is present then 
-	the 8 LSB bits (R) are 0xff
+	the S bit is set and 'state_map' remains untouched
 
-	Example:
-		spill_idx << 8 | 0xff
-
-	If spill is not present then 
-	the 8 MSB bits (S) are 0xff
-
-	Example:
-		0xff | reg_idx
+	It is up to the caller to decide
+	what spill being present does
 */
-u16 asm_alloc_reg(
-	_in const struct cpu_reg_map 	*reg_map,
-	_in enum cpu_reg_role 		role,
-	_in_out asm_reg_state 		(*state_map)[IR_SPILL_REG_LIMIT]
+u16 asm_alloc_space(
+	_in const struct cpu_reg_map 	*const reg_map,
+	_in const enum cpu_reg_role 	role,
+	_in_out asm_reg_state 		(*const state_map)[IR_REG_LIMIT]
 );
 
 #endif // !defined(MTE_TBLOCK_CPU_INT)

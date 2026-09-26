@@ -174,11 +174,11 @@ typedef struct _i64_operand{
 		Identifier of the base register/value.
 
 		Example for SIB addressing:
-			[rax + rbx] -> id = rAX
-			[rdx + rcx * 10] -> id = rDX
+			[rax + rbx] -> id = I64_rAX
+			[rdx + rcx * 10] -> id = I64_rDX
 
 		Example for registers:
-			rax -> id = rAX
+			rax -> id = I64_rAX
 
 		Example for immediate 16/32 bits:
 			0xffff -> id = I64_INT_16
@@ -190,7 +190,7 @@ typedef struct _i64_operand{
 		value or additional information is stored in the [value] field.
 
 		If [desc.type] & I64_REG:
-			- [value] = ZERO;
+			- [value] = 0;
 		If [desc.type] & I64_IMM:
 			- [value] = Register-width value;
 		If [desc.type] & I64_MEM:

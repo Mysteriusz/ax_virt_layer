@@ -265,6 +265,18 @@ i64_opcode_desc L1_OPCODE_META_TABLE[0xff] = {
 		.form = FORM_rAX_IMM,
 	},
 
+	/*
+	 	PUSH instruction group
+	*/
+
+	[PUSH_R64 & 0xff] = {
+		.ops_count = 1,
+		.ops[0].type = I64_REG,
+		.ops[0].width = W64,
+		.flags = 0,
+		.prefix = I64_NO_PREF,
+		.form = FORM_R,
+	},
 
 	/*
 	 	MOV instruction group
@@ -286,7 +298,7 @@ i64_opcode_desc L1_OPCODE_META_TABLE[0xff] = {
 		.ops[0].width = W64,
 		.ops[1].type = I64_REG,
 		.ops[1].width = W64,
-		.flags = MODRM,
+		.flags = REX | MODRM,
 		.prefix = I64_NO_PREF,
 		.form = FORM_RM_R,
 	},
@@ -306,7 +318,7 @@ i64_opcode_desc L1_OPCODE_META_TABLE[0xff] = {
 		.ops[0].width = W64,
 		.ops[1].type = I64_REG | I64_MEM,
 		.ops[1].width = W64,
-		.flags = MODRM,
+		.flags = REX | MODRM,
 		.prefix = I64_NO_PREF,
 		.form = FORM_R_RM,
 	},

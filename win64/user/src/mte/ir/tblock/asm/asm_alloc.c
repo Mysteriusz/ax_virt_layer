@@ -3,30 +3,12 @@
 #include "mte/cpu.h"
 #include "mte/perf.h"
 
-#include "asm_alloc.h"
+#include "mte/ir/tblock/asm/asm_alloc.h"
 
-u8 asm_alloc_spill(
-	_in_out asm_reg_state 		(*state_map)[IR_SPILL_REG_LIMIT]
-){
-	if (__builtin_expect(state_map == nullptr, false)){
-		return 0;
-	}
-
-	u16 i = 0;
-	while(i < IR_SPILL_LIMIT){
-		if ((*state_map)[IR_REG_LIMIT + i] == REG_FREE){
-			(*state_map)[IR_REG_LIMIT + i] = REG_OCCUPIED;
-			return i;
-		}
-		i++;
-	}
-	return 0;
-}
-
-u16 asm_alloc_reg(
-	_in const struct cpu_reg_map 	*reg_map,
-	_in enum cpu_reg_role 		role,
-	_in_out asm_reg_state 		(*state_map)[IR_SPILL_REG_LIMIT]
+u16 asm_alloc_space(
+	_in const struct cpu_reg_map 	*const reg_map,
+	_in const enum cpu_reg_role 	role,
+	_in_out asm_reg_state 		(*const state_map)[IR_REG_LIMIT]
 ){
 	if (__builtin_expect(reg_map == nullptr, false)){
 		return 0;
@@ -38,8 +20,12 @@ u16 asm_alloc_reg(
 	u8 idx = 0;
 	u8 count = 0;
 
-	u16 mask = (*reg_map->role_map)[role];
-	u32 n = __builtin_popcount((*reg_map->role_map)[role]); // Count of all registers
+	/*
+	 	SUPER IMPORTANT TODO!!!!!!
+		THE INDEX SHOULD NOT BE FIXED AS 0 SINCE IT REGISTER COUNT TO 64
+	*/
+	u64 mask = (*reg_map->role_map)[role][0];
+	u32 n = __builtin_popcountll((*reg_map->role_map)[role][0]); // Count of all registers
 
 	struct cpu_reg_desc *alloc = nullptr;
 	while (count < n){
@@ -71,13 +57,13 @@ u16 asm_alloc_reg(
 	}
 
 	/*
-	 	Allocate spill index
+	 	Spill present
 	*/
 	if (alloc == nullptr){
-		return asm_alloc_spill(state_map) << 8 | 0xff;
+		return (1 << 8);
 	}
 
 	(*state_map)[idx] = REG_OCCUPIED;
-	return 0xff << 8 | alloc->id;
+	return alloc->id;
 }
 

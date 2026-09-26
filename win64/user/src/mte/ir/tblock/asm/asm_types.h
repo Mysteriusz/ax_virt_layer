@@ -3,8 +3,7 @@
 
 #include <ax_type.h>
 
-typedef u16 asm_reg_liveness;
-
+typedef u8 asm_reg_liveness;
 
 typedef struct _asm_reg_assoc{
 	/*
@@ -14,7 +13,7 @@ typedef struct _asm_reg_assoc{
 			(S) -> Spilled;
 	*/
 	u8 	flags;
-	u8	id; // Host architecture-specific register/spill id/index
+	u16	id; // Host architecture-specific register/spill id/index
 } asm_reg_assoc;
 
 inline static bool _ir_reg_assoc_used(asm_reg_assoc assoc){

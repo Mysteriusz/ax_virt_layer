@@ -6,8 +6,8 @@
 #include "mte/ir/tblock/tblock_debug.h"
 
 struct tblock_pass_result tblock_liveness_scan(
-	_in ir_context	*const ir,
-	_in_out tblock	*const block
+	_in ir_context	ir _prepass_with(const restrict),
+	_in_out tblock	block _prepass_with(const restrict)
 ){
 	if (__builtin_expect(ir == nullptr, false)){
 		return (struct tblock_pass_result){.res = AX_INV_ARG};
@@ -48,10 +48,10 @@ struct tblock_pass_result tblock_liveness_scan(
 		/*
 		 	Load instruction with code data
 		*/
-		mte_raw_instr raw_instr = {
+		mte_raw_instr guest_instr = {
 			.arch = _TBLOCK_DESC->guest_arch,
 		};
-		memcpy(raw_instr.payload, _TBLOCK_GUEST_PTR, 16);
+		memcpy(guest_instr.payload, _TBLOCK_GUEST_PTR, 16);
 	
 		/*
 		 	Determine registers used, 
@@ -59,7 +59,7 @@ struct tblock_pass_result tblock_liveness_scan(
 		*/
 		ir_operand_set set = 
 			_TBLOCK_DESC->call.guest_reg_fetch(
-				raw_instr, ir,
+				&guest_instr, ir,
 				&guest_len
 			);
 
@@ -87,8 +87,8 @@ struct tblock_pass_result tblock_liveness_scan(
 	return (struct tblock_pass_result){.count = _TBLOCK_PASS_IDX, .res = AX_SUCC};
 }
 struct tblock_pass_result tblock_raw_to_ir(
-	_in ir_context	*const ir,
-	_in_out tblock	*const block
+	_in ir_context	ir _prepass_with(const restrict),
+	_in_out tblock	block _prepass_with(const restrict)
 ){
 	if (__builtin_expect(ir == nullptr, false)){
 		return (struct tblock_pass_result){.res = AX_INV_ARG};
@@ -115,17 +115,17 @@ struct tblock_pass_result tblock_raw_to_ir(
 		/*
 		 	Load instruction with code data
 		*/
-		mte_raw_instr raw_instr = {
+		mte_raw_instr guest_instr = {
 			.arch = _TBLOCK_DESC->guest_arch,
 		};
-		memcpy(raw_instr.payload, _TBLOCK_GUEST_PTR, 16);
+		memcpy(guest_instr.payload, _TBLOCK_GUEST_PTR, 16);
 
 		/*
 		 	Convert guest instruction to IR
 		*/
 		ir_raw_instr ir_instr = 
 			_TBLOCK_DESC->call.guest_to_ir(
-				raw_instr, ir,
+				&guest_instr, ir,
 				&guest_len);
 		if (__builtin_expect(ir_instr.opcode == IR_INVALID_OPCODE, false)){
 			goto skip;
@@ -136,6 +136,7 @@ struct tblock_pass_result tblock_raw_to_ir(
 			(Allocate registers for the host cpu)
 		*/
 		asm_fill_assoc(ir, &ir_instr, 
+			&_TBLOCK->spill_cnt,
 			&_TBLOCK->assoc,
 			&_TBLOCK->state);
 
@@ -144,7 +145,6 @@ struct tblock_pass_result tblock_raw_to_ir(
 		*/
 		asm_fix_instr(ir, &ir_instr,
 			&_TBLOCK->assoc);
-
 
 		/*
 		 	Expand and save the IR instruction to the IR buffer
@@ -185,8 +185,8 @@ skip: // TEMP
 }
 
 struct tblock_pass_result tblock_ir_to_raw(
-	_in_out ir_context	*const ir,
-	_in tblock		*const block
+	_in_out ir_context	ir _prepass_with(const restrict),
+	_in tblock		block _prepass_with(const restrict)
 ){
 	if (__builtin_expect(ir == nullptr, false)){
 		return (struct tblock_pass_result){.res = AX_INV_ARG};
@@ -198,22 +198,62 @@ struct tblock_pass_result tblock_ir_to_raw(
 	struct ir_context_desc *const desc = &ir->desc;
 
 	u8 host_len = 0;
-	u32 ir_i = 0;
 
-	while(ir_i < block->ir_cnt){
-		auto ir_instr = (ir_raw_instr *const)&block->ir_buf.base[ir_i];
+	u32 ir_idx = 0;
+	u32 ir_spill_idx = 0;
+
+	auto host_ptr = desc->host_ptr;
+
+	block->spill_cnt = 0;
+
+	/*
+	   	Prologue
+
+	 	Emit 'block->spill_cnt' amount of allocations
+		for spilled registers
+	*/
+	while(ir_spill_idx < block->spill_cnt){
+		ir_raw_instr gen = {
+			.opcode = IR_ALLOC,
+			.set = (ir_operand_set){
+				.ops_count = 1,
+				.ops = {
+					[0] = (ir_operand){
+						.kind = IR_OP_IMM,
+						.id = desc->host_map->reg_width,
+					},
+				},
+			},
+		};
+
+		mte_raw_instr host_instr = 
+			desc->call.ir_to_host(
+				&gen, ir,
+				&host_len);
+
+		memcpy(host_ptr, host_instr.payload, host_len);
+
+		host_ptr = offp(host_ptr, host_len);
+		ir_spill_idx++;
+	}
+
+	/*
+	   	Body
+
+	 	Emit 'block->ir_cnt' amount of IR instructions
+	*/
+	while(ir_idx < block->ir_cnt){
+		auto ir_instr = (ir_raw_instr *const)&block->ir_buf.base[ir_idx];
 		asrt(ir_instr->opcode != IR_INVALID_OPCODE,
-			io_str(u"Invalid IR opcode generated at index");
-			io_i64(ir_i);
-			io_str(u"Out of:");
-			io_i64(block->ir_cnt);
-			printf("Opcode: %u\n", ir_instr->opcode);
+			_tblock_error_log(ir, block);
+			io_afstr(ANSI("Invalid IR opcode generated at index %lu, Out of %lu\n"),
+				ir_idx,
+				block->ir_cnt);
 		);
 
 		mte_raw_instr host_instr = 
 			desc->call.ir_to_host(
-				*ir_instr,
-				ir,
+				ir_instr, ir,
 				&host_len);
 
 		/*
@@ -222,12 +262,23 @@ struct tblock_pass_result tblock_ir_to_raw(
 			This is only temporary and should be removed due to the overhead
 			Maybe use SIMD?
 		*/
-		memcpy(desc->host_ptr, host_instr.payload, host_len);
+		memcpy(host_ptr, host_instr.payload, host_len);
 
-		desc->host_ptr = offp(desc->host_ptr, host_len);
-		ir_i++;
+		host_ptr = offp(host_ptr, host_len);
+		ir_idx++;
 	}
 
-	return (struct tblock_pass_result){.count = block->ir_cnt, .res = AX_SUCC};
+	/*
+	   	Epilogue
+
+	 	Emit 'block->spill_cnt' amount of deallocations
+		for spilled registers
+	*/
+	while(ir_spill_idx > 0){
+		ir_spill_idx--;
+	}
+
+	return (struct tblock_pass_result){.count = block->ir_cnt + block->spill_cnt, .res = AX_SUCC};
 }
+
 

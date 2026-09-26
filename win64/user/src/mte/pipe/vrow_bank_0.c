@@ -16,7 +16,7 @@ bool vrow_bank_0_proc(
 	u8 len = 0;
 	// Execute bank processing function
 	b0->payload.result = 
-		func(b0->payload.instr, vrow->thread.stack.ir, &len);
+		func(&b0->payload.instr, vrow->thread.stack.ir, &len);
 
 	// Check if execution failed
 	if (b0->payload.result.opcode == IR_INVALID_OPCODE){

@@ -21,19 +21,29 @@ static u8 _i64_rex_resolve(
 	u8 dest = !!((sum.operand & BIT(3)) || (sum.operand & BIT(2)));
 	u8 src = !!((sum.operand & BIT(1)) || (sum.operand & BIT(0)));
 
-	u8 src_r = (flip ? src : dest) << 2;
-	u8 dest_rm = (flip ? dest : src);
 	u8 is_64bit = !!(sum.width & BIT(3)) << 3;
+	u8 src_r = (flip ? src : dest) << 2;
 	u8 sib_ext = !!(sum.operand & BIT(5)) << 1;
+	u8 dest_rm = (flip ? dest : src);
 
+	/*
+	 	REX follows the format
+
+		0010WRXB
+
+		W -> 64-bit width
+		R -> MODRM present
+		X -> Extended register in SIB index
+		B -> Extended register in MODRM/BASE/SIB
+	*/
 	u8 rex = (I64_REX_LABEL << 4)
-		| is_64bit 	// D
-		| src_r 	// D | C
-		| sib_ext 	// F
-		| dest_rm; 	// B | A
+		| is_64bit 	// width.D
+		| src_r 	// operand.D || operand.C
+		| sib_ext 	// width.F
+		| dest_rm; 	// operand.B || operand.A
 
 	switch(rex){
-	case 0x40: // Empty REX byte 9)
+	case 0x40: // Only the label was present
 		return 0;
 	default:
 		return rex;

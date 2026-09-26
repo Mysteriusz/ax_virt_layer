@@ -40,7 +40,7 @@ _inline_avert axres sched_create(
 	*/
 	res = sync_map_init(((vrow_count / 64) + 1) * 64, &sched->vrow_smap);
 	axcheck_r(res, res, {
-		ax_log(res);
+		_ax_log(res);
 		sched_delete(sched);
 	});
 
@@ -54,7 +54,7 @@ _inline_avert axres sched_create(
 			&sched->vrow_base[i]);
 
 		axcheck_r(res, res, { // TODO: Change the return code
-			ax_log(res);
+			_ax_log(res);
 			sched_delete(sched);
 		});
 	}
@@ -68,7 +68,7 @@ _inline_avert axres sched_create(
 		BITPOOL_PERC_DEFAULT,
 		&sched->queue);
 	axcheck_r(res, res, { // TODO: Change the return code
-		ax_log(res);
+		_ax_log(res);
 		sched_delete(sched);
 	});
 

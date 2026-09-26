@@ -6,7 +6,7 @@
 name = "ax_utility_lib"
 source_directory = "D:/ax_project/ax_virt_layer_utils/utils/ax_utility_lib/src"
 header_directory = "D:/ax_project/ax_virt_layer_utils/utils/ax_utility_lib/src"
-output_directory = "D:/ax_project/ax_virt_layer_utils/utils/ax_utility_lib/build/WIN_UM"
+output_directory = "D:/ax_project/ax_virt_layer_utils/utils/ax_utility_lib/build/win_um/release"
 policies_directory = "D:/ax_project/quick_build_new/policies"
 
 #
@@ -25,6 +25,7 @@ command_policy_name = "MyCompile" 	# Toolchain policy name
 #
 flags = [
 	"m64",
+	"fno-stack-protector",
 	"Wno-deprecated-declarations",
 	"std=c23",
 	"mavx2",
@@ -54,7 +55,7 @@ command_policy_name = "AX_VIRT_LAYER_LIB" 		# Toolchain policy name
 name = "ax_virt_layer"
 source_directory = "D:/ax_project/ax_virt_layer/win64/user/src"
 header_directory = "D:/ax_project/ax_virt_layer/win64/user/src"
-output_directory = "D:/ax_project/ax_virt_layer/win64/user/build"
+output_directory = "D:/ax_project/ax_virt_layer/win64/user/build/release"
 policies_directory = "D:/ax_project/quick_build_new/policies"
 
 [[Entry.Pipeline]]
@@ -64,13 +65,14 @@ command_policy_name = "MyCompile"
 
 flags = [
 	"Wall",
+	"Werror",
 	"Wextra",
 	"m64",
 	"std=c23",
 	"mavx2",
 	"mbmi2",
 	"O3",
-	"-save-temps",
+	"fno-stack-protector",
 	"Wno-deprecated-declarations",
 	"Wno-pragma-pack",
 	"Wno-unknown-pragmas",
@@ -101,7 +103,8 @@ flags = [
 	"std=c23",
 	"mavx2",
 	"mbmi2",
-	"LD:/ax_project/ax_virt_layer_utils/utils/ax_utility_lib/build/win_um/",
+	"fno-stack-protector",
+	"LD:/ax_project/ax_virt_layer_utils/utils/ax_utility_lib/build/win_um/release",
 	"lax_utility_lib",
 	"lpdh",
 ]

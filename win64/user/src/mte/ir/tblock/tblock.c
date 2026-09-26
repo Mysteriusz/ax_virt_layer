@@ -22,6 +22,7 @@ _free _inline_avert tblock* tblock_alloc(
 		&(asm_reg_assoc){0}, sizeof(asm_reg_assoc));
 
 	out->ir_cnt = 0;
+	out->spill_cnt = 0;
 
 	*(ir_raw_instr**)&out->ir_buf.base = axmalloc(TBLOCK_IR_BUFFER_SIZE);
 	*(u32*)&out->ir_buf.capacity = TBLOCK_IR_BUFFER_SIZE / sizeof(ir_raw_instr);
@@ -61,6 +62,7 @@ __INL_PERF_START;
 	if (__builtin_expect(rti.res, AX_SUCC)){
 		return false;
 	}
+	
 __INL_PERF_END;
 
 	double r2 = __INL_PERF_SUM * _inl_perf_cpu_tsc_ratio();
@@ -71,17 +73,20 @@ __INL_PERF_START;
 	if (__builtin_expect(itr.res, AX_SUCC)){
 		return false;
 	}
+
 __INL_PERF_END;
 
 	double r3 = __INL_PERF_SUM * _inl_perf_cpu_tsc_ratio();
 
-	printf("CPU Frequency: %lf\n", _inl_perf_cpu_freq());
-	printf("IR instructions generated: %u\n", block->ir_cnt);
-	printf("Liveness pass in: %lf ns\n", r1 / (_inl_perf_cpu_freq() / 1000));
-	printf("Raw to ir pass in: %lf ns\n", r2 / (_inl_perf_cpu_freq() / 1000));
-	printf("IR to raw pass in: %lf ns\n", r3 / (_inl_perf_cpu_freq() / 1000));
-	printf("Time sum: %lf ns\n", (r1 + r2 + r3) / (_inl_perf_cpu_freq() / 1000));
-	printf("\n");
+	io_fstr(UTF16("CPU Frequency: %lf\n"), _inl_perf_cpu_freq());
+	io_fstr(UTF16("IR instructions generated: %u\n"), block->ir_cnt);
+	io_fstr(UTF16("Liveness pass in: %lf ns\n"), r1 / (_inl_perf_cpu_freq() / 1000));
+	io_fstr(UTF16("Raw to ir pass in: %lf ns\n"), r2 / (_inl_perf_cpu_freq() / 1000));
+	io_fstr(UTF16("IR to raw pass in: %lf ns\n"), r3 / (_inl_perf_cpu_freq() / 1000));
+	io_fstr(UTF16("Time sum: %lf ns\n"), (r1 + r2 + r3) / (_inl_perf_cpu_freq() / 1000));
+	io_fstr(UTF16("Host offset: %p\n"), ir->desc.host_ptr);
+	io_fstr(UTF16("Spilled count: %hu\n"), block->spill_cnt);
+	io_fstr(UTF16("\n"));
 
 	return true;
 }

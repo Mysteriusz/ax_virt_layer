@@ -122,7 +122,8 @@ struct i64_operand_sum i64_sum_calc(
 	return sum;
 }
 
-#include "i64_emit.h"
+#include "intel/emitter/i64_emit.h"
+
 axres i64_emit_64(
 	_in enum i64_opcode 	opcode,
 	_in i64_operand 	ops[I64_MAX_OP_COUNT],
@@ -149,6 +150,16 @@ axres i64_emit_64(
 	u8 opcode_p0 = (opcode >> 16) & 0xff;
 	u8 opcode_p1 = (opcode >> 8) & 0xff;
 	u8 opcode_p2 = opcode & 0xff;
+
+	/*
+	 	Example:
+			- ((opcode_desc.flags & REX) != 0) results in 1 or 0
+			if it results in 0 then the set value is also 0 because -0 == 0,
+			ir it results in 1 then the set value is -1 which is 0b11111111 in binary
+	*/
+	u8 rex_is_set = -((opcode_desc.flags & REX) != 0);
+	u8 leg_is_set = -((opcode_desc.flags & LEGACY) != 0);
+	u8 modrm_is_set = -((opcode_desc.flags & MODRM) != 0);
 		
 	/*
 	   	TODO: ADD CASE WHERE 2 OPERAND REGISTERS ARE NOT THE SAME WIDTH
@@ -159,7 +170,7 @@ axres i64_emit_64(
 	/*
 		Resolve REX
 	*/
-	u8 rex = _i64_rex_resolve(sum);
+	u8 rex = _i64_rex_resolve(sum) & rex_is_set;
 
 	i64_operand *sib_op =
 		&ops[sum.sib_i];
@@ -179,16 +190,13 @@ axres i64_emit_64(
 			adcx rax, [ebx]	(ADX instruction set)
 	*/
 
-	u8 leg = _i64_leg_resolve(sum);
+	u8 leg = _i64_leg_resolve(sum) & leg_is_set;
 
 	/*
 		Resolve MODRM (Only if applicable to the opcode)
 	*/
 
-	u8 modrm = 0;
-	if (opcode_desc.flags & MODRM){
-		modrm = _i64_modrm_resolve(ops[0].id, ops[1].id, sum);
-	}
+	u8 modrm = _i64_modrm_resolve(ops[0].id, ops[1].id, sum) & modrm_is_set;
 
 	u8 sib = _i64_sib_resolve(
 		sib_op->id,

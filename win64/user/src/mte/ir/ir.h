@@ -28,7 +28,7 @@ typedef struct _ir_context ir_context;
 
 // Translate guest (guest) asm to IR
 typedef ir_raw_instr (*const guest_to_ir_call)(
-	_in mte_raw_instr 	instr,
+	_in mte_raw_instr 	*instr,
 	_in ir_context 		*ctx,
 	_out u8			*len // Original instruction length (in bytes)
 );
@@ -41,7 +41,7 @@ static ir_raw_instr _invalid_guest_to_ir_call(
 
 // Translate IR to host (host) asm
 typedef mte_raw_instr (*const ir_to_host_call)(
-	_in ir_raw_instr 	instr,
+	_in ir_raw_instr 	*instr,
 	_in ir_context 		*ctx,
 	_out u8			*len // Target instruction length (in bytes)
 );
@@ -54,7 +54,7 @@ static mte_raw_instr _invalid_ir_to_host_call(
 
 // Fetch all register id`s from (guest) instruction 
 typedef ir_operand_set (*const guest_reg_fetch_call)(
-	_in mte_raw_instr 	instr,
+	_in mte_raw_instr 	*instr,
 	_in ir_context 		*ctx,
 	_out u8			*len
 );
@@ -65,9 +65,7 @@ static ir_operand_set _invalid_guest_reg_fetch_call(
 	exit(1);
 }
 
-#define IR_SPILL_LIMIT 0x100
 #define IR_REG_LIMIT 0x100
-#define IR_SPILL_REG_LIMIT (IR_SPILL_LIMIT + IR_REG_LIMIT)
 struct ir_context_desc{
 	// Cache line
 
@@ -77,8 +75,8 @@ struct ir_context_desc{
 	u8 			*guest_ptr;
 	u8 			*host_ptr;
 
-	struct cpu_reg_map 		*const guest_map;
-	struct cpu_reg_map 		*const host_map;
+	const struct cpu_reg_map 	*const guest_map;
+	const struct cpu_reg_map 	*const host_map;
 	
 	// Cache line
 
@@ -87,7 +85,7 @@ struct ir_context_desc{
 		 	TODO:
 				host_reg_fetch_call 	; Translate registers from host (host) to IR representation
 		*/
-		guest_to_ir_call 		guest_to_ir;
+		guest_to_ir_call 	guest_to_ir;
 		ir_to_host_call 	ir_to_host;
 		guest_reg_fetch_call 	guest_reg_fetch;
 	} call;

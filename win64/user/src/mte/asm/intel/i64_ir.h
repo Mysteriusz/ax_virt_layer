@@ -4,14 +4,8 @@
 #include "intel/instr/i64_operand.h"
 #include "intel/instr/i64_opcode.h"
 
-ir_raw_instr i64_raw_to_ir(
-	_in mte_raw_instr 	instr,
-	_in ir_context 		*ir,
-	_out u8			*len // Original instruction length (in bytes)
-);
-
 mte_raw_instr i64_ir_to_raw(
-	_in ir_raw_instr 	instr,
+	_in ir_raw_instr 	*instr,
 	_in ir_context 		*ir,
 	_out u8			*len // Target instruction length (in bytes)
 );
@@ -103,7 +97,7 @@ _inline_force bool _i64_ir_operand_trans(
 	so that you are not bound to max 2 output opcodes
 */
 bool i64_ir_opcode_conv(
-	_in ir_raw_instr	instr,
+	_in ir_raw_instr	*ir_instr,
 	_out enum i64_opcode 	*opcode_buf,
 	_out i64_operand 	(*operand_buf)[I64_MAX_OP_COUNT]
 );

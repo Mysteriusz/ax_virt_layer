@@ -9,7 +9,7 @@
 
 #include "mte/asm/decode_u64.h"
 
-#include "arch.h"
+#include "mte/arch.h"
 
 typedef struct _mte_raw_instr{
 	enum mte_arch	arch;

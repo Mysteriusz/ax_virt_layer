@@ -1,16 +1,20 @@
-#include "asm_alloc.h"
-#include "asm_instr_fix.h"
+#include "mte/ir/tblock/asm/asm_alloc.h"
+#include "mte/ir/tblock/asm/asm_instr_fix.h"
 
 void asm_fill_assoc(
 	_in const ir_context 	*ir,
 	_in ir_raw_instr 	*ir_instr,
-	_in_out asm_reg_assoc	(*assoc)[IR_SPILL_REG_LIMIT],
-	_in_out asm_reg_state	(*state)[IR_SPILL_REG_LIMIT]
+	_in u16			*spill_cnt,
+	_in_out asm_reg_assoc	(*assoc)[IR_REG_LIMIT],
+	_in_out asm_reg_state	(*state)[IR_REG_LIMIT]
 ){
 	if (__builtin_expect(ir == nullptr, false)){
 		return;
 	}
 	if (__builtin_expect(ir_instr == nullptr, false)){
+		return;
+	}
+	if (__builtin_expect(spill_cnt == nullptr, false)){
 		return;
 	}
 	if (__builtin_expect(assoc == nullptr, false)){
@@ -20,10 +24,12 @@ void asm_fill_assoc(
 		return;
 	}
 
+	// TODO: This may not be desired
 	u8 idx = ir_instr->set.ops[0].id == ir_instr->set.ops[1].id
 		? 1 : 0;
-	struct cpu_reg_map *guest_map = ir->desc.guest_map;
-	struct cpu_reg_map *host_map = ir->desc.host_map;
+
+	const struct cpu_reg_map *guest_map = ir->desc.guest_map;
+	const struct cpu_reg_map *host_map = ir->desc.host_map;
 
 	/*
 	 	Iterate over the entire instruction operand set
@@ -42,31 +48,26 @@ void asm_fill_assoc(
 		// Role of the guest (Guest) register
 		enum cpu_reg_role guest_role = guest_map->root[ir_reg->id].role;
 
-		// Allocate host (Host) the register/spill
-		u16 alloc = asm_alloc_reg(host_map, guest_role, state);
+		// Allocate host`s register/spill
+		u16 alloc = asm_alloc_space(host_map, guest_role, state);
 
 		/*
 			Calculate the effective id and spill 
 			based on the 'asm_alloc_reg' return value encoding
 		*/
-		u8 alloc_id = (alloc & (alloc >> 8)) & 0xff;
-		bool is_spill = alloc >> 8 != 0xff;
-
-		/*
-			TODO: Support spilling
-		*/
-		asrt(!is_spill, ax_log_msg(AX_NOT_IMP,
-			u"Register spilling not supported."));
+		u16 alloc_id = alloc & 0xff;
+		bool is_spill = !!(alloc >> 8);
 
 		(*assoc)[ir_reg->id].flags = _ir_reg_assoc_flags(true, is_spill);
-		(*assoc)[ir_reg->id].id = alloc_id;
+		(*assoc)[ir_reg->id].id = is_spill ? *spill_cnt : alloc_id;
+		*spill_cnt += is_spill;
 	}
 }
 
 void asm_fix_instr(
 	_in const ir_context 	*ir,
 	_in_out ir_raw_instr 	*ir_instr,
-	_in_out asm_reg_assoc	(*assoc)[IR_SPILL_REG_LIMIT]
+	_in_out asm_reg_assoc	(*assoc)[IR_REG_LIMIT]
 ){
 	if (__builtin_expect(ir == nullptr, false)){
 		return;
@@ -110,12 +111,12 @@ u32 asm_expand_instr(
 	}
 
 	if (__builtin_expect(ir_instr == buf, false)){
-		asrt(0, ax_log_msg(AX_INV_ARG,
+		asrt(0, _ax_log_msg(AX_INV_ARG,
 			u"Instruction pointer cannot be equal to the instruction buffer"));
 	}
 
-	u8 guest_isa = MTE_ARCH_ISA_FORM(ir->desc.guest_arch);
-	u8 host_isa = MTE_ARCH_ISA_FORM(ir->desc.host_arch);
+	u8 guest_isa_form = MTE_ARCH_ISA_FORM(ir->desc.guest_arch);
+	u8 host_isa_form = MTE_ARCH_ISA_FORM(ir->desc.host_arch);
 
 	u8 count = 0;
 
@@ -123,17 +124,17 @@ u32 asm_expand_instr(
 	 	Best case scenario that ISA forms are the same
 		and there is no need for expansion
 	*/
-	if (guest_isa == host_isa){
+	if (guest_isa_form == host_isa_form){
 		buf[0] = *ir_instr;
 		return 1;
 	}
 
 	const ir_operand_set *set = &ir_instr->set;
 
-	switch(host_isa){
+	switch(host_isa_form){
 	case MTE_ISA_TWO_OP:
 		if (__builtin_expect(buf_len <= 1, false)){
-			asrt(0, ax_log_msg(AX_BUF_TOO_SMALL,
+			asrt(0, _ax_log_msg(AX_BUF_TOO_SMALL,
 				u"Not enough space left in the buffer for instruction fix."));
 		}
 
@@ -187,7 +188,7 @@ u32 asm_expand_instr(
 
 		break;
 	default:
-		asrt(0, ax_log_msg(AX_NOT_IMP,
+		asrt(0, _ax_log_msg(AX_NOT_IMP,
 			u"This ISA form expansion is not supported"));
 	}
 
@@ -198,8 +199,8 @@ void asm_flush_by_liveness(
 	_in const ir_context 		*ir,
 	_in const u8			liveness_block_idx,
 	_in const asm_reg_liveness	(*liveness)[IR_REG_LIMIT],
-	_in_out asm_reg_assoc		(*assoc)[IR_SPILL_REG_LIMIT],
-	_in_out asm_reg_state		(*state)[IR_SPILL_REG_LIMIT]
+	_in_out asm_reg_assoc		(*assoc)[IR_REG_LIMIT],
+	_in_out asm_reg_state		(*state)[IR_REG_LIMIT]
 ){
 	if (__builtin_expect(ir == nullptr, false)){
 		return;
@@ -215,7 +216,7 @@ void asm_flush_by_liveness(
 	}
 
 	const u16 block_bit = BIT(liveness_block_idx);
-	struct cpu_reg_map *guest_map = ir->desc.guest_map; 
+	const struct cpu_reg_map *guest_map = ir->desc.guest_map; 
 
 	/*
 	 	Iterate over all registers in the assoc and clear them

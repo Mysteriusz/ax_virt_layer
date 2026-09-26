@@ -5,7 +5,7 @@
 #include <ax_type.h>
 #include <ax_memory.h>
 
-#include "perf.h"
+#include "mte/perf.h"
 
 double __inl_perf_tsc_freq;
 double __inl_perf_cpu_freq;

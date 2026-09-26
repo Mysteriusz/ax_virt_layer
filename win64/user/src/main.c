@@ -7,6 +7,7 @@
 #include "mte/asm/mips/mips32_opcode.h"
 #include "mte/asm/intel/i64.h"
 #include "mte/asm/intel/instr/i64_operand.h"
+#include "mte/asm/intel/instr/i64_operand.h"
 
 #include <stdarg.h>
 #include <x86intrin.h>
@@ -38,6 +39,35 @@ int main(){
 
 	axres res = 0;
 
+#if 0
+	u8 written = 0;
+	u8 instr_hold[16] = {0};
+
+	for (u32 i = 0; i < 100000; i++){
+		res = i64_emit_64(
+			PUSH_R64,
+			(i64_operand[I64_MAX_OP_COUNT]){
+				[0] = {
+					.id = I64_rAX,
+					.desc = {
+						.width = W64,
+						.type = 0,
+					},
+				},
+			},
+			instr_hold,
+			&written
+		);
+	}
+
+	u8 i = 0;
+	while(i < written){
+		printf("%02x", instr_hold[i++]);
+	}
+	axcheck(res);
+
+	//printf("Average time in ns: %lf\n", ((double)__INL_PERF_SUM / 100000) / 4.2);
+#endif
 #if 0
 	u8 instr_hold[16] = {0};
 	u64 val = 0;
@@ -152,8 +182,10 @@ int main(){
 #if 1
 	ir_context *ir;
 	res = ir_create(IR_LATEST, MIPS32, INTEL64, GIB(1), GIB(1), &ir);
-	axcheck(res, ax_log(res));
+	axcheck(res, _ax_log(res));
 
+	//((u32*)ir->desc.guest.base)[0] = 0x012A4820; // add $t1, $t1, $t2
+	//((u32*)ir->desc.guest.base)[1] = 0x016C5820; // add $t3, $t3, $t4
 #if 1
 ((u32*)ir->desc.guest.base)[0] = 0x012A4820; // add $t1, $t1, $t2
 ((u32*)ir->desc.guest.base)[1] = 0x01495020; // add $t2, $t2, $t1
@@ -164,27 +196,19 @@ int main(){
 ((u32*)ir->desc.guest.base)[6] = 0x012A4824; // and $t1, $t1, $t2
 ((u32*)ir->desc.guest.base)[7] = 0x01495024; // and $t2, $t2, $t1
 ((u32*)ir->desc.guest.base)[8] = 0x014A4820; // add $t1, $t2, $t2
+	u8 expected[200] = {0x4d, 0x01, 0xda, 0x4d, 0x01, 0xd3, 0x4d, 0x29, 0xda, 0x4d, 0x29, 0xd3, 0x4d, 0x09, 0xda, 0x4d, 0x09, 0xd3, 0x4d, 0x21, 0xda, 0x4d, 0x21, 0xd3, 0x4d, 0x89, 0xda, 0x4d, 0x01, 0xda};
+
+#else
+	u8 expected[200] = {0};
 #endif
 #if 0
 	((u32*)ir->desc.code_base.ptr)[0] = 0x014A4820; // sub $t1, $t2, $t2
 	((u32*)ir->desc.code_base.ptr)[1] = 0x014A4822; // sub $t1, $t2, $t2
-	//((u32*)ir->desc.code_base.ptr)[0] = 0x01295022; // sub $t2, $t1, $t1
 #endif
-
-	//((u32*)ir->desc.code_base)[0] = 0x01896020; // add $t4, $t4, $t1
-	//((u32*)ir->desc.code_base)[1] = 0x016C5820; // add $t3, $t3, $t4
-	//((u32*)ir->desc.code_base)[1] = 0x016C5820; // add $t3, $t3, $t4
-	//((u32*)ir->desc.code_base)[2] = 0x01AE6820; // add $t5, $t5, $t6
-	//((u32*)ir->desc.code_base)[0] = 0x01F87820; // add $t7, $t7, $t8
-	//((u32*)ir->desc.code_base)[1] = 0x030FC020; // add $t8, $t8, $t7
-	
-	//((u32*)ir->desc.code_base)[4] = 0x01CF7020; // add $t6, $t6, $t7
-	//((u32*)ir->desc.code_base)[5] = 0x0319C020; // add $t8, $t8, $t9
-
 	tblock *const block = tblock_alloc(TBLOCK_BIG);
 
-	for (u32 i = 0; i < 1000; i++){
-	bool emit = tblock_emit(ir, block);
+	for (u32 i = 0; i < 10000; i++){
+		bool emit = tblock_emit(ir, block);
 		if (!emit){
 			return 0;
 		}
@@ -193,14 +217,15 @@ int main(){
 
 	u8 i = 0;
 	while(i < 200){
-		printf("%02x", ir->desc.guest.base[i++]);
-	}
-	i = 0;
-	printf("\n%llu\n", (u64)ir->desc.guest_ptr - (u64)ir->desc.guest.base);
-	while(i < 200){
 		printf("%02x", ir->desc.host.base[i++]);
 	}
 	printf("\n%llu\n", (u64)ir->desc.host_ptr - (u64)ir->desc.host.base);
+
+	if (_sfmemcmp_fast(ir->desc.host.base, expected, 200) != 0){
+		io_afstr(ANSI("Compile generated invalid code"));
+	}else{
+		io_afstr(ANSI("Expected output"));
+	}
 
 	axfree(block);
 #endif

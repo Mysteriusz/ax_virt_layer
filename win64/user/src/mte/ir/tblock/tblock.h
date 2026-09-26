@@ -21,6 +21,8 @@ typedef struct _align(64) _tblock{
 	u16				ir_cnt; // Count of instructions written to 'ir_buf.ptr'
 	__IR_DATA_BUFFER(ir_raw_instr) 	ir_buf;
 
+	u16				spill_cnt;
+
 	/*
 	 	Each bit of the u16 represents the 16-byte aligned block,
 		for each register identifier.
@@ -32,11 +34,11 @@ typedef struct _align(64) _tblock{
 	/*
 	 	Associations between guest (guest) and host (host) registers.
 	*/
-	asm_reg_assoc		assoc[IR_SPILL_REG_LIMIT];
+	asm_reg_assoc		assoc[IR_REG_LIMIT];
 	/*
 	 	States of individual guest (guest) registers
 	*/
-	asm_reg_state		state[IR_SPILL_REG_LIMIT];
+	asm_reg_state		state[IR_REG_LIMIT];
 } tblock;
 
 /*

@@ -6,7 +6,7 @@
 typedef enum _ir_operand_kind : u8{
 	IR_OP_REG = 0, // [id] == arch specific register id
 	IR_OP_MEM = 1, // [id] == index in ir pointer buffer
-	IR_OP_IMM = 2, // [id] == index in ir imimediate buffer
+	IR_OP_IMM = 2, // [id] == index in ir immediate buffer
 } ir_operand_kind;
 
 typedef struct _ir_operand{

@@ -9,12 +9,8 @@
 #define I64_REG_COUNT 16
 #define I64_REG_WIDTH 64
 
-extern u16 _I64_CPU_REG_ROLE_MAP[0xff];
-extern struct cpu_reg_map _I64_CPU_REG_MAP;
-
-_inline_avert void i64_load_cpu_reg_map(
-	void
-);
+extern const u64 _I64_CPU_REG_ROLE_MAP[REG_ROLE_MAX][4];
+extern const struct cpu_reg_map _I64_CPU_REG_MAP;
 
 #endif // !defined(MTE_I64_CPU_INT)
 

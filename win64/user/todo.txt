@@ -2,7 +2,7 @@ Urgent:
 
 [x] Add SUB, XOR, AND, OR, NOT instructions to both IR and I64 and MIPS32
 
-[] TODO in compile_op_fix.c
+[] SUPER TODO in asm_alloc.c
 
 Later:
 

@@ -1,6 +1,16 @@
-#include "mips32_cpu.h"
+#include "mips/mips32_cpu.h"
 
-struct cpu_reg_map _MIPS32_CPU_REG_MAP = {
+const u64 _MIPS32_CPU_REG_ROLE_MAP[REG_ROLE_MAX][4] = {
+	[REG_PRESERVE]  = { 0x0CFF0001ULL, 0ULL, 0ULL, 0ULL }, // root[0, 16..23, 26, 27]
+	[REG_TEMP]      = { 0x0300FE02ULL, 0ULL, 0ULL, 0ULL }, // root[1, 8..15, 24, 25]
+	[REG_RETURN]    = { 0x8000000CULL, 0ULL, 0ULL, 0ULL }, // root[2, 3, 31]
+	[REG_STACK]     = { 0x000000F0ULL, 0ULL, 0ULL, 0ULL }, // root[4..7]
+	[REG_FRAME_PTR] = { 0x10000000ULL, 0ULL, 0ULL, 0ULL }, // root[28]
+	[REG_STACK_PTR] = { 0x20000000ULL, 0ULL, 0ULL, 0ULL }, // root[29]
+	[REG_MEM_PTR]   = { 0x40000000ULL, 0ULL, 0ULL, 0ULL }, // root[30]
+};
+
+const struct cpu_reg_map _MIPS32_CPU_REG_MAP = {
 	.reg_count = MIPS32_REG_COUNT,
 	.reg_width = MIPS32_REG_WIDTH,
 	.root = (struct cpu_reg_desc[MIPS32_REG_COUNT]){
@@ -37,5 +47,6 @@ struct cpu_reg_map _MIPS32_CPU_REG_MAP = {
 		[30] = {.id = R30, 	.role = REG_MEM_PTR,   .value = 0},
 		[31] = {.id = R31, 	.role = REG_RETURN,    .value = 0},
 	},
+	.role_map = &_MIPS32_CPU_REG_ROLE_MAP,
 };
 

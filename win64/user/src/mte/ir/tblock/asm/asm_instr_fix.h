@@ -3,7 +3,7 @@
 
 #include "mte/ir/ir.h"
 
-#include "asm_types.h"
+#include "mte/ir/tblock/asm/asm_types.h"
 
 /*
 	Fill the association table
@@ -12,8 +12,9 @@
 void asm_fill_assoc(
 	_in const ir_context 	*ir,
 	_in ir_raw_instr 	*ir_instr,
-	_in_out asm_reg_assoc	(*assoc)[IR_SPILL_REG_LIMIT],
-	_in_out asm_reg_state	(*state)[IR_SPILL_REG_LIMIT]
+	_in u16			*spill_cnt,
+	_in_out asm_reg_assoc	(*assoc)[IR_REG_LIMIT],
+	_in_out asm_reg_state	(*state)[IR_REG_LIMIT]
 );
 
 /*
@@ -27,7 +28,7 @@ void asm_fill_assoc(
 void asm_fix_instr(
 	_in const ir_context 	*ir,
 	_in_out ir_raw_instr 	*ir_instr,
-	_in_out asm_reg_assoc	(*assoc)[IR_SPILL_REG_LIMIT]
+	_in_out asm_reg_assoc	(*assoc)[IR_REG_LIMIT]
 );
 
 /*
@@ -37,9 +38,9 @@ void asm_fix_instr(
 	When instruction is to be translated to an ISA
 	which requires dest/src0 operand and the current
 	instruction is not compliant then expand it 
-	to 2 subsequent instructions
+	to n subsequent instructions
 
-	Example:
+	Example for host_isa_form == MTE_ISA_TWO_OP:
 		IR:
 
 		- add r0, r1, r2
@@ -51,6 +52,8 @@ void asm_fix_instr(
 
 	Returns the amount of IR instructions
 	written to buf
+
+	If buf
 */
 u32 asm_expand_instr(
 	_in const ir_context 		*ir,
@@ -67,8 +70,8 @@ void asm_flush_by_liveness(
 	_in const ir_context 		*ir,
 	_in const u8			liveness_idx,
 	_in const asm_reg_liveness	(*liveness)[IR_REG_LIMIT],
-	_in_out asm_reg_assoc		(*assoc)[IR_SPILL_REG_LIMIT],
-	_in_out asm_reg_state		(*state)[IR_SPILL_REG_LIMIT]
+	_in_out asm_reg_assoc		(*assoc)[IR_REG_LIMIT],
+	_in_out asm_reg_state		(*state)[IR_REG_LIMIT]
 );
 
 #endif // !defined(MTE_OPERAND_FIX_INT)

@@ -4,11 +4,11 @@
 #include "intel/instr/i64_opcode.h"
 #include "intel/instr/i64_instr.h"
 
-#include "i64_leg.h"
-#include "i64_rex.h"
-#include "i64_immd.h"
-#include "i64_modrm.h"
-#include "i64_sib.h"
+#include "intel/emitter/i64_leg.h"
+#include "intel/emitter/i64_rex.h"
+#include "intel/emitter/i64_immd.h"
+#include "intel/emitter/i64_modrm.h"
+#include "intel/emitter/i64_sib.h"
 
 /*
  	Emit IA-32e 64-bit instruction

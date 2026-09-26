@@ -21,6 +21,8 @@ enum cpu_reg_role : u8{
 	REG_STACK_PTR		= 0x10, // Ex: i64.rsi
 	REG_FRAME_PTR		= 0x11, // Ex: mips32.fp
 	REG_MEM_PTR		= 0x12, // Ex: mips32.gp
+
+	REG_ROLE_MAX
 };
 struct cpu_reg_desc{
 	reg64			value; // Register placeholder
@@ -31,7 +33,7 @@ struct cpu_reg_desc{
 struct cpu_reg_map{
 	const u16		reg_count; // Register count
 	const u16		reg_width; // Max register width
-	u16			(*role_map)[0xff]; // Register id to role map
+	const u64		(*const role_map)[REG_ROLE_MAX][4]; // Role to bitmap
 	struct cpu_reg_desc	*const root; // Register array
 };
 
